@@ -30,3 +30,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Lockfile do npm: o lockfile canônico deste projeto é o bun.lock, que o Lovable
+# gera e mantém. Versionar os dois faz as árvores de dependência divergirem.
+# Trabalhar com npm localmente funciona — só não commite o lock dele.
+package-lock.json
