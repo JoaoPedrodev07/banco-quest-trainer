@@ -9,8 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RevisoesRouteImport } from './routes/revisoes'
+import { Route as QuestoesRouteImport } from './routes/questoes'
+import { Route as ProvasRouteImport } from './routes/provas'
+import { Route as EditalRouteImport } from './routes/edital'
+import { Route as ConfigRouteImport } from './routes/config'
 import { Route as IndexRouteImport } from './routes/index'
 
+const RevisoesRoute = RevisoesRouteImport.update({
+  id: '/revisoes',
+  path: '/revisoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuestoesRoute = QuestoesRouteImport.update({
+  id: '/questoes',
+  path: '/questoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProvasRoute = ProvasRouteImport.update({
+  id: '/provas',
+  path: '/provas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditalRoute = EditalRouteImport.update({
+  id: '/edital',
+  path: '/edital',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfigRoute = ConfigRouteImport.update({
+  id: '/config',
+  path: '/config',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +49,90 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/config': typeof ConfigRoute
+  '/edital': typeof EditalRoute
+  '/provas': typeof ProvasRoute
+  '/questoes': typeof QuestoesRoute
+  '/revisoes': typeof RevisoesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/config': typeof ConfigRoute
+  '/edital': typeof EditalRoute
+  '/provas': typeof ProvasRoute
+  '/questoes': typeof QuestoesRoute
+  '/revisoes': typeof RevisoesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/config': typeof ConfigRoute
+  '/edital': typeof EditalRoute
+  '/provas': typeof ProvasRoute
+  '/questoes': typeof QuestoesRoute
+  '/revisoes': typeof RevisoesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/config' | '/edital' | '/provas' | '/questoes' | '/revisoes'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/config' | '/edital' | '/provas' | '/questoes' | '/revisoes'
+  id:
+    | '__root__'
+    | '/'
+    | '/config'
+    | '/edital'
+    | '/provas'
+    | '/questoes'
+    | '/revisoes'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConfigRoute: typeof ConfigRoute
+  EditalRoute: typeof EditalRoute
+  ProvasRoute: typeof ProvasRoute
+  QuestoesRoute: typeof QuestoesRoute
+  RevisoesRoute: typeof RevisoesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/revisoes': {
+      id: '/revisoes'
+      path: '/revisoes'
+      fullPath: '/revisoes'
+      preLoaderRoute: typeof RevisoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/questoes': {
+      id: '/questoes'
+      path: '/questoes'
+      fullPath: '/questoes'
+      preLoaderRoute: typeof QuestoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/provas': {
+      id: '/provas'
+      path: '/provas'
+      fullPath: '/provas'
+      preLoaderRoute: typeof ProvasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/edital': {
+      id: '/edital'
+      path: '/edital'
+      fullPath: '/edital'
+      preLoaderRoute: typeof EditalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/config': {
+      id: '/config'
+      path: '/config'
+      fullPath: '/config'
+      preLoaderRoute: typeof ConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +145,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConfigRoute: ConfigRoute,
+  EditalRoute: EditalRoute,
+  ProvasRoute: ProvasRoute,
+  QuestoesRoute: QuestoesRoute,
+  RevisoesRoute: RevisoesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
