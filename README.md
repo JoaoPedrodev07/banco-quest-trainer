@@ -1,29 +1,51 @@
-# Welcome to your Lovable project
+# Foco BB 2026 — treino para o concurso do Banco do Brasil (Agente de TI)
 
-This project was built with [Lovable](https://lovable.dev).
+App de estudos para o concurso do **Banco do Brasil · Agente de Tecnologia**, banca **Cesgranrio**.
+Organiza o edital, monta simulados, agenda revisões espaçadas e acompanha o progresso até a prova.
 
-## Build with Lovable
+> **Protótipo de frontend.** Não há backend: o conteúdo é **amostra mockada** (30 questões, 6
+> disciplinas) e o progresso fica no **localStorage** do navegador. Limpar os dados do navegador apaga
+> o progresso, e não há sincronia entre dispositivos.
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+## Funcionalidades
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+| Tela | O que faz |
+|---|---|
+| **Dashboard** (`/`) | dias restantes, meta diária, acerto geral, tópicos concluídos, streak |
+| **Edital** (`/edital`) | árvore do edital; marca teoria / revisão / questões por subtópico |
+| **Simulados** (`/questoes`) | filtra por disciplina e ano, resolve e corrige com explicação |
+| **Provas** (`/provas`) | edições anteriores do concurso |
+| **Revisões** (`/revisoes`) | fila de revisão espaçada (1 → 7 → 15 → 30 dias) |
+| **Configurações** (`/config`) | data da prova, meta diária, tema, reset do progresso |
 
-## Development
+## Como rodar
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+```bash
+npm install
+npm run dev        # http://localhost:5173
 ```
 
-## Built with
+Outros comandos: `npm run build` (produção) · `npm run preview` · `npm run lint` · `npm run format`.
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+> O repositório traz `bun.lock` (veio do Lovable), mas **npm funciona normalmente** — é um projeto Vite
+> padrão. Só não misture os dois gerenciadores no mesmo clone.
+
+## Stack
+
+**TanStack Start** (Vite + SSR, roteamento por arquivo) · **React** + **TypeScript** ·
+**Zustand** com `persist` · **shadcn/ui** sobre Radix · **Tailwind** · **Recharts** · build com **nitro**.
+
+## Documentação
+
+- [`CLAUDE.md`](./CLAUDE.md) — instruções e travas do projeto (lido pelo Claude Code automaticamente)
+- [`ARQUITETURA.md`](./ARQUITETURA.md) — fluxo de dados, domínio e o caminho para um backend real
+- [`src/routes/README.md`](./src/routes/README.md) — convenções do roteamento por arquivo
+
+## Sincronia com o Lovable
+
+Este repositório é sincronizado com o [Lovable](https://lovable.dev) nos **dois sentidos**: o que você
+edita lá vira commit aqui, e o que você commita aqui volta para o editor.
+
+⚠️ **Nunca reescreva histórico já enviado** (`force push`, `rebase`, `amend`, `squash`) — isso quebra a
+sincronia e o histórico do projeto se perde no Lovable. Para desfazer algo já publicado, use
+`git revert`. Detalhes em [`AGENTS.md`](./AGENTS.md) e no `CLAUDE.md` §2.1.
