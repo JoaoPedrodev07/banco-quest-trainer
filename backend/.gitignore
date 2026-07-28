@@ -1,0 +1,21 @@
+# Ambiente virtual e bytecode
+.venv/
+__pycache__/
+*.py[cod]
+
+# Banco local: é reconstruível por `migrate` + `seed_catalogo` + `importar_prova`.
+# Versionar SQLite gera conflito binário a cada questão importada.
+db.sqlite3
+db.sqlite3-journal
+
+# Segredos e configuração da máquina
+.env
+
+# Estáticos coletados
+staticfiles/
+
+# PDFs baixados das bancas: são pesados e recuperáveis pela URL registrada em
+# `Fonte.url` (com o sha256 provando que é o mesmo arquivo). O que precisa ficar
+# versionado é a procedência, não o binário.
+dados_brutos/*.pdf
+dados_brutos/*.txt
