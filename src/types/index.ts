@@ -16,6 +16,23 @@ export interface Disciplina {
   nome: string;
   cor: string;
   topicos: Topico[];
+  /** Cada concurso tem edital próprio; a árvore deixou de ser única. */
+  concursoId: string;
+}
+
+/**
+ * De onde o conteúdo veio. Existe para a tela nunca apresentar amostra como se
+ * fosse documento da banca — o campo é opcional porque os mocks de `src/data/`
+ * são anteriores ao backend e não têm procedência nenhuma.
+ */
+export interface Fonte {
+  slug: string;
+  tipo: "oficial" | "amostra" | "derivada";
+  rotulo: string;
+  titulo: string;
+  url: string;
+  publicadoEm: string | null;
+  eOficial: boolean;
 }
 
 export interface Questao {
@@ -23,24 +40,56 @@ export interface Questao {
   disciplinaId: string;
   ano: number;
   banca: string;
+  /** Reportagem/trecho que um bloco inteiro de questões comenta. */
+  textoBase?: string;
   enunciado: string;
   alternativas: { letra: "A" | "B" | "C" | "D" | "E"; texto: string }[];
-  correta: "A" | "B" | "C" | "D" | "E";
+  /** Vazio quando a questão foi anulada: a banca não divulga gabarito nesse caso. */
+  correta: "A" | "B" | "C" | "D" | "E" | "";
   explicacao: string;
+  provaId?: string | null;
+  numeroNaProva?: number | null;
+  anulada?: boolean;
+  fonte?: Fonte;
 }
 
 export interface Prova {
   id: string;
+  concursoId: string;
   ano: number;
   banca: string;
   cargo: string;
   orgao: string;
   qtdQuestoes: number;
+  /** Quantas questões dessa prova estão realmente no acervo. */
+  questoesDisponiveis?: number;
+  urlProva?: string;
+  urlGabarito?: string;
+  fonte?: Fonte;
+}
+
+/**
+ * Retrato do acervo, usado para a UI dizer em que ela está se apoiando.
+ * `online: false` significa que o backend não respondeu e a tela está com os
+ * mocks de `src/data/` — o que precisa ficar visível, não escondido.
+ */
+export interface Acervo {
+  online: boolean;
+  questoes: { total: number; oficiais: number; amostra: number; anuladas: number };
+  disciplinas: number;
+  provas: number;
+  editalVigente: { titulo: string | null; url: string | null; tipo: string | null };
 }
 
 export interface RespostaHistorico {
   questaoId: string;
   disciplinaId: string;
+  /**
+   * Em qual concurso a resposta aconteceu. É fato, não derivado (§2.3): guardar
+   * aqui evita ter que descobrir o concurso pela disciplina a cada leitura — e
+   * disciplina se repete entre concursos ("portugues" existe em quase todos).
+   */
+  concursoId: string;
   escolhida: string;
   correta: boolean;
   data: string; // ISO date
@@ -50,6 +99,34 @@ export interface RevisaoItem {
   id: string;
   topico: string;
   disciplinaId: string;
+  concursoId: string;
   proximaRevisao: string; // ISO date
   intervaloAtual: 1 | 7 | 15 | 30;
+}
+
+/** Status de um concurso no calendário público. */
+export type StatusConcurso =
+  "inscricoes_abertas" | "inscricoes_encerradas" | "previsto" | "encerrado";
+
+/**
+ * Um concurso do catálogo.
+ *
+ * `banca`, `salario`, `vagas` e `dataProva` são anuláveis de propósito: concurso
+ * "previsto" quase nunca tem esses dados fechados, e preencher com um palpite
+ * faria a tela afirmar como fato o que ainda é notícia. Quando `fonte.eOficial`
+ * for falso, a UI precisa dizer isso — o dado veio de imprensa, não do edital.
+ */
+export interface Concurso {
+  id: string;
+  nome: string;
+  orgao: string;
+  cargo: string;
+  banca: string | null;
+  salario: { valor: number; observacao?: string } | null;
+  vagas: number | null;
+  status: StatusConcurso;
+  dataProva: string | null; // ISO
+  editalUrl: string | null;
+  provaIds: string[];
+  fonte: Fonte;
 }

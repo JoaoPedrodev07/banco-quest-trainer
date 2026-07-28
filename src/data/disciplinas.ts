@@ -5,6 +5,7 @@ export const disciplinas: Disciplina[] = [
     id: "portugues",
     nome: "Língua Portuguesa",
     cor: "#003399",
+    concursoId: "bb-ti-2026",
     topicos: [
       {
         id: "port-1",
@@ -31,6 +32,7 @@ export const disciplinas: Disciplina[] = [
     id: "ingles",
     nome: "Língua Inglesa",
     cor: "#0055B7",
+    concursoId: "bb-ti-2026",
     topicos: [
       {
         id: "ing-1",
@@ -55,6 +57,7 @@ export const disciplinas: Disciplina[] = [
     id: "matematica",
     nome: "Matemática",
     cor: "#1E7B3E",
+    concursoId: "bb-ti-2026",
     topicos: [
       {
         id: "mat-1",
@@ -79,6 +82,7 @@ export const disciplinas: Disciplina[] = [
     id: "estatistica",
     nome: "Probabilidade e Estatística",
     cor: "#7B3EA8",
+    concursoId: "bb-ti-2026",
     topicos: [
       {
         id: "est-1",
@@ -102,6 +106,7 @@ export const disciplinas: Disciplina[] = [
     id: "bancarios",
     nome: "Conhecimentos Bancários",
     cor: "#B78E00",
+    concursoId: "bb-ti-2026",
     topicos: [
       {
         id: "bnc-1",
@@ -125,6 +130,7 @@ export const disciplinas: Disciplina[] = [
     id: "ti",
     nome: "Tecnologia da Informação",
     cor: "#B01F1F",
+    concursoId: "bb-ti-2026",
     topicos: [
       {
         id: "ti-1",

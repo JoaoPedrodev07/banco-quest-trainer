@@ -9,31 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as RevisoesRouteImport } from './routes/revisoes'
-import { Route as QuestoesRouteImport } from './routes/questoes'
-import { Route as ProvasRouteImport } from './routes/provas'
-import { Route as EditalRouteImport } from './routes/edital'
-import { Route as ConfigRouteImport } from './routes/config'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConfigRouteImport } from './routes/config'
+import { Route as EditalRouteImport } from './routes/edital'
+import { Route as ProvasRouteImport } from './routes/provas'
+import { Route as QuestoesRouteImport } from './routes/questoes'
+import { Route as RevisoesRouteImport } from './routes/revisoes'
+import { Route as ConcursosIndexRouteImport } from './routes/concursos/index'
+import { Route as ConcursosConcursoIdRouteImport } from './routes/concursos/$concursoId'
 
-const RevisoesRoute = RevisoesRouteImport.update({
-  id: '/revisoes',
-  path: '/revisoes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QuestoesRoute = QuestoesRouteImport.update({
-  id: '/questoes',
-  path: '/questoes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProvasRoute = ProvasRouteImport.update({
-  id: '/provas',
-  path: '/provas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EditalRoute = EditalRouteImport.update({
-  id: '/edital',
-  path: '/edital',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfigRoute = ConfigRouteImport.update({
@@ -41,9 +28,34 @@ const ConfigRoute = ConfigRouteImport.update({
   path: '/config',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const EditalRoute = EditalRouteImport.update({
+  id: '/edital',
+  path: '/edital',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProvasRoute = ProvasRouteImport.update({
+  id: '/provas',
+  path: '/provas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuestoesRoute = QuestoesRouteImport.update({
+  id: '/questoes',
+  path: '/questoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RevisoesRoute = RevisoesRouteImport.update({
+  id: '/revisoes',
+  path: '/revisoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConcursosIndexRoute = ConcursosIndexRouteImport.update({
+  id: '/concursos/',
+  path: '/concursos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConcursosConcursoIdRoute = ConcursosConcursoIdRouteImport.update({
+  id: '/concursos/$concursoId',
+  path: '/concursos/$concursoId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -54,6 +66,8 @@ export interface FileRoutesByFullPath {
   '/provas': typeof ProvasRoute
   '/questoes': typeof QuestoesRoute
   '/revisoes': typeof RevisoesRoute
+  '/concursos/$concursoId': typeof ConcursosConcursoIdRoute
+  '/concursos/': typeof ConcursosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +76,8 @@ export interface FileRoutesByTo {
   '/provas': typeof ProvasRoute
   '/questoes': typeof QuestoesRoute
   '/revisoes': typeof RevisoesRoute
+  '/concursos/$concursoId': typeof ConcursosConcursoIdRoute
+  '/concursos': typeof ConcursosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,12 +87,30 @@ export interface FileRoutesById {
   '/provas': typeof ProvasRoute
   '/questoes': typeof QuestoesRoute
   '/revisoes': typeof RevisoesRoute
+  '/concursos/$concursoId': typeof ConcursosConcursoIdRoute
+  '/concursos/': typeof ConcursosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/config' | '/edital' | '/provas' | '/questoes' | '/revisoes'
+  fullPaths:
+    | '/'
+    | '/config'
+    | '/edital'
+    | '/provas'
+    | '/questoes'
+    | '/revisoes'
+    | '/concursos/$concursoId'
+    | '/concursos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/config' | '/edital' | '/provas' | '/questoes' | '/revisoes'
+  to:
+    | '/'
+    | '/config'
+    | '/edital'
+    | '/provas'
+    | '/questoes'
+    | '/revisoes'
+    | '/concursos/$concursoId'
+    | '/concursos'
   id:
     | '__root__'
     | '/'
@@ -85,6 +119,8 @@ export interface FileRouteTypes {
     | '/provas'
     | '/questoes'
     | '/revisoes'
+    | '/concursos/$concursoId'
+    | '/concursos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,36 +130,17 @@ export interface RootRouteChildren {
   ProvasRoute: typeof ProvasRoute
   QuestoesRoute: typeof QuestoesRoute
   RevisoesRoute: typeof RevisoesRoute
+  ConcursosConcursoIdRoute: typeof ConcursosConcursoIdRoute
+  ConcursosIndexRoute: typeof ConcursosIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/revisoes': {
-      id: '/revisoes'
-      path: '/revisoes'
-      fullPath: '/revisoes'
-      preLoaderRoute: typeof RevisoesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/questoes': {
-      id: '/questoes'
-      path: '/questoes'
-      fullPath: '/questoes'
-      preLoaderRoute: typeof QuestoesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/provas': {
-      id: '/provas'
-      path: '/provas'
-      fullPath: '/provas'
-      preLoaderRoute: typeof ProvasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/edital': {
-      id: '/edital'
-      path: '/edital'
-      fullPath: '/edital'
-      preLoaderRoute: typeof EditalRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/config': {
@@ -133,11 +150,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/edital': {
+      id: '/edital'
+      path: '/edital'
+      fullPath: '/edital'
+      preLoaderRoute: typeof EditalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/provas': {
+      id: '/provas'
+      path: '/provas'
+      fullPath: '/provas'
+      preLoaderRoute: typeof ProvasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/questoes': {
+      id: '/questoes'
+      path: '/questoes'
+      fullPath: '/questoes'
+      preLoaderRoute: typeof QuestoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/revisoes': {
+      id: '/revisoes'
+      path: '/revisoes'
+      fullPath: '/revisoes'
+      preLoaderRoute: typeof RevisoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/concursos/': {
+      id: '/concursos/'
+      path: '/concursos'
+      fullPath: '/concursos/'
+      preLoaderRoute: typeof ConcursosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/concursos/$concursoId': {
+      id: '/concursos/$concursoId'
+      path: '/concursos/$concursoId'
+      fullPath: '/concursos/$concursoId'
+      preLoaderRoute: typeof ConcursosConcursoIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -150,7 +202,19 @@ const rootRouteChildren: RootRouteChildren = {
   ProvasRoute: ProvasRoute,
   QuestoesRoute: QuestoesRoute,
   RevisoesRoute: RevisoesRoute,
+  ConcursosConcursoIdRoute: ConcursosConcursoIdRoute,
+  ConcursosIndexRoute: ConcursosIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

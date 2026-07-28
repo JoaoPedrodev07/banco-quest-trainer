@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { questoes as allQuestoes } from "@/data/questoes";
-import { disciplinas } from "@/data/disciplinas";
+import { useEffect, useMemo, useState } from "react";
+import { AvisoAcervo } from "@/components/AvisoAcervo";
+import { useDisciplinas, useQuestoes } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ type Etapa = "config" | "resolvendo" | "resultado";
 
 function QuestoesPage() {
   const [etapa, setEtapa] = useState<Etapa>("config");
-  const [selecionadas, setSelecionadas] = useState<string[]>(disciplinas.map((d) => d.id));
+  const [selecionadas, setSelecionadas] = useState<string[]>([]);
   const [qtd, setQtd] = useState(10);
   const [ano, setAno] = useState<string>("todos");
   const [somenteErrei, setSomenteErrei] = useState(false);
@@ -40,7 +40,27 @@ function QuestoesPage() {
   const [respostas, setRespostas] = useState<Record<string, string>>({});
   const [inicio, setInicio] = useState(0);
 
-  const { historico, registrarResposta } = useStore();
+  const { historico, registrarResposta, concursoAtivoId } = useStore();
+  const { disciplinas } = useDisciplinas();
+  const { questoes: allQuestoes, carregando } = useQuestoes();
+
+  // As disciplinas chegam depois do primeiro render, então a seleção inicial
+  // "todas marcadas" só dá para montar quando elas existem. Roda uma vez: depois
+  // disso quem manda na seleção é o usuário.
+  const [selecaoIniciada, setSelecaoIniciada] = useState(false);
+  useEffect(() => {
+    if (!selecaoIniciada && disciplinas.length) {
+      setSelecionadas(disciplinas.map((d) => d.id));
+      setSelecaoIniciada(true);
+    }
+  }, [disciplinas, selecaoIniciada]);
+
+  // Anos oferecidos no filtro saem do próprio acervo: uma lista fixa mostraria
+  // ano sem questão nenhuma e esconderia prova recém-importada.
+  const anos = useMemo(
+    () => Array.from(new Set(allQuestoes.map((q) => q.ano))).sort((a, b) => b - a),
+    [allQuestoes],
+  );
 
   const iniciar = () => {
     const errouIds = new Set(historico.filter((h) => !h.correta).map((h) => h.questaoId));
@@ -48,7 +68,9 @@ function QuestoesPage() {
       (q) =>
         selecionadas.includes(q.disciplinaId) &&
         (ano === "todos" || q.ano === Number(ano)) &&
-        (!somenteErrei || errouIds.has(q.id)),
+        (!somenteErrei || errouIds.has(q.id)) &&
+        // Anulada não tem gabarito: entraria no simulado como erro garantido.
+        !q.anulada,
     );
     filtradas = filtradas.sort(() => Math.random() - 0.5).slice(0, qtd);
     if (filtradas.length === 0) return;
@@ -66,6 +88,8 @@ function QuestoesPage() {
           <h1 className="text-2xl md:text-3xl font-black">Configurar simulado</h1>
           <p className="text-sm text-muted-foreground">Personalize seu treino de hoje.</p>
         </div>
+
+        <AvisoAcervo />
 
         <Card>
           <CardHeader>
@@ -105,9 +129,11 @@ function QuestoesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os anos</SelectItem>
-                <SelectItem value="2021">2021</SelectItem>
-                <SelectItem value="2023">2023</SelectItem>
-                <SelectItem value="2024">2024</SelectItem>
+                {anos.map((a) => (
+                  <SelectItem key={a} value={String(a)}>
+                    {a}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -118,8 +144,8 @@ function QuestoesPage() {
           <span className="text-sm">Somente questões que errei</span>
         </label>
 
-        <Button size="lg" className="w-full" onClick={iniciar}>
-          Iniciar simulado
+        <Button size="lg" className="w-full" onClick={iniciar} disabled={carregando}>
+          {carregando ? "Carregando questões…" : "Iniciar simulado"}
         </Button>
       </div>
     );
@@ -143,8 +169,17 @@ function QuestoesPage() {
           <CardContent className="p-5 space-y-4">
             <p className="text-sm text-muted-foreground">
               {q.banca} · {q.ano}
+              {q.numeroNaProva ? ` · questão ${q.numeroNaProva}` : ""}
             </p>
-            <p className="text-base leading-relaxed">{q.enunciado}</p>
+            {q.textoBase && (
+              <details className="rounded-lg border border-border bg-muted/40 p-3">
+                <summary className="cursor-pointer text-sm font-semibold">
+                  Texto de apoio (necessário para responder)
+                </summary>
+                <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{q.textoBase}</p>
+              </details>
+            )}
+            <p className="text-base leading-relaxed whitespace-pre-line">{q.enunciado}</p>
             <div className="space-y-2">
               {q.alternativas.map((a) => {
                 const isChosen = escolhida === a.letra;
@@ -182,6 +217,7 @@ function QuestoesPage() {
                   registrarResposta({
                     questaoId: q.id,
                     disciplinaId: q.disciplinaId,
+                    concursoId: concursoAtivoId,
                     escolhida: escolhida!,
                     correta: escolhida === q.correta,
                     data: new Date().toISOString(),
@@ -195,8 +231,20 @@ function QuestoesPage() {
 
             {respondida && (
               <div className="rounded-lg bg-muted p-4 space-y-3">
+                {/* Questão vinda do caderno da banca não traz comentário: a
+                    Cesgranrio publica prova e gabarito, não explicação. Fingir
+                    que existe uma seria inventar conteúdo de estudo. */}
                 <p className="text-sm">
-                  <span className="font-bold">Explicação:</span> {q.explicacao}
+                  {q.explicacao ? (
+                    <>
+                      <span className="font-bold">Explicação:</span> {q.explicacao}
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      Gabarito oficial: <strong>{q.correta}</strong>. A banca não publica
+                      explicação — use o campo abaixo para anotar o seu raciocínio.
+                    </span>
+                  )}
                 </p>
                 <Textarea placeholder="Anote seu comentário sobre a questão..." rows={2} />
               </div>
