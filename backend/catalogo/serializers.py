@@ -37,7 +37,18 @@ class TopicoSerializer(serializers.ModelSerializer):
 
 
 class DisciplinaSerializer(serializers.ModelSerializer):
-    topicos = TopicoSerializer(many=True, read_only=True)
+    # A árvore vem filtrada pelo concurso pedido. Sem isso, uma disciplina
+    # traria as árvores de todos os editais juntas: o candidato do BB veria
+    # DevOps e contêineres (que são do edital do BNB) no seu edital, e o
+    # progresso sairia sobre um denominador que inclui matéria que ele não faz.
+    topicos = serializers.SerializerMethodField()
+
+    def get_topicos(self, disciplina):
+        concurso_id = self.context.get("concurso_id")
+        topicos = [
+            t for t in disciplina.topicos.all() if not concurso_id or t.concurso_id == concurso_id
+        ]
+        return TopicoSerializer(topicos, many=True).data
     fonte = FonteSerializer(read_only=True)
 
     class Meta:

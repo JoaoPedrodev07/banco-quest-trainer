@@ -94,8 +94,22 @@ class Disciplina(models.Model):
 
 
 class Topico(models.Model):
-    id = models.SlugField(primary_key=True, max_length=80, validators=[slug_validator])
+    """Um item do conteúdo programático.
+
+    **O tópico pertence a um concurso, a disciplina não.** "Tecnologia da
+    Informação" é a mesma disciplina em qualquer edital; o que muda entre editais
+    é o que ela cobra. No BB é aprendizado de máquina, banco de dados, big data,
+    mobile e estrutura de dados; no BNB (Cebraspe) é MVC, DevOps, contêineres,
+    TDD e requisitos. Sem separar por concurso, importar o segundo edital
+    apagaria a árvore do primeiro — e, pior, misturar as duas faria o plano de
+    estudos mandar o candidato do BB estudar DevOps.
+    """
+
+    id = models.SlugField(primary_key=True, max_length=120, validators=[slug_validator])
     disciplina = models.ForeignKey(Disciplina, on_delete=models.CASCADE, related_name="topicos")
+    # Slug do concurso no catálogo do frontend (`src/data/concursos.ts`), como em
+    # `Aula.concurso_id`. O backend ainda não modela concurso como tabela.
+    concurso_id = models.SlugField(max_length=80, validators=[slug_validator], default="bb-ti-2026")
     nome = models.CharField(max_length=300)
     ordem = models.PositiveSmallIntegerField(default=0)
 
@@ -103,6 +117,7 @@ class Topico(models.Model):
         verbose_name = "tópico"
         verbose_name_plural = "tópicos"
         ordering = ["ordem", "nome"]
+        indexes = [models.Index(fields=["concurso_id", "disciplina"])]
 
     def __str__(self) -> str:
         return f"{self.disciplina_id} · {self.nome}"

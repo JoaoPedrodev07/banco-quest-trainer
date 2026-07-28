@@ -94,8 +94,16 @@ function comConcurso<T>(itens: T[], concursoId: string): T[] {
 }
 
 export const api = {
-  listDisciplinas: async () =>
-    comConcurso(await comReserva<Disciplina[]>("/disciplinas/", disciplinasMock), CONCURSO_PADRAO),
+  // A árvore de tópicos é por edital: o backend precisa saber qual concurso
+  // devolver, senão manda as árvores de todos misturadas.
+  listDisciplinas: async (concursoId: string = CONCURSO_PADRAO) =>
+    comConcurso(
+      await comReserva<Disciplina[]>(
+        `/disciplinas/?concursoId=${encodeURIComponent(concursoId)}`,
+        disciplinasMock,
+      ),
+      concursoId,
+    ),
   listQuestoes: () => comReserva<Questao[]>("/questoes/", questoesMock),
   listProvas: async () =>
     comConcurso(await comReserva<Prova[]>("/provas/", provasMock), CONCURSO_PADRAO),

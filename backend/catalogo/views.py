@@ -20,6 +20,14 @@ from .serializers import AulaSerializer, DisciplinaSerializer, ProvaSerializer, 
 
 class DisciplinaViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = DisciplinaSerializer
+
+    def get_serializer_context(self):
+        # `?concursoId=` escolhe a árvore do edital. Sem o parâmetro devolve tudo,
+        # para não quebrar quem já consome a rota sem saber de concurso.
+        contexto = super().get_serializer_context()
+        contexto["concurso_id"] = self.request.query_params.get("concursoId")
+        return contexto
+
     queryset = (
         Disciplina.objects.select_related("fonte")
         .prefetch_related("topicos__subtopicos")

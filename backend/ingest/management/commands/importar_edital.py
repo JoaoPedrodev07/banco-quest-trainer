@@ -94,6 +94,15 @@ class Command(BaseCommand):
             default="AGENTE DE TECNOLOGIA",
             help="Bloco do anexo a importar. O anexo cobre vários cargos.",
         )
+        parser.add_argument(
+            "--concurso",
+            default="bb-ti-2026",
+            help=(
+                "Concurso a que este edital pertence. A arvore de topicos e POR CONCURSO: "
+                "'Tecnologia da Informacao' cobra coisas diferentes no BB e no BNB, e sem "
+                "separar, importar o segundo edital apagaria o primeiro."
+            ),
+        )
         parser.add_argument("--slug", default="edital-bb", help="Slug da Fonte criada.")
         parser.add_argument(
             "--somente",
@@ -153,7 +162,7 @@ class Command(BaseCommand):
                     "observacao": f"Anexo III, bloco {op['cargo']}.",
                 },
             )
-            resumo = self._gravar(blocos, fonte)
+            resumo = self._gravar(blocos, fonte, op["concurso"])
             if op["dry_run"]:
                 transaction.set_rollback(True)
 
@@ -292,22 +301,31 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------------- gravação
 
-    def _gravar(self, blocos: dict[str, str], fonte: Fonte) -> dict[str, tuple[int, int]]:
+    def _gravar(
+        self, blocos: dict[str, str], fonte: Fonte, concurso_id: str
+    ) -> dict[str, tuple[int, int]]:
         resumo: dict[str, tuple[int, int]] = {}
+        # O concurso padrao mantem os ids historicos (`ti-t01`), senao as 233
+        # classificacoes ja gravadas apontariam para topicos inexistentes.
+        prefixo = "" if concurso_id == "bb-ti-2026" else f"{concurso_id}--"
 
         for id_disciplina, corpo in blocos.items():
             disciplina = Disciplina.objects.get(id=id_disciplina)
-            # Reimportar substitui: o edital vigente é um só, e tópico órfão de uma
-            # leitura anterior apareceria na tela como conteúdo a estudar.
-            Topico.objects.filter(disciplina=disciplina).delete()
+            # Reimportar substitui, mas SÓ dentro do concurso: o edital vigente de
+            # um concurso é um só, e tópico órfão de uma leitura anterior apareceria
+            # na tela como conteúdo a estudar. Sem o filtro por concurso, importar o
+            # edital do BNB apagaria a árvore do BB junto — e com ela a
+            # classificação de centenas de questões, que aponta para esses tópicos.
+            Topico.objects.filter(disciplina=disciplina, concurso_id=concurso_id).delete()
 
             total_sub = 0
             itens = self._itens(corpo)
             for ordem, item in enumerate(itens, start=1):
                 nome, subtopicos = self._dividir_item(item)
                 topico = Topico.objects.create(
-                    id=f"{id_disciplina}-t{ordem:02d}",
+                    id=f"{prefixo}{id_disciplina}-t{ordem:02d}",
                     disciplina=disciplina,
+                    concurso_id=concurso_id,
                     nome=nome,
                     ordem=ordem,
                 )

@@ -22,8 +22,11 @@ const SEM_DISCIPLINAS: Disciplina[] = [];
 const SEM_QUESTOES: Questao[] = [];
 const SEM_PROVAS: Prova[] = [];
 
-export function useDisciplinas() {
-  const consulta = useQuery({ queryKey: chaves.disciplinas, queryFn: api.listDisciplinas });
+export function useDisciplinas(concursoId?: string) {
+  const consulta = useQuery({
+    queryKey: [...chaves.disciplinas, concursoId ?? ""],
+    queryFn: () => api.listDisciplinas(concursoId),
+  });
   return { disciplinas: consulta.data ?? SEM_DISCIPLINAS, carregando: consulta.isPending };
 }
 
@@ -99,7 +102,7 @@ export function useComentarGabarito() {
  * mostrar zero como se fosse desempenho.
  */
 export function useAcervoDoConcurso(concursoId: string) {
-  const { disciplinas, carregando: cd } = useDisciplinas();
+  const { disciplinas, carregando: cd } = useDisciplinas(concursoId);
   const { questoes, carregando: cq } = useQuestoes();
   const { provas, carregando: cp } = useProvas();
 
