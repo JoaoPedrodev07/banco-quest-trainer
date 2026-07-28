@@ -61,6 +61,11 @@ class QuestaoSerializer(serializers.ModelSerializer):
     # foi classificada — e a UI conta quantas faltam em vez de fingir cobertura.
     topicoId = serializers.CharField(source="topico_id", read_only=True, allow_null=True)
     subtopicoId = serializers.CharField(source="subtopico_id", read_only=True, allow_null=True)
+    # `tipo` diz como interpretar `correta`: em certo/errado o "C" é "Certo",
+    # não a alternativa C. Sem ele a tela corrigiria contra a letra errada.
+    pontuacaoLiquida = serializers.BooleanField(
+        source="prova.pontuacao_liquida", read_only=True, default=False
+    )
     alternativas = AlternativaSerializer(many=True, read_only=True)
     fonte = FonteSerializer(read_only=True)
 
@@ -73,6 +78,8 @@ class QuestaoSerializer(serializers.ModelSerializer):
             "numeroNaProva",
             "topicoId",
             "subtopicoId",
+            "tipo",
+            "pontuacaoLiquida",
             "ano",
             "banca",
             "textoBase",

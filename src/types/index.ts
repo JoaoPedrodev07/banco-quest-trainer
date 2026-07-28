@@ -44,6 +44,20 @@ export interface Questao {
   textoBase?: string;
   enunciado: string;
   alternativas: { letra: "A" | "B" | "C" | "D" | "E"; texto: string }[];
+  /**
+   * Formato da questão.
+   *
+   * `certo_errado` (padrão Cebraspe) não tem alternativas: a afirmação inteira
+   * está no enunciado e o gabarito é "C" ou "E". `tipo` é o que diz à tela como
+   * interpretar `correta` — sem ele, o "C" de uma questão Cebraspe seria lido
+   * como a alternativa C de uma múltipla escolha.
+   */
+  tipo?: "multipla" | "certo_errado";
+  /**
+   * A prova desconta erro (cada errada anula uma certa). É regra do edital, não
+   * da banca: a mesma banca aplica num concurso e não aplica em outro.
+   */
+  pontuacaoLiquida?: boolean;
   /** Vazio quando a questão foi anulada: a banca não divulga gabarito nesse caso. */
   correta: "A" | "B" | "C" | "D" | "E" | "";
   explicacao: string;

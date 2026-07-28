@@ -23,6 +23,26 @@ slug_validator = RegexValidator(
 LETRAS = [("A", "A"), ("B", "B"), ("C", "C"), ("D", "D"), ("E", "E")]
 
 
+class TipoQuestao(models.TextChoices):
+    """Formato da questão. É o que separa Cebraspe do resto.
+
+    `MULTIPLA` — cinco alternativas, uma correta. Cesgranrio, FGV, IBFC.
+    `CERTO_ERRADO` — uma afirmação para julgar. Cebraspe.
+
+    O certo/errado **não** é modelado como duas alternativas (C e E) de propósito.
+    Alternativa existe para guardar texto de opção, e em certo/errado não há texto
+    nenhum: a afirmação inteira está no enunciado. Criar duas linhas vazias só
+    para caber no formato antigo faria toda tela ter de saber ignorá-las.
+
+    A diferença que mais importa não é o formato, é a **pontuação**: na Cebraspe
+    cada erro anula um acerto. Uma taxa calculada como nas outras bancas mentiria
+    sobre a nota — ver `Prova.pontuacao_liquida`.
+    """
+
+    MULTIPLA = "multipla", "Múltipla escolha (A–E)"
+    CERTO_ERRADO = "certo_errado", "Certo ou errado"
+
+
 class Fonte(models.Model):
     """De onde um conteúdo veio. É o antídoto contra afirmar que amostra é oficial."""
 
@@ -112,6 +132,15 @@ class Prova(models.Model):
     # Quantas questões o edital diz que a prova tem. Pode ser maior que o número
     # de questões efetivamente importadas — ver `questoes_disponiveis`.
     qtd_questoes = models.PositiveSmallIntegerField()
+    # A Cebraspe desconta: cada questão errada anula uma certa. Uma taxa de acerto
+    # calculada como nas outras bancas ("acertos / respondidas") mente sobre a
+    # nota — quem acerta 40 e erra 30 de 70 não tem 57%, tem 10 pontos líquidos.
+    # O dado fica na prova, e não numa lista de bancas no código, porque a regra é
+    # do edital: a mesma banca aplica desconto num concurso e não aplica em outro.
+    pontuacao_liquida = models.BooleanField(
+        default=False,
+        help_text="Se marcado, cada erro anula um acerto (padrão Cebraspe).",
+    )
     url_prova = models.URLField(max_length=500, blank=True)
     url_gabarito = models.URLField(max_length=500, blank=True)
     aplicada_em = models.DateField(null=True, blank=True)
@@ -162,6 +191,12 @@ class Questao(models.Model):
     # Fica vazio quando a questão foi anulada: a banca não divulga gabarito para
     # anulada, e inventar uma letra faria a tela corrigir contra uma resposta que
     # nunca existiu.
+    tipo = models.CharField(
+        max_length=12, choices=TipoQuestao.choices, default=TipoQuestao.MULTIPLA
+    )
+    # Em múltipla escolha guarda a letra (A–E); em certo/errado, "C" ou "E".
+    # A colisão de letras é aparente: `tipo` diz como interpretar, e sem ele o
+    # "C" de uma questão Cebraspe seria lido como a alternativa C.
     correta = models.CharField(max_length=1, choices=LETRAS, blank=True)
     explicacao = models.TextField(blank=True)
     # Questão anulada pela banca continua valendo como estudo, mas não pode entrar
@@ -183,6 +218,23 @@ class Questao(models.Model):
             )
         ]
         indexes = [models.Index(fields=["disciplina", "ano"])]
+
+    @property
+    def eh_certo_errado(self) -> bool:
+        return self.tipo == TipoQuestao.CERTO_ERRADO
+
+    def clean(self):
+        """Impede os dois estados incoerentes que o formato novo torna possíveis.
+
+        Sem isto, uma questão certo/errado com gabarito "B" passaria batida e a
+        tela corrigiria contra uma resposta que o candidato nem pode marcar.
+        """
+        from django.core.exceptions import ValidationError
+
+        if self.eh_certo_errado and self.correta not in {"C", "E", ""}:
+            raise ValidationError(
+                {"correta": "Em certo/errado o gabarito só pode ser 'C', 'E' ou vazio (anulada)."}
+            )
 
     def save(self, *args, **kwargs):
         # Um subtópico já implica o tópico dele. Derivar aqui, em vez de confiar em

@@ -297,43 +297,75 @@ function QuestoesPage() {
             <TextoDaQuestao className="block text-base leading-relaxed whitespace-pre-line">
               {q.enunciado}
             </TextoDaQuestao>
-            <div className="space-y-2">
-              {q.alternativas.map((a) => {
-                const isChosen = escolhida === a.letra;
-                const isCorreta = a.letra === q.correta;
-                const showResult = respondida;
-                return (
-                  <button
-                    key={a.letra}
-                    disabled={respondida}
-                    onClick={() => responder(a.letra)}
-                    className={cn(
-                      "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-all duration-150",
-                      // `hover:bg-accent` pintava a alternativa de amarelo forte:
-                      // neste tema o accent é o amarelo do BB, reservado para
-                      // destaque de verdade. Passar o mouse tem que sugerir, não gritar.
-                      !showResult &&
-                        "hover:-translate-y-px hover:border-primary/40 hover:bg-muted hover:shadow-sm",
-                      showResult && isCorreta && "border-sucesso bg-sucesso-suave",
-                      showResult &&
-                        isChosen &&
-                        !isCorreta &&
-                        "border-destructive bg-destructive/10",
-                      !showResult && isChosen && "border-primary bg-primary/5",
-                    )}
-                  >
-                    <span className="font-black text-primary">{a.letra}</span>
-                    <TextoDaQuestao className="text-sm flex-1">{a.texto}</TextoDaQuestao>
-                    {showResult && isCorreta && (
-                      <CheckCircle2 className="h-5 w-5 shrink-0 text-sucesso" />
-                    )}
-                    {showResult && isChosen && !isCorreta && (
-                      <XCircle className="h-5 w-5 shrink-0 text-destructive" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            {/* Certo/errado não tem alternativas: a afirmação inteira está no
+                enunciado. Renderizar duas opções vazias no formato de múltipla
+                escolha só imitaria a aparência errada. */}
+            {q.tipo === "certo_errado" ? (
+              <div className="grid grid-cols-2 gap-2">
+                {(["C", "E"] as const).map((letra) => {
+                  const isChosen = escolhida === letra;
+                  const isCorreta = letra === q.correta;
+                  return (
+                    <button
+                      key={letra}
+                      disabled={respondida}
+                      onClick={() => responder(letra)}
+                      className={cn(
+                        "rounded-lg border p-4 text-center font-bold transition-all duration-150",
+                        !respondida &&
+                          "hover:-translate-y-px hover:border-primary/40 hover:bg-muted hover:shadow-sm",
+                        respondida && isCorreta && "border-sucesso bg-sucesso-suave",
+                        respondida &&
+                          isChosen &&
+                          !isCorreta &&
+                          "border-destructive bg-destructive/10",
+                        !respondida && isChosen && "border-primary bg-primary/5",
+                      )}
+                    >
+                      {letra === "C" ? "Certo" : "Errado"}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {q.alternativas.map((a) => {
+                  const isChosen = escolhida === a.letra;
+                  const isCorreta = a.letra === q.correta;
+                  const showResult = respondida;
+                  return (
+                    <button
+                      key={a.letra}
+                      disabled={respondida}
+                      onClick={() => responder(a.letra)}
+                      className={cn(
+                        "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-all duration-150",
+                        // `hover:bg-accent` pintava a alternativa de amarelo forte:
+                        // neste tema o accent é o amarelo do BB, reservado para
+                        // destaque de verdade. Passar o mouse tem que sugerir, não gritar.
+                        !showResult &&
+                          "hover:-translate-y-px hover:border-primary/40 hover:bg-muted hover:shadow-sm",
+                        showResult && isCorreta && "border-sucesso bg-sucesso-suave",
+                        showResult &&
+                          isChosen &&
+                          !isCorreta &&
+                          "border-destructive bg-destructive/10",
+                        !showResult && isChosen && "border-primary bg-primary/5",
+                      )}
+                    >
+                      <span className="font-black text-primary">{a.letra}</span>
+                      <TextoDaQuestao className="text-sm flex-1">{a.texto}</TextoDaQuestao>
+                      {showResult && isCorreta && (
+                        <CheckCircle2 className="h-5 w-5 shrink-0 text-sucesso" />
+                      )}
+                      {showResult && isChosen && !isCorreta && (
+                        <XCircle className="h-5 w-5 shrink-0 text-destructive" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {respondida && (
               <div className="rounded-lg bg-muted p-4">
@@ -389,6 +421,13 @@ function QuestoesPage() {
   const tempoMin = Math.max(1, Math.round((Date.now() - inicio) / 60000));
   const ritmo = resumoDeRitmo(Object.values(temposPorQuestao));
 
+  // Prova com desconto: cada erro anula um acerto. Mostrar só "X de Y corretas"
+  // numa prova dessas esconde a nota real — quem acerta 6 e erra 4 de 10 não fez
+  // 60%, fez 2 pontos líquidos.
+  const comDesconto = lista.some((q) => q.pontuacaoLiquida);
+  const erros = lista.filter((q) => respostas[q.id] && respostas[q.id] !== q.correta).length;
+  const liquido = acertos - erros;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -398,6 +437,13 @@ function QuestoesPage() {
           <p className="text-sm">
             {acertos} de {lista.length} corretas · {tempoMin} min
           </p>
+          {comDesconto && (
+            <p className="mx-auto max-w-lg rounded-md border border-atencao/40 bg-atencao-suave p-2 text-sm text-atencao-foreground">
+              Esta prova <strong>desconta erro</strong>: cada errada anula uma certa. Sua pontuação
+              líquida é <strong>{liquido}</strong> ({acertos} certas − {erros} erradas), não {pct}%.
+              Em prova assim, chutar custa.
+            </p>
+          )}
           {ritmo.media > 0 && (
             <p className="mx-auto max-w-lg border-t border-border pt-3 text-sm text-muted-foreground">
               {ritmo.mensagem}
