@@ -118,7 +118,12 @@ def _agrupar_em_faixas(pagina, tolerancia: float = 3.0) -> list[list[dict]]:
     Uma faixa é a altura de uma linha de texto. Numa página de duas colunas ela
     contém *duas* linhas lado a lado — separá-las é trabalho de quem chama.
     """
-    palavras = sorted(pagina.extract_words(), key=lambda p: (p["top"], p["x0"]))
+    # `fontname` vem junto porque é o único vestígio do negrito no PDF, e o negrito
+    # é o que a banca usa para marcar "a palavra destacada" — sem ele, questões de
+    # concordância viram impossíveis de responder.
+    palavras = sorted(
+        pagina.extract_words(extra_attrs=["fontname"]), key=lambda p: (p["top"], p["x0"])
+    )
     faixas: list[list[dict]] = []
     for palavra in palavras:
         if faixas and abs(palavra["top"] - faixas[-1][0]["top"]) <= tolerancia:
@@ -130,7 +135,48 @@ def _agrupar_em_faixas(pagina, tolerancia: float = 3.0) -> list[list[dict]]:
     return faixas
 
 
-def _texto_por_bandas(pagina, folga: float = 0.02) -> str:
+#: Marcação do negrito no texto extraído. `**` porque o frontend já renderiza
+#: Markdown e a IA que recebe o prompt entende o mesmo símbolo. O risco de colisão
+#: foi medido no acervo antes de escolher: 4 ocorrências de `**` em 271 questões
+#: (código Python com exponenciação), contra 271 com `_` — por isso não se usa
+#: sublinhado para itálico aqui.
+MARCA_NEGRITO = "**"
+
+
+def _e_negrito(palavra: dict) -> bool:
+    return "Bold" in palavra.get("fontname", "")
+
+
+def _juntar_marcando(palavras: list[dict], marcar: bool) -> str:
+    """Junta as palavras de uma linha, agrupando corridas de negrito.
+
+    Agrupa em vez de marcar palavra a palavra porque `**a** **b**` polui o texto e
+    alguns renderizadores tropeçam; `**a b**` é o que se espera de um destaque de
+    duas palavras.
+    """
+    if not marcar:
+        return " ".join(p["text"] for p in palavras)
+
+    pedacos: list[str] = []
+    corrida: list[str] = []
+
+    def fechar() -> None:
+        if corrida:
+            pedacos.append(f"{MARCA_NEGRITO}{' '.join(corrida)}{MARCA_NEGRITO}")
+            corrida.clear()
+
+    for palavra in palavras:
+        texto = palavra["text"]
+        if _e_negrito(palavra):
+            corrida.append(texto)
+        else:
+            fechar()
+            pedacos.append(texto)
+    fechar()
+    return " ".join(pedacos)
+
+
+def _texto_por_bandas(pagina, folga: float = 0.02, marcar_negrito: bool = False) -> str:
     """Lê a página respeitando trechos de duas colunas e trechos de largura total.
 
     O caderno da Cesgranrio **mistura os dois layouts na mesma página**: o corpo é
@@ -164,11 +210,11 @@ def _texto_por_bandas(pagina, folga: float = 0.02) -> str:
         atravessa = any(p["x0"] < fim_calha and p["x1"] > inicio_calha for p in faixa)
         if atravessa:
             despejar_bloco()
-            saida.append(" ".join(p["text"] for p in faixa))
+            saida.append(_juntar_marcando(faixa, marcar_negrito))
             continue
 
-        texto_esquerda = " ".join(p["text"] for p in faixa if p["x1"] <= fim_calha)
-        texto_direita = " ".join(p["text"] for p in faixa if p["x0"] >= inicio_calha)
+        texto_esquerda = _juntar_marcando([p for p in faixa if p["x1"] <= fim_calha], marcar_negrito)
+        texto_direita = _juntar_marcando([p for p in faixa if p["x0"] >= inicio_calha], marcar_negrito)
         if texto_esquerda:
             esquerda.append(texto_esquerda)
         if texto_direita:
@@ -178,7 +224,9 @@ def _texto_por_bandas(pagina, folga: float = 0.02) -> str:
     return "\n".join(saida)
 
 
-def extrair_texto(caminho: Path, colunas: int | str = "bandas") -> str:
+def extrair_texto(
+    caminho: Path, colunas: int | str = "bandas", marcar_negrito: bool = False
+) -> str:
     """Devolve o texto do PDF.
 
     * `"bandas"` (padrão) — leitura por faixa horizontal, que lida com páginas que
@@ -191,7 +239,7 @@ def extrair_texto(caminho: Path, colunas: int | str = "bandas") -> str:
     with pdfplumber.open(caminho) as pdf:
         for pagina in pdf.pages:
             if colunas == "bandas":
-                partes.append(_texto_por_bandas(pagina))
+                partes.append(_texto_por_bandas(pagina, marcar_negrito=marcar_negrito))
                 continue
 
             qtd = (2 if _tem_duas_colunas(pagina) else 1) if colunas == "auto" else int(colunas)

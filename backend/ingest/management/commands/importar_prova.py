@@ -27,7 +27,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from catalogo.models import Alternativa, Disciplina, Fonte, Prova, Questao
+from catalogo.models import Alternativa, Disciplina, Fonte, Prova, Questao, Topico
 from ingest.models import Ingestao
 from ingest.parsers.cesgranrio import QuestaoBruta, mesclar, parse_gabarito, parse_prova
 from ingest.pdf import ErroDeIngestao, extrair_texto, obter
@@ -101,7 +101,10 @@ class Command(BaseCommand):
         texto_caderno = ""
         for rotulo, modo in RECORTES:
             try:
-                texto = extrair_texto(doc_prova.caminho, colunas=modo)
+                # `marcar_negrito` preserva o destaque da banca: sem ele,
+                # 'a palavra destacada está empregada corretamente em' fica
+                # sem nenhuma palavra destacada e a questão vira insolúvel.
+                texto = extrair_texto(doc_prova.caminho, colunas=modo, marcar_negrito=True)
             except ErroDeIngestao as erro:
                 self.stdout.write(self.style.WARNING(f"  recorte {rotulo}: {erro}"))
                 continue
@@ -223,6 +226,25 @@ class Command(BaseCommand):
             },
         )
 
+        # O que foi feito à mão sobre as questões — classificação por tópico do
+        # edital e gabarito comentado — não vem do PDF e não seria reconstruído
+        # pela reimportação. Como o id é estável (`<prova>-q07`), dá para guardar
+        # e recolocar. Sem isto, melhorar o parser custaria horas de classificação
+        # a cada execução, e o prejuízo só apareceria depois, na tela de análise.
+        preservado = {
+            registro_id: (topico, subtopico, explicacao)
+            for registro_id, topico, subtopico, explicacao in Questao.objects.filter(
+                prova=prova
+            ).values_list("id", "topico_id", "subtopico_id", "explicacao")
+        }
+
+        # Quais tópicos pertencem a cada disciplina, para validar a classificação
+        # preservada contra a disciplina que o parser acabou de decidir.
+        topicos_por_disciplina: dict[str, set[str]] = {}
+        for topico_id, disciplina_id in Topico.objects.values_list("id", "disciplina_id"):
+            topicos_por_disciplina.setdefault(disciplina_id, set()).add(topico_id)
+        reclassificar: list[str] = []
+
         # Reimportar substitui: o parser melhora com o tempo e o acervo tem que
         # refletir a leitura mais recente, não a soma das tentativas.
         Questao.objects.filter(prova=prova).delete()
@@ -230,9 +252,21 @@ class Command(BaseCommand):
         gravadas = 0
         for questao in questoes:
             resposta = respostas[questao.numero]
+            questao_id = f"{prova.id}-q{questao.numero:02d}"
+            disciplina_id = self._disciplina_de(questao, respostas)
+            topico_id, subtopico_id, explicacao = preservado.get(questao_id, (None, None, ""))
+
+            # Se o parser passou a ler a questão como de outra disciplina, o tópico
+            # antigo é de uma árvore que não vale mais. Descartar a classificação é
+            # o certo: mantida, ela poria a questão sob um tópico de outra
+            # disciplina e a contagem por disciplina passaria a mentir.
+            if topico_id and topico_id not in topicos_por_disciplina.get(disciplina_id, set()):
+                topico_id, subtopico_id = None, None
+                reclassificar.append(questao_id)
+
             registro = Questao.objects.create(
-                id=f"{prova.id}-q{questao.numero:02d}",
-                disciplina_id=self._disciplina_de(questao, respostas),
+                id=questao_id,
+                disciplina_id=disciplina_id,
                 prova=prova,
                 numero_na_prova=questao.numero,
                 ano=op["ano"],
@@ -241,6 +275,9 @@ class Command(BaseCommand):
                 enunciado=questao.enunciado,
                 correta="" if resposta.anulada else resposta.letra,
                 anulada=resposta.anulada,
+                topico_id=topico_id,
+                subtopico_id=subtopico_id,
+                explicacao=explicacao,
                 fonte=fonte,
             )
             Alternativa.objects.bulk_create(
@@ -248,6 +285,15 @@ class Command(BaseCommand):
                 for letra, texto in sorted(questao.alternativas.items())
             )
             gravadas += 1
+
+        if reclassificar:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"  {len(reclassificar)} questao(oes) mudaram de disciplina e perderam "
+                    f"a classificacao por topico: {', '.join(reclassificar[:8])}"
+                    + (" ..." if len(reclassificar) > 8 else "")
+                )
+            )
         return gravadas
 
     def _relatorio(self, op, brutas, gravadas, descartes, origem) -> None:

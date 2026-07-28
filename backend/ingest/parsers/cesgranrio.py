@@ -30,9 +30,22 @@ from dataclasses import dataclass, field
 # ---------------------------------------------------------------- utilidades
 
 
+def sem_marcas(texto: str) -> str:
+    """Tira a marcação de negrito (`**`) que a extração insere.
+
+    O negrito precisa sobreviver no **conteúdo** (é como a banca diz qual é "a
+    palavra destacada"), mas atrapalha em toda decisão de **estrutura**: o número
+    da questão sai como `**6**` e deixa de casar com o regex de número solto, o
+    cabeçalho de seção sai como `**LÍNGUA PORTUGUESA**` e deixa de casar com
+    SECOES. Então tudo que classifica linha olha o texto sem marca; só o que é
+    guardado no banco mantém.
+    """
+    return texto.replace("**", "")
+
+
 def _normalizar(texto: str) -> str:
     """Maiúsculas sem acento — para comparar cabeçalho sem depender de acentuação."""
-    sem_acento = unicodedata.normalize("NFKD", texto)
+    sem_acento = unicodedata.normalize("NFKD", sem_marcas(texto))
     sem_acento = "".join(c for c in sem_acento if not unicodedata.combining(c))
     return re.sub(r"\s+", " ", sem_acento).strip().upper()
 
@@ -65,6 +78,10 @@ _RE_ALTERNATIVA = re.compile(r"^\(([A-E])\)\s*(.*)$")
 # Alternativas curtas (números, siglas) às vezes vêm lado a lado na mesma linha:
 # "(A) 10 (B) 12 (C) 14". Sem isto, só a primeira seria capturada.
 _RE_ALTERNATIVA_INLINE = re.compile(r"\(([A-E])\)\s*([^()]*?)(?=\s*\([A-E]\)|$)")
+# Só o rótulo "(A)" no começo da linha, com a marcação de negrito que a extração
+# possa ter posto em volta dele. Serve para tirar o rótulo da linha bruta sem
+# tocar no resto — que é onde está a palavra destacada.
+_RE_ROTULO_ALTERNATIVA = re.compile(r"^\*{0,2}\([A-E]\)\*{0,2}\s*")
 _RE_SO_NUMERO = re.compile(r"^(\d{1,3})$")
 _RE_GABARITO_TIPO = re.compile(r"^GABARITO\s+(\d+)$", re.I)
 # "36 - E", "24- B", "12 – A" (travessão) e "40 - ANULADA".
@@ -103,6 +120,18 @@ def _juntar(partes: list[str]) -> str:
         if not saida:
             saida = parte
             continue
+
+        # Palavra destacada quebrada por hífen: a linha termina em `-**` porque a
+        # marcação de negrito fecha depois do hífen ("**implemen-**" / "**tadas**").
+        # Sem tratar isto, a hifenização não é desfeita e a alternativa fica com
+        # "implemen-" — exatamente a palavra que a questão manda analisar.
+        if saida.endswith("-**") and parte.startswith("**"):
+            saida = saida[:-2]  # tira o fecho, deixando "...**implemen-"
+            parte = parte[2:]  # tira a abertura, deixando "tadas**"
+        elif saida.endswith("-**"):
+            # Metade destacada e metade não: manter a marca produziria `**` solto.
+            saida = saida[:-2]
+
         if saida.endswith("-"):
             # "norma-" + "-padrão" -> "norma-padrão"; "atu-" + "ação" -> "atuação"
             if parte.startswith("-"):
@@ -253,7 +282,12 @@ def parse_prova(texto: str, total_esperado: int = 70, salto_maximo: int = 6) -> 
             buffer_texto_base = []
             continue
 
-        marca_numero = _RE_SO_NUMERO.match(conteudo)
+        # A partir daqui, `limpo` decide estrutura e `conteudo` guarda conteúdo:
+        # o número da questão sai do PDF como `**6**` (a banca põe em negrito) e
+        # sem tirar a marca ele deixaria de ser reconhecido como início de questão.
+        limpo = sem_marcas(conteudo)
+
+        marca_numero = _RE_SO_NUMERO.match(limpo)
         if marca_numero:
             numero = int(marca_numero.group(1))
             avanca = esperado <= numero <= min(esperado + salto_maximo, total_esperado)
@@ -278,19 +312,24 @@ def parse_prova(texto: str, total_esperado: int = 70, salto_maximo: int = 6) -> 
             buffer_texto_base.append(conteudo)
             continue
 
-        marca_alternativa = _RE_ALTERNATIVA.match(conteudo)
+        marca_alternativa = _RE_ALTERNATIVA.match(limpo)
         if marca_alternativa:
-            achados = _RE_ALTERNATIVA_INLINE.findall(conteudo)
+            achados = _RE_ALTERNATIVA_INLINE.findall(limpo)
             if len(achados) > 1:
                 # Linha com várias alternativas: fecha tudo de uma vez, porque
-                # nenhuma delas pode continuar na linha seguinte.
+                # nenhuma delas pode continuar na linha seguinte. Aqui vai o texto
+                # sem marca mesmo: alternativa curta em linha compartilhada é
+                # número ou sigla, onde não há destaque a preservar.
                 fechar_alternativa()
                 for letra, texto_alt in achados:
                     atual.alternativas[letra] = texto_alt.strip()
                 continue
             fechar_alternativa()
             letra_atual = marca_alternativa.group(1)
-            buffer_alternativa = [marca_alternativa.group(2)]
+            # O corpo vem da linha BRUTA, sem o rótulo "(A)": é onde mora a palavra
+            # destacada, e usar `limpo` aqui apagaria justamente o que a questão
+            # está perguntando.
+            buffer_alternativa = [_RE_ROTULO_ALTERNATIVA.sub("", conteudo, count=1)]
             continue
 
         if letra_atual:

@@ -72,6 +72,47 @@ export function Markdown({ children }: { children: string }) {
   );
 }
 
+/**
+ * Destaque da banca dentro do texto da questão.
+ *
+ * A extração do PDF marca com `**` as palavras que a prova põe em negrito — é
+ * assim que enunciados como "a palavra destacada está empregada corretamente em"
+ * ficam respondíveis. Aqui isso vira `<strong>`.
+ *
+ * Não usa um parser de Markdown de propósito: questões de TI trazem código, e um
+ * caderno tem `" *** "` dentro de uma string Java. Um parser genérico casaria
+ * esses asteriscos entre si e embolaria o código. As restrições abaixo separam
+ * "destaque da banca" de "asterisco que é conteúdo": destaque é curto e não tem
+ * pontuação de código no meio.
+ */
+const LIMITE_DESTAQUE = 60;
+const RE_DESTAQUE = /\*\*([^*]+)\*\*/g;
+
+function ehDestaquePlausivel(texto: string): boolean {
+  return texto.length <= LIMITE_DESTAQUE && !/["`;{}]/.test(texto);
+}
+
+export function TextoDaQuestao({ children, className }: { children: string; className?: string }) {
+  const partes: React.ReactNode[] = [];
+  let ultimo = 0;
+
+  for (const achado of children.matchAll(RE_DESTAQUE)) {
+    const [inteiro, dentro] = achado;
+    if (!ehDestaquePlausivel(dentro)) continue;
+    const inicio = achado.index;
+    if (inicio > ultimo) partes.push(children.slice(ultimo, inicio));
+    partes.push(
+      <strong key={inicio} className="font-bold underline decoration-2 underline-offset-2">
+        {dentro}
+      </strong>,
+    );
+    ultimo = inicio + inteiro.length;
+  }
+  if (ultimo < children.length) partes.push(children.slice(ultimo));
+
+  return <span className={className}>{partes}</span>;
+}
+
 /** Aviso fixo em todo lugar que mostra conteúdo gerado por IA. */
 export function AvisoGerado({ oQue = "conteúdo" }: { oQue?: string }) {
   return (

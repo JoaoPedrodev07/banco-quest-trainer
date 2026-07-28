@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { GabaritoComentado } from "@/components/GabaritoComentado";
+import { TextoDaQuestao } from "@/components/Markdown";
 import { useDisciplinas, useQuestoes } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -188,10 +189,14 @@ function QuestoesPage() {
                 <summary className="cursor-pointer text-sm font-semibold">
                   Texto de apoio (necessário para responder)
                 </summary>
-                <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{q.textoBase}</p>
+                <TextoDaQuestao className="mt-2 block whitespace-pre-line text-sm leading-relaxed">
+                  {q.textoBase}
+                </TextoDaQuestao>
               </details>
             )}
-            <p className="text-base leading-relaxed whitespace-pre-line">{q.enunciado}</p>
+            <TextoDaQuestao className="block text-base leading-relaxed whitespace-pre-line">
+              {q.enunciado}
+            </TextoDaQuestao>
             <div className="space-y-2">
               {q.alternativas.map((a) => {
                 const isChosen = escolhida === a.letra;
@@ -214,7 +219,7 @@ function QuestoesPage() {
                     )}
                   >
                     <span className="font-black text-primary">{a.letra}</span>
-                    <span className="text-sm flex-1">{a.texto}</span>
+                    <TextoDaQuestao className="text-sm flex-1">{a.texto}</TextoDaQuestao>
                     {showResult && isCorreta && (
                       <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
                     )}
@@ -310,7 +315,7 @@ function QuestoesPage() {
                     Sua: {respostas[q.id] || "—"} · Correta: {q.correta}
                   </p>
                 </div>
-                <p className="text-sm">{q.enunciado}</p>
+                <TextoDaQuestao className="block text-sm">{q.enunciado}</TextoDaQuestao>
               </CardContent>
             </Card>
           );
