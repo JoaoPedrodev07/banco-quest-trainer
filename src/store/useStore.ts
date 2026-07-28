@@ -11,17 +11,42 @@ type EditalStatus = Record<string, StatusTopico>; // subtopicoId -> status
  */
 export const CONCURSO_PADRAO = "bb-ti-2026";
 
+/**
+ * Estado do pomodoro.
+ *
+ * Guarda **quando a fase começou**, não quantos segundos faltam. O tempo restante
+ * é derivado na leitura (§2.3): gravar o contador faria o timer congelar quando a
+ * aba perde o foco e o navegador estrangula os timers, e ainda divergiria entre
+ * duas abas abertas. Com o instante de início, qualquer tela chega ao mesmo
+ * número sozinha.
+ */
+export interface Pomodoro {
+  fase: "foco" | "pausa";
+  /** ISO do início da fase atual. `null` = parado. */
+  iniciadoEm: string | null;
+  /** Ciclos de foco concluídos, e em que dia — para zerar sozinho na virada. */
+  ciclosConcluidos: number;
+  diaDosCiclos: string | null;
+}
+
+export const DURACAO_POMODORO = { foco: 25 * 60, pausa: 5 * 60 } as const;
+
 interface StoreState {
   dataProva: string; // ISO
   metaDiaria: number;
   darkMode: boolean;
   concursoAtivoId: string;
+  pomodoro: Pomodoro;
   editalStatus: EditalStatus;
   historico: RespostaHistorico[];
   revisoes: RevisaoItem[];
   streak: { ultimoDia: string | null; dias: number };
 
   definirConcursoAtivo: (id: string) => void;
+  iniciarPomodoro: (fase: "foco" | "pausa") => void;
+  pararPomodoro: () => void;
+  alternarFasePomodoro: () => void;
+  concluirFasePomodoro: () => void;
   setDataProva: (d: string) => void;
   setMeta: (n: number) => void;
   toggleDark: () => void;
@@ -82,6 +107,7 @@ type EstadoPersistidoAntigo = Partial<{
   historico: Partial<RespostaHistorico>[];
   revisoes: Partial<RevisaoItem>[];
   concursoAtivoId: string;
+  pomodoro: Pomodoro;
 }> &
   Record<string, unknown>;
 
@@ -92,12 +118,48 @@ export const useStore = create<StoreState>()(
       metaDiaria: 20,
       darkMode: false,
       concursoAtivoId: CONCURSO_PADRAO,
+      pomodoro: { fase: "foco", iniciadoEm: null, ciclosConcluidos: 0, diaDosCiclos: null },
       editalStatus: {},
       historico: [],
       revisoes: initialRevisoes,
       streak: { ultimoDia: null, dias: 0 },
 
       definirConcursoAtivo: (id) => set({ concursoAtivoId: id }),
+
+      iniciarPomodoro: (fase) =>
+        set({ pomodoro: { ...get().pomodoro, fase, iniciadoEm: new Date().toISOString() } }),
+      pararPomodoro: () => set({ pomodoro: { ...get().pomodoro, iniciadoEm: null } }),
+      // Troca manual de fase. Não conta ciclo: pular o foco pela metade não é
+      // um ciclo cumprido, e inflar esse número tornaria o contador do dia
+      // inútil como medida de estudo.
+      alternarFasePomodoro: () =>
+        set((s) => ({
+          pomodoro: {
+            ...s.pomodoro,
+            fase: s.pomodoro.fase === "foco" ? "pausa" : "foco",
+            iniciadoEm: null,
+          },
+        })),
+      concluirFasePomodoro: () =>
+        set((s) => {
+          const hoje = new Date().toISOString().slice(0, 10);
+          const virouODia = s.pomodoro.diaDosCiclos !== hoje;
+          const foiFoco = s.pomodoro.fase === "foco";
+          return {
+            pomodoro: {
+              // Alterna sozinho, mas não inicia a próxima fase: quem decide
+              // quando a pausa começa é o usuário, não o relógio.
+              fase: foiFoco ? "pausa" : "foco",
+              iniciadoEm: null,
+              ciclosConcluidos: foiFoco
+                ? virouODia
+                  ? 1
+                  : s.pomodoro.ciclosConcluidos + 1
+                : s.pomodoro.ciclosConcluidos,
+              diaDosCiclos: foiFoco ? hoje : s.pomodoro.diaDosCiclos,
+            },
+          };
+        }),
       setDataProva: (d) => set({ dataProva: d }),
       setMeta: (n) => set({ metaDiaria: n }),
       toggleDark: () => {
@@ -176,6 +238,9 @@ export const useStore = create<StoreState>()(
           ...atual,
           ...(p as object),
           concursoAtivoId: p.concursoAtivoId ?? CONCURSO_PADRAO,
+          // Estado gravado antes do pomodoro existir não tem esse campo; sem o
+          // padrão aqui a tela quebraria ao ler `pomodoro.fase` de undefined.
+          pomodoro: p.pomodoro ?? atual.pomodoro,
           historico: comConcurso(p.historico ?? []),
           revisoes: comConcurso(p.revisoes ?? atual.revisoes),
         } as StoreState;

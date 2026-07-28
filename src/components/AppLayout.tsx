@@ -8,15 +8,18 @@ import {
   Settings,
   Trophy,
   BarChart3,
+  Layers,
 } from "lucide-react";
 import { useEffect } from "react";
 import { useStore } from "@/store/useStore";
+import { Pomodoro } from "@/components/Pomodoro";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/edital", label: "Edital", icon: BookOpen },
   { to: "/questoes", label: "Questões", icon: ListChecks },
+  { to: "/flashcards", label: "Flashcards", icon: Layers },
   { to: "/provas", label: "Provas", icon: FileText },
   { to: "/analise", label: "Análise", icon: BarChart3 },
   { to: "/revisoes", label: "Revisões", icon: RotateCcw },
@@ -84,6 +87,8 @@ export function AppLayout() {
           <Outlet />
         </div>
       </main>
+
+      <Pomodoro />
 
       {/* Bottom nav mobile */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur">

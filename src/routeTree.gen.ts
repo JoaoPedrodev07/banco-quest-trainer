@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as ConfigRouteImport } from './routes/config'
 import { Route as EditalRouteImport } from './routes/edital'
+import { Route as FlashcardsRouteImport } from './routes/flashcards'
 import { Route as ProvasRouteImport } from './routes/provas'
 import { Route as QuestoesRouteImport } from './routes/questoes'
 import { Route as RevisoesRouteImport } from './routes/revisoes'
@@ -37,6 +38,11 @@ const ConfigRoute = ConfigRouteImport.update({
 const EditalRoute = EditalRouteImport.update({
   id: '/edital',
   path: '/edital',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FlashcardsRoute = FlashcardsRouteImport.update({
+  id: '/flashcards',
+  path: '/flashcards',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProvasRoute = ProvasRouteImport.update({
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/analise': typeof AnaliseRoute
   '/config': typeof ConfigRoute
   '/edital': typeof EditalRoute
+  '/flashcards': typeof FlashcardsRoute
   '/provas': typeof ProvasRoute
   '/questoes': typeof QuestoesRoute
   '/revisoes': typeof RevisoesRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/analise': typeof AnaliseRoute
   '/config': typeof ConfigRoute
   '/edital': typeof EditalRoute
+  '/flashcards': typeof FlashcardsRoute
   '/provas': typeof ProvasRoute
   '/questoes': typeof QuestoesRoute
   '/revisoes': typeof RevisoesRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/analise': typeof AnaliseRoute
   '/config': typeof ConfigRoute
   '/edital': typeof EditalRoute
+  '/flashcards': typeof FlashcardsRoute
   '/provas': typeof ProvasRoute
   '/questoes': typeof QuestoesRoute
   '/revisoes': typeof RevisoesRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/analise'
     | '/config'
     | '/edital'
+    | '/flashcards'
     | '/provas'
     | '/questoes'
     | '/revisoes'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/analise'
     | '/config'
     | '/edital'
+    | '/flashcards'
     | '/provas'
     | '/questoes'
     | '/revisoes'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/analise'
     | '/config'
     | '/edital'
+    | '/flashcards'
     | '/provas'
     | '/questoes'
     | '/revisoes'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   AnaliseRoute: typeof AnaliseRoute
   ConfigRoute: typeof ConfigRoute
   EditalRoute: typeof EditalRoute
+  FlashcardsRoute: typeof FlashcardsRoute
   ProvasRoute: typeof ProvasRoute
   QuestoesRoute: typeof QuestoesRoute
   RevisoesRoute: typeof RevisoesRoute
@@ -175,6 +188,13 @@ declare module '@tanstack/react-router' {
       path: '/edital'
       fullPath: '/edital'
       preLoaderRoute: typeof EditalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/flashcards': {
+      id: '/flashcards'
+      path: '/flashcards'
+      fullPath: '/flashcards'
+      preLoaderRoute: typeof FlashcardsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/provas': {
@@ -220,6 +240,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnaliseRoute: AnaliseRoute,
   ConfigRoute: ConfigRoute,
   EditalRoute: EditalRoute,
+  FlashcardsRoute: FlashcardsRoute,
   ProvasRoute: ProvasRoute,
   QuestoesRoute: QuestoesRoute,
   RevisoesRoute: RevisoesRoute,
