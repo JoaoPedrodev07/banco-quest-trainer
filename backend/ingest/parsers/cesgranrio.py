@@ -55,6 +55,7 @@ SECOES = {
     # o caderno do Agente Comercial traz 15 questões de Informática seguidas de 15
     # de Vendas, e as 30 acabavam contadas como Informática.
     "VENDAS E NEGOCIACAO": "vendas",
+    "MATEMATICA FINANCEIRA": "matfinanceira",
 }
 
 # Cabeçalhos que apenas agrupam seções e não são disciplina.

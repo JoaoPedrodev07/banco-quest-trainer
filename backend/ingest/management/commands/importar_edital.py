@@ -55,6 +55,7 @@ DISCIPLINAS_EDITAL = {
     # as de Agente de Tecnologia em nenhuma contagem.
     "CONHECIMENTOS DE INFORMATICA": "informatica",
     "VENDAS E NEGOCIACAO": "vendas",
+    "MATEMATICA FINANCEIRA": "matfinanceira",
 }
 
 _RE_ANEXO = re.compile(r"ANEXO\s+III\s*[-–—]\s*CONTE.DOS\s+PROGRAM.TICOS", re.I)

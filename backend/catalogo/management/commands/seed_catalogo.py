@@ -35,6 +35,11 @@ DISCIPLINAS = [
     # Também do cargo de Agente Comercial: atendimento, técnicas de venda e as
     # resoluções do CMN. Não consta do edital de Agente de Tecnologia.
     ("vendas", "Vendas e Negociação", "#2F6F6F"),
+    # Terceira disciplina exclusiva do Agente Comercial. No caderno dele as
+    # questões de Matemática Financeira vêm logo depois das de Atualidades, sem
+    # separador visual óbvio — o cargo de Agente de Tecnologia tem Probabilidade e
+    # Estatística naquela posição. Somar as duas distorceria as duas contagens.
+    ("matfinanceira", "Matemática Financeira", "#8C3B7A"),
 ]
 
 FONTE_SLUG = "estrutura-disciplinas"
