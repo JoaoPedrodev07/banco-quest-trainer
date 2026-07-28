@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { provas } from "@/data/provas";
+import { AvisoAcervo } from "@/components/AvisoAcervo";
+import { useProvas } from "@/services/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,13 +24,14 @@ export const Route = createFileRoute("/provas")({
 function ProvasPage() {
   const [banca, setBanca] = useState("todas");
   const [ano, setAno] = useState("todos");
+  const { provas, carregando } = useProvas();
 
   const filtradas = useMemo(
     () =>
       provas.filter(
         (p) => (banca === "todas" || p.banca === banca) && (ano === "todos" || p.ano === Number(ano)),
       ),
-    [banca, ano],
+    [provas, banca, ano],
   );
 
   const anos = Array.from(new Set(provas.map((p) => p.ano))).sort((a, b) => b - a);
@@ -41,6 +43,8 @@ function ProvasPage() {
         <h1 className="text-2xl md:text-3xl font-black">Provas anteriores</h1>
         <p className="text-sm text-muted-foreground">Baixe ou resolva online provas de bancos públicos.</p>
       </div>
+
+      <AvisoAcervo />
 
       <div className="flex flex-wrap gap-3">
         <Select value={banca} onValueChange={setBanca}>
@@ -70,15 +74,32 @@ function ProvasPage() {
                 </div>
                 <Badge>{p.ano}</Badge>
               </div>
-              <div className="flex gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                 <span>{p.banca}</span>
                 <span>·</span>
-                <span>{p.qtdQuestoes} questões</span>
+                {/* Dois números de propósito: importação parcial de caderno não
+                    pode se passar por prova inteira (§2.2 do CLAUDE.md). */}
+                <span>
+                  {p.questoesDisponiveis ?? 0} de {p.qtdQuestoes} questões no acervo
+                </span>
               </div>
               <div className="flex gap-2 pt-2">
-                <Button size="sm" variant="outline" className="flex-1" onClick={() => toast.info("PDF em breve")}>
-                  <Download className="h-3 w-3 mr-1" /> PDF
-                </Button>
+                {p.urlProva ? (
+                  <Button asChild size="sm" variant="outline" className="flex-1">
+                    <a href={p.urlProva} target="_blank" rel="noreferrer">
+                      <Download className="h-3 w-3 mr-1" /> PDF
+                    </a>
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => toast.info("Esta prova foi importada de arquivo local, sem URL pública.")}
+                  >
+                    <Download className="h-3 w-3 mr-1" /> PDF
+                  </Button>
+                )}
                 <Button size="sm" className="flex-1" onClick={() => toast.info("Modo online em breve")}>
                   <FileText className="h-3 w-3 mr-1" /> Resolver
                 </Button>
@@ -88,7 +109,7 @@ function ProvasPage() {
         ))}
         {filtradas.length === 0 && (
           <p className="text-sm text-muted-foreground col-span-full text-center py-8">
-            Nenhuma prova encontrada com esses filtros.
+            {carregando ? "Carregando provas…" : "Nenhuma prova encontrada com esses filtros."}
           </p>
         )}
       </div>

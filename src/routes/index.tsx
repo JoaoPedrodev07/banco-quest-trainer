@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/store/useStore";
-import { disciplinas } from "@/data/disciplinas";
-import { questoes } from "@/data/questoes";
+import { AvisoAcervo } from "@/components/AvisoAcervo";
+import { useDisciplinas, useQuestoes } from "@/services/hooks";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line, CartesianGrid } from "recharts";
 import { Flame, Target, CheckCircle2, TrendingUp, Calendar } from "lucide-react";
 import { useMemo } from "react";
@@ -23,6 +23,8 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const { dataProva, historico, editalStatus, streak, metaDiaria } = useStore();
+  const { disciplinas } = useDisciplinas();
+  const { questoes } = useQuestoes();
 
   const diasRestantes = Math.max(0, Math.ceil((new Date(dataProva).getTime() - Date.now()) / 86400000));
 
@@ -40,7 +42,7 @@ function Dashboard() {
       const t = hs.length ? Math.round((hs.filter((x) => x.correta).length / hs.length) * 100) : 0;
       return { nome: d.nome.split(" ")[0], acerto: t, fill: d.cor };
     });
-  }, [historico]);
+  }, [disciplinas, historico]);
 
   const lineData = useMemo(() => {
     const arr: { dia: string; qtd: number }[] = [];
@@ -63,16 +65,23 @@ function Dashboard() {
       .filter((x) => x.respondidas >= 2)
       .sort((a, b) => a.taxa - b.taxa)
       .slice(0, 3);
-  }, [historico]);
+  }, [disciplinas, historico]);
 
+  // Mesma regra da tela do edital: tópico sem subtópico conta como uma unidade.
+  // No edital real, disciplinas inteiras (Português, Matemática) não têm
+  // subdivisão, e contar só subtópico deixaria o denominador errado nas duas telas.
   const totalSubtopicos = disciplinas.reduce(
-    (acc, d) => acc + d.topicos.reduce((a, t) => a + t.subtopicos.length, 0),
+    (acc, d) => acc + d.topicos.reduce((a, t) => a + Math.max(1, t.subtopicos.length), 0),
     0,
   );
-  const progressoEdital = Math.round((topicosConcluidos / totalSubtopicos) * 100);
+  const progressoEdital = totalSubtopicos
+    ? Math.round((topicosConcluidos / totalSubtopicos) * 100)
+    : 0;
 
   return (
     <div className="space-y-6">
+      <AvisoAcervo />
+
       <Card className="border-0 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
         <CardContent className="p-6 flex items-center justify-between gap-4 flex-wrap">
           <div className="min-w-0">

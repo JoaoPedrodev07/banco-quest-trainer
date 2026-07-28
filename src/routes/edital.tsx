@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { disciplinas } from "@/data/disciplinas";
+import { AvisoAcervo } from "@/components/AvisoAcervo";
+import { useDisciplinas } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import type { StatusTopico } from "@/types";
+import type { StatusTopico, Topico } from "@/types";
 
 export const Route = createFileRoute("/edital")({
   head: () => ({
@@ -23,14 +24,32 @@ export const Route = createFileRoute("/edital")({
 
 type Filtro = "todos" | "pendentes" | "concluidos";
 
+/**
+ * O que se marca como estudado: o subtópico quando ele existe, senão o próprio
+ * tópico.
+ *
+ * O edital de verdade não é uniforme — Língua Portuguesa tem 9 tópicos e nenhum
+ * subtópico, enquanto Tecnologia da Informação tem 6 tópicos com 21 subtópicos.
+ * Contar só subtópico faria disciplinas inteiras desaparecerem da tela e o
+ * progresso delas dividir por zero.
+ */
+function unidades(topico: Topico): { id: string; nome: string }[] {
+  return topico.subtopicos.length ? topico.subtopicos : [{ id: topico.id, nome: topico.nome }];
+}
+
 function EditalPage() {
   const { editalStatus, toggleStatus } = useStore();
+  const { disciplinas, carregando } = useDisciplinas();
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [expandidas, setExpandidas] = useState<Record<string, boolean>>({});
 
-  const totalSub = disciplinas.reduce((a, d) => a + d.topicos.reduce((x, t) => x + t.subtopicos.length, 0), 0);
+  const totalSub = disciplinas.reduce(
+    (a, d) => a + d.topicos.reduce((x, t) => x + unidades(t).length, 0),
+    0,
+  );
   const concluidos = Object.values(editalStatus).filter((s) => s.teoria && s.revisao && s.questoes).length;
-  const progresso = Math.round((concluidos / totalSub) * 100);
+  // Sem edital carregado o denominador é zero, e a divisão viraria NaN na barra.
+  const progresso = totalSub ? Math.round((concluidos / totalSub) * 100) : 0;
 
   const status = (id: string): StatusTopico =>
     editalStatus[id] ?? { teoria: false, revisao: false, questoes: false };
@@ -53,6 +72,8 @@ function EditalPage() {
         </p>
       </div>
 
+      <AvisoAcervo />
+
       <Card>
         <CardContent className="p-4 space-y-2">
           <div className="flex items-center justify-between">
@@ -71,11 +92,13 @@ function EditalPage() {
         ))}
       </div>
 
+      {carregando && <p className="text-sm text-muted-foreground">Carregando o edital…</p>}
+
       <div className="space-y-3">
         {disciplinas.map((d) => {
-          const subIds = d.topicos.flatMap((t) => t.subtopicos.map((s) => s.id));
+          const subIds = d.topicos.flatMap((t) => unidades(t).map((s) => s.id));
           const conc = subIds.filter(isConcluido).length;
-          const pct = Math.round((conc / subIds.length) * 100);
+          const pct = subIds.length ? Math.round((conc / subIds.length) * 100) : 0;
           const aberta = expandidas[d.id] ?? false;
           return (
             <Card key={d.id}>
@@ -98,11 +121,16 @@ function EditalPage() {
               {aberta && (
                 <div className="border-t border-border px-4 pb-4 space-y-4">
                   {d.topicos.map((t) => {
-                    const subs = t.subtopicos.filter((s) => filtrar(s.id));
+                    const subs = unidades(t).filter((s) => filtrar(s.id));
                     if (subs.length === 0) return null;
+                    // Tópico sem subtópico já é a própria linha: repetir o nome
+                    // como cabeçalho só duplicaria o texto.
+                    const temCabecalho = t.subtopicos.length > 0;
                     return (
                       <div key={t.id} className="pt-3">
-                        <p className="text-sm font-semibold text-muted-foreground mb-2">{t.nome}</p>
+                        {temCabecalho && (
+                          <p className="text-sm font-semibold text-muted-foreground mb-2">{t.nome}</p>
+                        )}
                         <div className="space-y-2">
                           {subs.map((s) => {
                             const st = status(s.id);

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useStore } from "@/store/useStore";
-import { disciplinas } from "@/data/disciplinas";
+import { useDisciplinas } from "@/services/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/revisoes")({
 
 function RevisoesPage() {
   const { revisoes, marcarRevisada } = useStore();
+  const { disciplinas } = useDisciplinas();
 
   const ordenadas = [...revisoes].sort(
     (a, b) => new Date(a.proximaRevisao).getTime() - new Date(b.proximaRevisao).getTime(),

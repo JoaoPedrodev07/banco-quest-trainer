@@ -1,11 +1,101 @@
-import { disciplinas } from "@/data/disciplinas";
-import { questoes } from "@/data/questoes";
-import { provas } from "@/data/provas";
+/**
+ * A costura entre as telas e os dados.
+ *
+ * Esta camada existe para que a origem do conteúdo seja decisão de um lugar só.
+ * Ela tenta o backend (`VITE_API_URL`, padrão `http://localhost:8000/api`) e, se
+ * ele não responder, cai nos mocks de `src/data/` — o app continua utilizável
+ * offline, que é como ele nasceu.
+ *
+ * A queda para mock é **silenciosa nos dados, mas não na tela**: `acervo()`
+ * devolve `online: false`, e é obrigação de quem exibe avisar que aquilo é
+ * amostra. Conteúdo de exemplo apresentado como se fosse da banca é a forma mais
+ * fácil de este app fazer alguém estudar errado (§2.2 do CLAUDE.md).
+ */
 
-const delay = <T>(v: T, ms = 100): Promise<T> => new Promise((r) => setTimeout(() => r(v), ms));
+import { CONCURSO_PADRAO } from "@/store/useStore";
+import { disciplinas as disciplinasMock } from "@/data/disciplinas";
+import { provas as provasMock } from "@/data/provas";
+import { questoes as questoesMock } from "@/data/questoes";
+import type { Acervo, Disciplina, Prova, Questao } from "@/types";
+
+const BASE = ((import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000/api")
+  .trim()
+  .replace(/\/+$/, "");
+
+// Curto de propósito: se o backend não está de pé, o usuário não pode ficar
+// olhando tela vazia enquanto o navegador espera o timeout de rede.
+const TIMEOUT_MS = 4000;
+
+async function buscar<T>(caminho: string): Promise<T> {
+  const resposta = await fetch(`${BASE}${caminho}`, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (!resposta.ok) {
+    throw new Error(`GET ${caminho} devolveu HTTP ${resposta.status}`);
+  }
+  return (await resposta.json()) as T;
+}
+
+async function comReserva<T>(caminho: string, reserva: T): Promise<T> {
+  try {
+    return await buscar<T>(caminho);
+  } catch (erro) {
+    console.warn(`[services] backend indisponível em ${BASE}${caminho}; usando mocks.`, erro);
+    return reserva;
+  }
+}
+
+/** Retrato do acervo quando o backend não responde: o que existe em `src/data/`. */
+function acervoLocal(): Acervo {
+  return {
+    online: false,
+    questoes: {
+      total: questoesMock.length,
+      oficiais: 0,
+      amostra: questoesMock.length,
+      anuladas: 0,
+    },
+    disciplinas: disciplinasMock.length,
+    provas: provasMock.length,
+    editalVigente: { titulo: null, url: null, tipo: null },
+  };
+}
+
+/**
+ * O backend ainda é de um concurso só: ele não conhece `concursoId` e não devolve
+ * esse campo. Carimbar aqui mantém a promessa da camada — as telas recebem o
+ * formato final e não precisam saber que o servidor está atrasado em relação ao
+ * app. Quando o backend ganhar concursos, some este `map` e nada mais muda.
+ */
+function comConcurso<T>(itens: T[], concursoId: string): T[] {
+  return itens.map((item) => ({ concursoId, ...item }));
+}
 
 export const api = {
-  listDisciplinas: () => delay(disciplinas),
-  listQuestoes: () => delay(questoes),
-  listProvas: () => delay(provas),
+  listDisciplinas: async () =>
+    comConcurso(await comReserva<Disciplina[]>("/disciplinas/", disciplinasMock), CONCURSO_PADRAO),
+  listQuestoes: () => comReserva<Questao[]>("/questoes/", questoesMock),
+  listProvas: async () =>
+    comConcurso(await comReserva<Prova[]>("/provas/", provasMock), CONCURSO_PADRAO),
+
+  async acervo(): Promise<Acervo> {
+    try {
+      const meta = await buscar<Omit<Acervo, "online">>("/meta/");
+      return { ...meta, online: true };
+    } catch {
+      return acervoLocal();
+    }
+  },
+};
+
+/**
+ * Chaves do React Query. Ficam aqui, e não espalhadas pelas rotas, para que
+ * invalidar cache não dependa de duas telas terem digitado a mesma string.
+ */
+export const chaves = {
+  disciplinas: ["disciplinas"] as const,
+  questoes: ["questoes"] as const,
+  provas: ["provas"] as const,
+  acervo: ["acervo"] as const,
 };
