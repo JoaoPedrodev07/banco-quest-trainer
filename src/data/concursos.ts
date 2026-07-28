@@ -116,5 +116,59 @@ export const concursos: Concurso[] = [
   },
 ];
 
+/**
+ * Concursos já encerrados, no catálogo para **treinar o formato da banca**.
+ *
+ * Existem porque a banca do BB 2026 não está definida — o contrato com a
+ * Cesgranrio caiu e disputam Cesgranrio, FGV, Cebraspe e IBFC. Treinar só no
+ * estilo de uma é apostar. Aqui o candidato pode trocar o foco e sentir como
+ * cada uma cobra.
+ *
+ * São concursos separados de propósito, e não provas anexadas ao BB: o edital é
+ * de outro órgão e de outro cargo, e somá-los à contagem de incidência do BB
+ * distorceria a análise — o mesmo erro que já custou três correções neste
+ * acervo.
+ */
+const FONTE_TREINO: Fonte = {
+  slug: "treino-de-formato",
+  tipo: "derivada",
+  rotulo: "Concurso encerrado — treino de formato",
+  titulo: "Prova anterior de outro órgão, no catálogo para treinar o estilo da banca",
+  url: "",
+  publicadoEm: null,
+  eOficial: false,
+};
+
+concursos.push(
+  {
+    id: "fgv-banestes-ti-2021",
+    nome: "Banestes 2021 — Analista de TI (treino FGV)",
+    orgao: "Banco do Estado do Espírito Santo",
+    cargo: "Analista em Tecnologia da Informação - Desenvolvimento de Sistemas",
+    banca: "FGV",
+    salario: null,
+    vagas: null,
+    status: "encerrado",
+    dataProva: "2021-12-19",
+    editalUrl: null,
+    provaIds: ["fgv-banestes-ti-2021"],
+    fonte: FONTE_TREINO,
+  },
+  {
+    id: "cebraspe-bnb-ti-2022",
+    nome: "BNB 2022 — Analista de Sistemas (treino Cebraspe)",
+    orgao: "Banco do Nordeste do Brasil",
+    cargo: "Especialista Técnico — Analista de Sistemas",
+    banca: "Cebraspe",
+    salario: null,
+    vagas: null,
+    status: "encerrado",
+    dataProva: "2022-12-04",
+    editalUrl: null,
+    provaIds: ["cebraspe-bnb-ti-2022"],
+    fonte: FONTE_TREINO,
+  },
+);
+
 export const concursoPorId = (id: string): Concurso | undefined =>
   concursos.find((c) => c.id === id);
