@@ -4,6 +4,8 @@ import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { GabaritoComentado } from "@/components/GabaritoComentado";
 import { TextoDaQuestao } from "@/components/Markdown";
 import { useAcervoDoConcurso } from "@/services/hooks";
+import { pontosFracos } from "@/lib/desempenho";
+import { RITMO_ALVO_SEGUNDOS, avaliarRitmo, formatarDuracao, resumoDeRitmo } from "@/lib/ritmo";
 import { SemAcervo } from "@/components/SemAcervo";
 import { useStore } from "@/store/useStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +48,11 @@ function QuestoesPage() {
   const [qtd, setQtd] = useState(10);
   const [ano, setAno] = useState<string>("todos");
   const [somenteErrei, setSomenteErrei] = useState(false);
+  const [modoFracos, setModoFracos] = useState(false);
+  // Instante em que a questão atual apareceu, para medir o tempo dela. É o dado
+  // que falta a quem sabe a matéria e mesmo assim não termina a prova.
+  const [inicioQuestao, setInicioQuestao] = useState(0);
+  const [temposPorQuestao, setTemposPorQuestao] = useState<Record<string, number>>({});
   const [lista, setLista] = useState<Questao[]>([]);
   const [idx, setIdx] = useState(0);
   const [respostas, setRespostas] = useState<Record<string, string>>({});
@@ -90,6 +97,15 @@ function QuestoesPage() {
     [allQuestoes],
   );
 
+  // Assuntos onde o desempenho é pior, para o modo "só o que eu erro". Usa a
+  // análise por assunto, e não a lista de questões erradas: refazer exatamente a
+  // questão que já se errou treina a memória da resposta, não o assunto.
+  const unidadesFracas = useMemo(
+    () =>
+      new Set(pontosFracos(historico, allQuestoes, concursoAtivoId, 99).map((d) => d.unidadeId)),
+    [historico, allQuestoes, concursoAtivoId],
+  );
+
   const iniciar = () => {
     const errouIds = new Set(historico.filter((h) => !h.correta).map((h) => h.questaoId));
     let filtradas = allQuestoes.filter(
@@ -97,6 +113,7 @@ function QuestoesPage() {
         selecionadas.includes(q.disciplinaId) &&
         (ano === "todos" || q.ano === Number(ano)) &&
         (!somenteErrei || errouIds.has(q.id)) &&
+        (!modoFracos || unidadesFracas.has(q.subtopicoId ?? q.topicoId ?? "")) &&
         // Anulada não tem gabarito: entraria no simulado como erro garantido.
         !q.anulada,
     );
@@ -104,8 +121,10 @@ function QuestoesPage() {
     if (filtradas.length === 0) return;
     setLista(filtradas);
     setRespostas({});
+    setTemposPorQuestao({});
     setIdx(0);
     setInicio(Date.now());
+    setInicioQuestao(Date.now());
     setEtapa("resolvendo");
   };
 
@@ -172,10 +191,28 @@ function QuestoesPage() {
           </div>
         </div>
 
-        <label className="flex items-center gap-2 cursor-pointer">
-          <Checkbox checked={somenteErrei} onCheckedChange={(v) => setSomenteErrei(!!v)} />
-          <span className="text-sm">Somente questões que errei</span>
-        </label>
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox checked={somenteErrei} onCheckedChange={(v) => setSomenteErrei(!!v)} />
+            <span className="text-sm">Somente questões que errei</span>
+          </label>
+
+          <label className="flex cursor-pointer items-start gap-2">
+            <Checkbox
+              checked={modoFracos}
+              onCheckedChange={(v) => setModoFracos(!!v)}
+              disabled={unidadesFracas.size === 0}
+            />
+            <span className="text-sm">
+              Só os meus pontos fracos
+              <span className="block text-xs text-muted-foreground">
+                {unidadesFracas.size === 0
+                  ? "Responda pelo menos 3 questões de um mesmo assunto para ele poder ser considerado fraco."
+                  : `${unidadesFracas.size} ${unidadesFracas.size === 1 ? "assunto" : "assuntos"} abaixo de 60% de acerto. Traz questões NOVAS desses assuntos, não as que você já errou.`}
+              </span>
+            </span>
+          </label>
+        </div>
 
         <Button size="lg" className="w-full" onClick={iniciar} disabled={carregando}>
           {carregando ? "Carregando questões…" : "Iniciar simulado"}
@@ -189,13 +226,56 @@ function QuestoesPage() {
     const escolhida = respostas[q.id];
     const respondida = !!escolhida;
 
+    /**
+     * Registra a resposta.
+     *
+     * Fica no clique da alternativa porque é assim que a tela já se comporta: ao
+     * escolher, as alternativas travam e o gabarito aparece. Antes havia um botão
+     * "Responder" que só era exibido quando NADA estava escolhido e ficava
+     * desabilitado justamente nesse caso — ou seja, nunca era clicável, e nenhuma
+     * resposta do simulado chegava ao histórico. Streak, pontos fracos e análise
+     * ficavam todos zerados sem que nada na tela denunciasse.
+     */
+    const responder = (letra: string) => {
+      if (respondida) return;
+      const acertou = letra === q.correta;
+
+      setRespostas((r) => ({ ...r, [q.id]: letra }));
+      setTemposPorQuestao((tp) => ({
+        ...tp,
+        [q.id]: Math.max(0, Math.floor((Date.now() - inicioQuestao) / 1000)),
+      }));
+      registrarResposta({
+        questaoId: q.id,
+        disciplinaId: q.disciplinaId,
+        concursoId: concursoAtivoId,
+        escolhida: letra,
+        correta: acertou,
+        data: new Date().toISOString(),
+      });
+
+      // Errou: agenda a revisão daquele assunto sozinha.
+      const unidadeId = q.subtopicoId ?? q.topicoId;
+      if (!acertou && unidadeId) {
+        agendarRevisaoPorErro({
+          unidadeId,
+          topico: nomeDaUnidade.get(unidadeId) ?? unidadeId,
+          disciplinaId: q.disciplinaId,
+          concursoId: concursoAtivoId,
+        });
+      }
+    };
+
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Badge variant="secondary">
             Questão {idx + 1} de {lista.length}
           </Badge>
-          <Badge>{disciplinas.find((d) => d.id === q.disciplinaId)?.nome}</Badge>
+          <div className="flex items-center gap-2">
+            <RitmoDaQuestao inicio={inicioQuestao} respondida={respondida} />
+            <Badge>{disciplinas.find((d) => d.id === q.disciplinaId)?.nome}</Badge>
+          </div>
         </div>
 
         <Card>
@@ -226,7 +306,7 @@ function QuestoesPage() {
                   <button
                     key={a.letra}
                     disabled={respondida}
-                    onClick={() => setRespostas((r) => ({ ...r, [q.id]: a.letra }))}
+                    onClick={() => responder(a.letra)}
                     className={cn(
                       "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-all duration-150",
                       // `hover:bg-accent` pintava a alternativa de amarelo forte:
@@ -255,40 +335,6 @@ function QuestoesPage() {
               })}
             </div>
 
-            {!respondida && (
-              <Button
-                className="w-full"
-                disabled={!escolhida}
-                onClick={() => {
-                  const acertou = escolhida === q.correta;
-                  registrarResposta({
-                    questaoId: q.id,
-                    disciplinaId: q.disciplinaId,
-                    concursoId: concursoAtivoId,
-                    escolhida: escolhida!,
-                    correta: acertou,
-                    data: new Date().toISOString(),
-                  });
-
-                  // Errou: agenda a revisão daquele assunto sozinha. A agenda
-                  // existia mas dependia de o usuário lembrar de cadastrar — e
-                  // revisão que depende de memória é revisão que não acontece.
-                  const unidadeId = q.subtopicoId ?? q.topicoId;
-                  if (!acertou && unidadeId) {
-                    agendarRevisaoPorErro({
-                      unidadeId,
-                      topico: nomeDaUnidade.get(unidadeId) ?? unidadeId,
-                      disciplinaId: q.disciplinaId,
-                      concursoId: concursoAtivoId,
-                    });
-                  }
-                  setRespostas({ ...respostas });
-                }}
-              >
-                Responder
-              </Button>
-            )}
-
             {respondida && (
               <div className="rounded-lg bg-muted p-4">
                 {/* Questão vinda do caderno da banca não traz comentário: a
@@ -307,11 +353,24 @@ function QuestoesPage() {
         </Card>
 
         <div className="flex gap-2">
-          <Button variant="outline" disabled={idx === 0} onClick={() => setIdx(idx - 1)}>
+          <Button
+            variant="outline"
+            disabled={idx === 0}
+            onClick={() => {
+              setIdx(idx - 1);
+              setInicioQuestao(Date.now());
+            }}
+          >
             Anterior
           </Button>
           {idx < lista.length - 1 ? (
-            <Button className="flex-1" onClick={() => setIdx(idx + 1)}>
+            <Button
+              className="flex-1"
+              onClick={() => {
+                setIdx(idx + 1);
+                setInicioQuestao(Date.now());
+              }}
+            >
               Próxima
             </Button>
           ) : (
@@ -328,6 +387,7 @@ function QuestoesPage() {
   const acertos = lista.filter((q) => respostas[q.id] === q.correta).length;
   const pct = Math.round((acertos / lista.length) * 100);
   const tempoMin = Math.max(1, Math.round((Date.now() - inicio) / 60000));
+  const ritmo = resumoDeRitmo(Object.values(temposPorQuestao));
 
   return (
     <div className="space-y-6">
@@ -338,6 +398,18 @@ function QuestoesPage() {
           <p className="text-sm">
             {acertos} de {lista.length} corretas · {tempoMin} min
           </p>
+          {ritmo.media > 0 && (
+            <p className="mx-auto max-w-lg border-t border-border pt-3 text-sm text-muted-foreground">
+              {ritmo.mensagem}
+              {ritmo.acimaDoAlvo > 0 && (
+                <>
+                  {" "}
+                  <strong className="text-foreground">{ritmo.acimaDoAlvo}</strong>{" "}
+                  {ritmo.acimaDoAlvo === 1 ? "questão passou" : "questões passaram"} do tempo-alvo.
+                </>
+              )}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -351,6 +423,8 @@ function QuestoesPage() {
                   <Badge variant={correta ? "default" : "destructive"}>{i + 1}</Badge>
                   <p className="text-xs text-muted-foreground">
                     Sua: {respostas[q.id] || "—"} · Correta: {q.correta}
+                    {temposPorQuestao[q.id] !== undefined &&
+                      ` · ${formatarDuracao(temposPorQuestao[q.id])}`}
                   </p>
                 </div>
                 <TextoDaQuestao className="block text-sm">{q.enunciado}</TextoDaQuestao>
@@ -364,5 +438,39 @@ function QuestoesPage() {
         Novo simulado
       </Button>
     </div>
+  );
+}
+
+/**
+ * Cronômetro da questão em curso.
+ *
+ * Componente próprio para o tique de 1 s re-renderizar só este selo, e não a
+ * questão inteira a cada segundo. Congela ao responder: depois disso o número
+ * vira o tempo que a questão custou, não um relógio correndo.
+ */
+function RitmoDaQuestao({ inicio, respondida }: { inicio: number; respondida: boolean }) {
+  const [agora, setAgora] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (respondida) return;
+    const id = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [respondida, inicio]);
+
+  const segundos = Math.max(0, Math.floor((agora - inicio) / 1000));
+  const ritmo = avaliarRitmo(segundos);
+
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "tabular-nums",
+        ritmo === "lento" && "border-atencao text-atencao-foreground",
+        ritmo === "rapido" && "border-sucesso text-sucesso",
+      )}
+      title={`Ritmo da prova: ${formatarDuracao(RITMO_ALVO_SEGUNDOS)} por questão`}
+    >
+      {formatarDuracao(segundos)}
+    </Badge>
   );
 }

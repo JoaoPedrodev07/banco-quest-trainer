@@ -77,6 +77,22 @@ interface StoreState {
     concursoId: string;
   }) => void;
   marcarRevisada: (id: string) => void;
+  /**
+   * Substitui o progresso pelo de um backup.
+   *
+   * Substitui em vez de mesclar: mesclar dois históricos duplicaria respostas e
+   * inflaria o streak, e o usuário não teria como saber quais números passaram a
+   * ser inventados. A tela avisa que é substituição antes de chamar.
+   */
+  aplicarBackup: (progresso: {
+    concursoAtivoId: string;
+    dataProva: string;
+    metaDiaria: number;
+    editalStatus: EditalStatus;
+    historico: RespostaHistorico[];
+    revisoes: RevisaoItem[];
+    streak: { ultimoDia: string | null; dias: number };
+  }) => void;
   reset: () => void;
 }
 
@@ -283,6 +299,8 @@ export const useStore = create<StoreState>()(
             };
           }),
         })),
+      aplicarBackup: (progresso) => set({ ...progresso }),
+
       reset: () =>
         set({
           editalStatus: {},

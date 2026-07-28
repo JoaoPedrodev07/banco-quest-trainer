@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { BackupProgresso } from "@/components/BackupProgresso";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,7 +43,9 @@ function ConfigPage() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Prova</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">Prova</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Data estimada da prova</Label>
@@ -65,7 +68,9 @@ function ConfigPage() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Aparência</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">Aparência</CardTitle>
+        </CardHeader>
         <CardContent className="flex items-center justify-between">
           <Label htmlFor="dm">Modo escuro</Label>
           <Switch id="dm" checked={darkMode} onCheckedChange={toggleDark} />
@@ -73,7 +78,23 @@ function ConfigPage() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-base text-destructive">Zona de risco</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">Backup do progresso</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Seu progresso vive só neste navegador. Limpar os dados de navegação, trocar de
+            computador ou usar aba anônima apaga tudo, sem recuperação. Exporte de vez em quando e
+            guarde o arquivo em outro lugar.
+          </p>
+          <BackupProgresso />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base text-destructive">Zona de risco</CardTitle>
+        </CardHeader>
         <CardContent>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -83,7 +104,8 @@ function ConfigPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Confirmar reset?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Isso apagará seu histórico de respostas, streak, checkboxes do edital e revisões. Ação irreversível.
+                  Isso apagará seu histórico de respostas, streak, checkboxes do edital e revisões.
+                  Ação irreversível.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

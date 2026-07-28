@@ -15,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api, chaves } from "@/services";
 import { concursoPorId } from "@/data/concursos";
+import { disciplinasDoCargo } from "@/lib/incidencia";
 import type { Aula, Disciplina, Prova, Questao } from "@/types";
 
 const SEM_DISCIPLINAS: Disciplina[] = [];
@@ -109,20 +110,34 @@ export function useAcervoDoConcurso(concursoId: string) {
     const provasDoConcurso = provas.filter((p) => idsDeProva.has(p.id));
     const questoesDoConcurso = questoes.filter((q) => q.provaId && idsDeProva.has(q.provaId));
 
-    // As disciplinas vêm do que as provas do concurso realmente cobram. Usar a
-    // lista inteira da API mostraria disciplina de outro concurso no edital.
-    const idsDeDisciplina = new Set(questoesDoConcurso.map((q) => q.disciplinaId));
+    // O recorte por CARGO mora aqui, e não em cada tela, porque já me escapou
+    // três vezes: as provas de outro cargo do mesmo concurso entram pelos
+    // Conhecimentos Básicos e trazem junto as disciplinas exclusivas delas
+    // (Informática, Vendas, Matemática Financeira). Toda tela que esquecesse de
+    // filtrar ofereceria matéria fora do edital do candidato — e o simulado
+    // sortearia questão que ele nunca vai responder na prova.
+    const escopoDoCargo = concurso
+      ? disciplinasDoCargo(concurso, provasDoConcurso, questoesDoConcurso)
+      : new Set<string>();
+
+    const idsDeDisciplina = escopoDoCargo.size
+      ? escopoDoCargo
+      : new Set(questoesDoConcurso.map((q) => q.disciplinaId));
+
     const disciplinasDoConcurso = idsDeDisciplina.size
       ? disciplinas.filter((d) => idsDeDisciplina.has(d.id))
       : [];
+    const questoesDoCargo = escopoDoCargo.size
+      ? questoesDoConcurso.filter((q) => escopoDoCargo.has(q.disciplinaId))
+      : questoesDoConcurso;
 
     return {
       concurso,
       disciplinas: disciplinasDoConcurso,
-      questoes: questoesDoConcurso,
+      questoes: questoesDoCargo,
       provas: provasDoConcurso,
       carregando: cd || cq || cp,
-      vazio: !cd && !cq && !cp && questoesDoConcurso.length === 0,
+      vazio: !cd && !cq && !cp && questoesDoCargo.length === 0,
     };
   }, [concursoId, disciplinas, questoes, provas, cd, cq, cp]);
 }
