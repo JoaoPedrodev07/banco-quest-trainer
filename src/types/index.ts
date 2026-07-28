@@ -49,6 +49,9 @@ export interface Questao {
   explicacao: string;
   provaId?: string | null;
   numeroNaProva?: number | null;
+  /** Classificação no edital. Nulo enquanto a questão não foi etiquetada. */
+  topicoId?: string | null;
+  subtopicoId?: string | null;
   anulada?: boolean;
   fonte?: Fonte;
 }

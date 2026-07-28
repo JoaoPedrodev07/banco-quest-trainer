@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
+import { PromptEstudo } from "@/components/PromptEstudo";
 import { useDisciplinas } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,7 +48,9 @@ function EditalPage() {
     (a, d) => a + d.topicos.reduce((x, t) => x + unidades(t).length, 0),
     0,
   );
-  const concluidos = Object.values(editalStatus).filter((s) => s.teoria && s.revisao && s.questoes).length;
+  const concluidos = Object.values(editalStatus).filter(
+    (s) => s.teoria && s.revisao && s.questoes,
+  ).length;
   // Sem edital carregado o denominador é zero, e a divisão viraria NaN na barra.
   const progresso = totalSub ? Math.round((concluidos / totalSub) * 100) : 0;
 
@@ -86,7 +89,12 @@ function EditalPage() {
 
       <div className="flex gap-2">
         {(["todos", "pendentes", "concluidos"] as Filtro[]).map((f) => (
-          <Button key={f} size="sm" variant={filtro === f ? "default" : "outline"} onClick={() => setFiltro(f)}>
+          <Button
+            key={f}
+            size="sm"
+            variant={filtro === f ? "default" : "outline"}
+            onClick={() => setFiltro(f)}
+          >
             {f === "todos" ? "Todos" : f === "pendentes" ? "Pendentes" : "Concluídos"}
           </Button>
         ))}
@@ -106,7 +114,11 @@ function EditalPage() {
                 onClick={() => setExpandidas((e) => ({ ...e, [d.id]: !aberta }))}
                 className="w-full flex items-center gap-3 p-4 text-left"
               >
-                {aberta ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
+                {aberta ? (
+                  <ChevronDown className="h-4 w-4 shrink-0" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 shrink-0" />
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="font-bold truncate" style={{ color: d.cor }}>
                     {d.nome}
@@ -115,7 +127,9 @@ function EditalPage() {
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="text-sm font-black">{pct}%</p>
-                  <p className="text-[10px] text-muted-foreground">{conc}/{subIds.length}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {conc}/{subIds.length}
+                  </p>
                 </div>
               </button>
               {aberta && (
@@ -129,7 +143,9 @@ function EditalPage() {
                     return (
                       <div key={t.id} className="pt-3">
                         {temCabecalho && (
-                          <p className="text-sm font-semibold text-muted-foreground mb-2">{t.nome}</p>
+                          <p className="text-sm font-semibold text-muted-foreground mb-2">
+                            {t.nome}
+                          </p>
                         )}
                         <div className="space-y-2">
                           {subs.map((s) => {
@@ -140,9 +156,21 @@ function EditalPage() {
                                 className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3"
                               >
                                 <p className="text-sm min-w-0 flex-1">{s.nome}</p>
-                                <div className="flex gap-4 shrink-0">
-                                  {(["teoria", "revisao", "questoes"] as (keyof StatusTopico)[]).map((k) => (
-                                    <label key={k} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                                <div className="flex items-center gap-4 shrink-0">
+                                  <PromptEstudo
+                                    disciplina={d}
+                                    topicoNome={t.nome}
+                                    subtopicoId={s.id}
+                                    subtopicoNome={s.nome}
+                                    ehTopico={!temCabecalho}
+                                  />
+                                  {(
+                                    ["teoria", "revisao", "questoes"] as (keyof StatusTopico)[]
+                                  ).map((k) => (
+                                    <label
+                                      key={k}
+                                      className="flex items-center gap-1.5 text-xs cursor-pointer"
+                                    >
                                       <Checkbox
                                         checked={st[k]}
                                         onCheckedChange={() => toggleStatus(s.id, k)}

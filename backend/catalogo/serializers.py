@@ -56,6 +56,11 @@ class QuestaoSerializer(serializers.ModelSerializer):
     provaId = serializers.CharField(source="prova_id", read_only=True, allow_null=True)
     numeroNaProva = serializers.IntegerField(source="numero_na_prova", read_only=True)
     textoBase = serializers.CharField(source="texto_base", read_only=True)
+    # A classificação sai na API porque a tela precisa achar as questões de um
+    # subtópico para montar o prompt de estudo. Vem nula enquanto a questão não
+    # foi classificada — e a UI conta quantas faltam em vez de fingir cobertura.
+    topicoId = serializers.CharField(source="topico_id", read_only=True, allow_null=True)
+    subtopicoId = serializers.CharField(source="subtopico_id", read_only=True, allow_null=True)
     alternativas = AlternativaSerializer(many=True, read_only=True)
     fonte = FonteSerializer(read_only=True)
 
@@ -66,6 +71,8 @@ class QuestaoSerializer(serializers.ModelSerializer):
             "disciplinaId",
             "provaId",
             "numeroNaProva",
+            "topicoId",
+            "subtopicoId",
             "ano",
             "banca",
             "textoBase",
