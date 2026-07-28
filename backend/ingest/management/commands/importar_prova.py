@@ -29,6 +29,7 @@ from django.db import transaction
 
 from catalogo.models import Alternativa, Disciplina, Fonte, Prova, Questao, Topico
 from ingest.models import Ingestao
+from ingest.parsers import fgv as parser_fgv
 from ingest.parsers.cesgranrio import QuestaoBruta, mesclar, parse_gabarito, parse_prova
 from ingest.pdf import ErroDeIngestao, extrair_texto, obter
 
@@ -51,7 +52,25 @@ class Command(BaseCommand):
         parser.add_argument("--ano", type=int, required=True)
         parser.add_argument("--tipo", type=int, default=1, help="Tipo do caderno (GABARITO n).")
         parser.add_argument("--total", type=int, default=70, help="Questões esperadas na prova.")
-        parser.add_argument("--banca", default="Cesgranrio")
+        parser.add_argument(
+            "--banca",
+            default="Cesgranrio",
+            help=(
+                "Escolhe o leitor de gabarito. O caderno e lido pelo mesmo parser para "
+                "todas: a diagramacao de questao e parecida entre as bancas. O que muda "
+                "por banca e o gabarito (a Cesgranrio escreve '1 - C'; a FGV publica uma "
+                "grade de numeros e letras)."
+            ),
+        )
+        parser.add_argument(
+            "--faixas",
+            default="",
+            help=(
+                "Disciplina por faixa de questao, do edital: 'portugues:1-10,ti:21-60'. "
+                "Obrigatorio quando o gabarito nao informa disciplina (caso da FGV, cujo "
+                "caderno traz o nome da materia em elemento grafico, fora do texto)."
+            ),
+        )
         parser.add_argument("--orgao", default="Banco do Brasil")
         parser.add_argument("--cargo", default="Escriturário — Agente de Tecnologia")
         parser.add_argument("--url-prova", default="")
@@ -88,7 +107,22 @@ class Command(BaseCommand):
 
         # ---- gabarito: dá a letra certa E a disciplina de cada questão
         texto_gabarito = extrair_texto(doc_gabarito.caminho, colunas=1)
-        respostas = parse_gabarito(texto_gabarito, tipo=op["tipo"])
+        if op["banca"].strip().upper() == "FGV":
+            respostas = parser_fgv.parse_gabarito(
+                texto_gabarito, cargo=op["cargo"], tipo=op["tipo"]
+            )
+        else:
+            respostas = parse_gabarito(texto_gabarito, tipo=op["tipo"])
+
+        faixas = self._ler_faixas(op["faixas"])
+        if faixas:
+            # As faixas vem do edital e mandam sobre o que o gabarito disser: e o
+            # unico caminho quando o gabarito nao traz disciplina nenhuma.
+            for numero, resposta in respostas.items():
+                for disciplina_id, (ini, fim) in faixas.items():
+                    if ini <= numero <= fim:
+                        resposta.disciplina_id = disciplina_id
+                        break
         if not respostas:
             raise ErroDeIngestao(
                 f"nenhuma resposta lida do gabarito para o tipo {op['tipo']}. "
@@ -320,3 +354,25 @@ class Command(BaseCommand):
         if op["dry_run"]:
             self.stdout.write("")
             self.stdout.write("Nada foi gravado. Rode de novo sem --dry-run para importar.")
+
+    @staticmethod
+    def _ler_faixas(bruto: str) -> dict[str, tuple[int, int]]:
+        """Converte 'portugues:1-10,ti:21-60' em {disciplina: (inicio, fim)}.
+
+        Falha alto em formato errado em vez de ignorar em silêncio: faixa mal
+        digitada gravaria a questão na disciplina errada, e nada na tela
+        denunciaria — o enunciado continua plausível sob qualquer matéria.
+        """
+        faixas: dict[str, tuple[int, int]] = {}
+        for parte in (p.strip() for p in bruto.split(",") if p.strip()):
+            casado = re.fullmatch(r"([a-z0-9-]+):(\d{1,3})-(\d{1,3})", parte)
+            if not casado:
+                raise ErroDeIngestao(
+                    f"faixa inválida: {parte!r}. Use o formato 'disciplina:inicio-fim', "
+                    f"por exemplo 'portugues:1-10'."
+                )
+            disciplina_id, inicio, fim = casado.group(1), int(casado.group(2)), int(casado.group(3))
+            if inicio > fim:
+                raise ErroDeIngestao(f"faixa invertida em {parte!r}: {inicio} > {fim}.")
+            faixas[disciplina_id] = (inicio, fim)
+        return faixas
