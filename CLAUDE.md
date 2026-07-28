@@ -10,9 +10,23 @@
 Cesgranrio)**. Organiza o edital, treina questões em simulados, agenda revisões espaçadas e mostra o
 progresso até a data da prova.
 
-**Estado atual: protótipo de frontend.** Não existe backend: todo dado é **mockado** em `src/data/` e
-todo estado do usuário vive no **localStorage** (Zustand `persist`, chave `foco-bb-store`). Isso é
-intencional — a prioridade foi validar o fluxo antes de construir servidor.
+**Estado atual: frontend + backend Django.** O conteúdo (edital, provas, questões) vem de uma API em
+`backend/` — **271 questões de caderno oficial da Cesgranrio**, importadas dos PDFs da banca. O estado
+do **usuário** continua no localStorage (Zustand `persist`, chave `foco-bb-store`): não há login nem
+sincronia entre dispositivos.
+
+Os mocks de `src/data/` ainda existem, mas só como **reserva**: quando o backend não responde, a tela
+cai neles e o `AvisoAcervo` avisa que aquilo é conteúdo de exemplo.
+
+O app é **multi-concurso**: `src/data/concursos.ts` é o catálogo, e `concursoAtivoId` no store diz qual
+está em foco.
+
+Para rodar, são dois processos:
+
+```bash
+cd backend && .venv/Scripts/python.exe manage.py runserver 8000
+npm run dev
+```
 
 Origem: gerado no [Lovable](https://lovable.dev), com **sincronização de mão dupla** ativa (ver §2.1).
 
@@ -62,11 +76,16 @@ src/
   lib/          # utilidades (cn) + captura de erro do Lovable
 ```
 
-**A costura para o backend (importante).** `src/services/index.ts` embrulha os mocks numa API
-assíncrona com delay artificial — é o ponto onde um backend real entra sem tocar nas telas. Hoje **as
-rotas importam `src/data/` direto e ignoram o `services/`**. É dívida técnica conhecida: quando for
-plugar servidor, o caminho é fazer as rotas consumirem `services/` (via TanStack Query ou `loader` da
-rota) e trocar só o corpo do `services/`. Não espalhe `fetch` pelas telas.
+**A costura para o backend (importante).** `src/services/index.ts` decide entre API e mock, e
+`src/services/hooks.ts` expõe isso às telas via TanStack Query. **As rotas consomem `services/`** —
+nenhuma importa `src/data/` direto. Não espalhe `fetch` pelas telas: tudo que vier do servidor entra
+por aqui, inclusive o carimbo de `concursoId` enquanto o backend não conhece concursos.
+
+**Backend** (`backend/`, Django + DRF): `catalogo/` guarda edital, provas e questões; `ingest/` importa
+PDF da banca (pdfplumber + parser da Cesgranrio). Todo conteúdo aponta para uma `Fonte` com tipo
+(`oficial`/`amostra`/`derivada`) e sha256 do PDF — é o que permite à UI cumprir o §2.2. Comandos:
+`seed_catalogo`, `importar_edital`, `importar_prova`, `classificar_questoes` (todos com `--dry-run`
+onde faz sentido).
 
 **Rotas.** Roteamento por arquivo — leia `src/routes/README.md` antes de criar rota nova. `__root.tsx`
 é o shell de todas as páginas; `routeTree.gen.ts` é **gerado**, nunca edite à mão. Não crie
@@ -118,10 +137,18 @@ npm run format     # Prettier
 
 Não saia consertando por conta própria; é o mapa do que está pendente por decisão.
 
-1. **Sem nenhum teste** e sem script de teste. A lógica que mais merece cobertura é pura e fácil de
-   testar: `proximoIntervalo` (revisão espaçada 1→7→15→30) e a contagem de `streak` — as duas em
-   `useStore.ts`, ambas com regra de data que erra em silêncio.
-2. **`services/` existe mas não é usado** pelas rotas (ver §3).
-3. **Conteúdo é amostra**: 30 questões e um edital resumido. Escalar isso pede backend, não mais
-   arquivo `.ts`.
-4. **Sem autenticação e sem sincronia entre dispositivos** — consequência direta do localStorage.
+1. **Sem nenhum teste** e sem script de teste, nos dois lados. A lógica que mais merece cobertura é
+   pura e fácil de testar: `proximoIntervalo` e a contagem de `streak` (`useStore.ts`), e o parser da
+   Cesgranrio (`ingest/parsers/cesgranrio.py`), que quebra em silêncio se a banca mudar a diagramação.
+2. **Classificação incompleta**: só 32 das 271 questões têm tópico do edital, todas de TI. Sem isso não
+   existe análise de incidência, e o prompt de estudo (`src/lib/promptEstudo.ts`) sai sem exemplo da
+   banca. É o gargalo de quase tudo.
+3. **As telas ainda não filtram por `concursoAtivoId`.** O catálogo multi-concurso existe e o store
+   guarda o concurso ativo, mas `/`, `/edital`, `/questoes`, `/provas` e `/revisoes` continuam
+   mostrando tudo. O backend também não conhece concursos — o `concursoId` é carimbado no `services/`.
+4. **Populações diferentes no mesmo acervo.** As provas de Agente Comercial trazem `informatica` e
+   `vendas`, que **não estão no edital de Agente de Tecnologia**. Nunca some essas disciplinas com as
+   de TI numa estatística: os Conhecimentos Básicos são compartilhados, o resto não.
+5. **Sem autenticação e sem sincronia entre dispositivos** — consequência direta do localStorage.
+6. **Sem LLM em tempo de execução, por decisão.** O app monta prompts para o usuário levar a uma IA
+   gratuita de fora; não há chave de API e não deve haver.
