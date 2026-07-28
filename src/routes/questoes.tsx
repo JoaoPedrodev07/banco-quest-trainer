@@ -51,7 +51,7 @@ function QuestoesPage() {
   const [respostas, setRespostas] = useState<Record<string, string>>({});
   const [inicio, setInicio] = useState(0);
 
-  const { historico, registrarResposta, concursoAtivoId } = useStore();
+  const { historico, registrarResposta, concursoAtivoId, agendarRevisaoPorErro } = useStore();
   const {
     concurso,
     disciplinas,
@@ -70,6 +70,18 @@ function QuestoesPage() {
       setSelecaoIniciada(true);
     }
   }, [disciplinas, selecaoIniciada]);
+
+  /** Nome da unidade do edital, para a revisão agendada nascer com rótulo legível. */
+  const nomeDaUnidade = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const d of disciplinas) {
+      for (const t of d.topicos) {
+        mapa.set(t.id, t.nome);
+        for (const s of t.subtopicos) mapa.set(s.id, s.nome);
+      }
+    }
+    return mapa;
+  }, [disciplinas]);
 
   // Anos oferecidos no filtro saem do próprio acervo: uma lista fixa mostraria
   // ano sem questão nenhuma e esconderia prova recém-importada.
@@ -248,14 +260,28 @@ function QuestoesPage() {
                 className="w-full"
                 disabled={!escolhida}
                 onClick={() => {
+                  const acertou = escolhida === q.correta;
                   registrarResposta({
                     questaoId: q.id,
                     disciplinaId: q.disciplinaId,
                     concursoId: concursoAtivoId,
                     escolhida: escolhida!,
-                    correta: escolhida === q.correta,
+                    correta: acertou,
                     data: new Date().toISOString(),
                   });
+
+                  // Errou: agenda a revisão daquele assunto sozinha. A agenda
+                  // existia mas dependia de o usuário lembrar de cadastrar — e
+                  // revisão que depende de memória é revisão que não acontece.
+                  const unidadeId = q.subtopicoId ?? q.topicoId;
+                  if (!acertou && unidadeId) {
+                    agendarRevisaoPorErro({
+                      unidadeId,
+                      topico: nomeDaUnidade.get(unidadeId) ?? unidadeId,
+                      disciplinaId: q.disciplinaId,
+                      concursoId: concursoAtivoId,
+                    });
+                  }
                   setRespostas({ ...respostas });
                 }}
               >

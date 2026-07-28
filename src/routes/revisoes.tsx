@@ -1,10 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useStore } from "@/store/useStore";
-import { useAcervoDoConcurso } from "@/services/hooks";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { ChevronDown, ChevronRight, Layers, ListChecks, Sparkles, Youtube } from "lucide-react";
 import { toast } from "sonner";
+
+import { concursoPorId } from "@/data/concursos";
+import { useAcervoDoConcurso } from "@/services/hooks";
+import { useStore } from "@/store/useStore";
+import { desempenhoPorUnidade } from "@/lib/desempenho";
+import { linkYouTube } from "@/lib/promptEstudo";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/revisoes")({
   head: () => ({
@@ -19,26 +26,51 @@ export const Route = createFileRoute("/revisoes")({
 });
 
 function RevisoesPage() {
-  const { revisoes, marcarRevisada, concursoAtivoId } = useStore();
-  const { disciplinas } = useAcervoDoConcurso(concursoAtivoId);
+  const { revisoes, marcarRevisada, concursoAtivoId, historico } = useStore();
+  const { disciplinas, questoes } = useAcervoDoConcurso(concursoAtivoId);
+  const concurso = concursoPorId(concursoAtivoId);
+  const [aberta, setAberta] = useState<string | null>(null);
 
-  // Revisão de outro concurso não aparece aqui: a agenda é do edital que a
-  // pessoa está estudando, e misturar faria vencer revisão de assunto que ela
-  // nem cobra mais.
   const doConcurso = revisoes.filter((r) => r.concursoId === concursoAtivoId);
-
   const ordenadas = [...doConcurso].sort(
     (a, b) => new Date(a.proximaRevisao).getTime() - new Date(b.proximaRevisao).getTime(),
   );
 
+  const desempenho = useMemo(
+    () => desempenhoPorUnidade(historico, questoes, concursoAtivoId),
+    [historico, questoes, concursoAtivoId],
+  );
+
+  /** Nome oficial da unidade no edital, para a revisão não ficar presa ao texto salvo. */
+  const nomeDaUnidade = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const d of disciplinas) {
+      for (const t of d.topicos) {
+        mapa.set(t.id, t.nome);
+        for (const s of t.subtopicos) mapa.set(s.id, s.nome);
+      }
+    }
+    return mapa;
+  }, [disciplinas]);
+
+  const atrasadas = ordenadas.filter((r) => new Date(r.proximaRevisao).getTime() < Date.now());
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-black">Revisões</h1>
+        <h1 className="text-2xl font-black md:text-3xl">Revisões</h1>
         <p className="text-sm text-muted-foreground">
-          Intervalos de 1, 7, 15 e 30 dias. Revise para consolidar.
+          Intervalos de 1, 7, 15 e 30 dias. Clique numa revisão para ver o que estudar.
         </p>
       </div>
+
+      {atrasadas.length > 0 && (
+        <p className="rounded-md border border-atencao/40 bg-atencao-suave p-3 text-sm text-atencao-foreground">
+          <strong>{atrasadas.length}</strong>{" "}
+          {atrasadas.length === 1 ? "revisão atrasada" : "revisões atrasadas"}. Revisão atrasada é a
+          que mais rende: o esquecimento já começou, e é exatamente aí que a repetição fixa.
+        </p>
+      )}
 
       <div className="space-y-3">
         {ordenadas.map((r) => {
@@ -46,36 +78,128 @@ function RevisoesPage() {
           const data = new Date(r.proximaRevisao);
           const atrasada = data.getTime() < Date.now();
           const dias = Math.round((data.getTime() - Date.now()) / 86400000);
+          const expandida = aberta === r.id;
+
+          // O nome do edital manda sobre o texto gravado: a revisão pode ter sido
+          // criada com um rótulo antigo, e o edital é a fonte.
+          const nome = (r.unidadeId && nomeDaUnidade.get(r.unidadeId)) || r.topico;
+          const daUnidade = r.unidadeId
+            ? desempenho.find((x) => x.unidadeId === r.unidadeId)
+            : null;
+          const questoesDaUnidade = r.unidadeId
+            ? questoes.filter((q) => (q.subtopicoId ?? q.topicoId) === r.unidadeId)
+            : [];
+
           return (
-            <Card key={r.id} className="transition-colors hover:border-primary/40">
-              <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-bold truncate">{r.topico}</p>
+            <Card
+              key={r.id}
+              className={cn(
+                "transition-all duration-150",
+                atrasada && "border-atencao/50",
+                expandida && "ring-1 ring-primary/30",
+              )}
+            >
+              <button
+                onClick={() => setAberta(expandida ? null : r.id)}
+                className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-muted/40"
+              >
+                {expandida ? (
+                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate font-bold">{nome}</p>
                     {atrasada && <Badge variant="destructive">Atrasada</Badge>}
                     <Badge variant="secondary">{r.intervaloAtual}d</Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {d?.nome} ·{" "}
-                    {atrasada ? `Atrasada há ${Math.abs(dias)} dia(s)` : `Em ${dias} dia(s)`}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {d?.nome ?? r.disciplinaId} ·{" "}
+                    {atrasada ? `atrasada há ${Math.abs(dias)} dia(s)` : `em ${dias} dia(s)`}
+                    {daUnidade && ` · ${daUnidade.taxa}% de acerto seu`}
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    marcarRevisada(r.id);
-                    toast.success("Revisão concluída! Reagendada.");
-                  }}
-                >
-                  Revisado hoje
-                </Button>
-              </CardContent>
+              </button>
+
+              {expandida && (
+                <div className="space-y-3 border-t border-border p-4">
+                  {r.unidadeId ? (
+                    <p className="text-sm text-muted-foreground">
+                      {questoesDaUnidade.length > 0 ? (
+                        <>
+                          <strong className="text-foreground">{questoesDaUnidade.length}</strong>{" "}
+                          {questoesDaUnidade.length === 1 ? "questão" : "questões"} deste assunto no
+                          acervo
+                          {daUnidade &&
+                            ` · você respondeu ${daUnidade.respondidas} e acertou ${daUnidade.acertos}`}
+                          .
+                        </>
+                      ) : (
+                        "Nenhuma questão deste assunto classificada ainda — o treino por questão fica limitado."
+                      )}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Esta revisão foi criada antes de as revisões apontarem para o edital, então
+                      não tem assunto ligado. As novas, agendadas quando você erra, já vêm com o
+                      tópico.
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild size="sm" variant="outline" className="gap-1.5">
+                      <Link to="/edital">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Ver aula
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline" className="gap-1.5">
+                      <Link to="/flashcards">
+                        <Layers className="h-3.5 w-3.5" />
+                        Flashcards
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline" className="gap-1.5">
+                      <Link to="/questoes">
+                        <ListChecks className="h-3.5 w-3.5" />
+                        Praticar
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline" className="gap-1.5">
+                      <a
+                        href={linkYouTube(nome, d?.nome ?? "", concurso?.banca ?? null)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Youtube className="h-3.5 w-3.5" />
+                        Vídeos
+                      </a>
+                    </Button>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      marcarRevisada(r.id);
+                      setAberta(null);
+                      toast.success("Revisão concluída", {
+                        description: "Reagendada para o próximo intervalo.",
+                      });
+                    }}
+                  >
+                    Revisado hoje
+                  </Button>
+                </div>
+              )}
             </Card>
           );
         })}
+
         {ordenadas.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            Nenhuma revisão agendada ainda.
+          <p className="rounded-md border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            Nenhuma revisão agendada. Elas aparecem sozinhas quando você erra uma questão — o erro é
+            o sinal de que o assunto ainda não fixou.
           </p>
         )}
       </div>

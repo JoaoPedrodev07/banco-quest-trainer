@@ -62,6 +62,7 @@ function FlashcardsPage() {
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
   const concurso = concursoPorId(concursoAtivoId);
   const registrarResposta = useStore((s) => s.registrarResposta);
+  const agendarRevisaoPorErro = useStore((s) => s.agendarRevisaoPorErro);
   const { disciplinas, questoes, provas, vazio } = useAcervoDoConcurso(concursoAtivoId);
 
   const [disciplinaId, setDisciplinaId] = useState("todas");
@@ -117,6 +118,21 @@ function FlashcardsPage() {
       correta: acertou,
       data: new Date().toISOString(),
     });
+    // "Não lembrei" é erro para todos os efeitos: agenda a revisão do assunto.
+    const unidadeId = carta.subtopicoId ?? carta.topicoId;
+    if (!acertou && unidadeId) {
+      const disciplina = disciplinas.find((d) => d.id === carta.disciplinaId);
+      const nome =
+        disciplina?.topicos
+          .flatMap((t) => [{ id: t.id, nome: t.nome }, ...t.subtopicos])
+          .find((u) => u.id === unidadeId)?.nome ?? unidadeId;
+      agendarRevisaoPorErro({
+        unidadeId,
+        topico: nome,
+        disciplinaId: carta.disciplinaId,
+        concursoId: concursoAtivoId,
+      });
+    }
     if (acertou) setAcertos((a) => a + 1);
     if (indice + 1 < baralho.length) {
       setIndice(indice + 1);

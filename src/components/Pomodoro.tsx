@@ -34,9 +34,12 @@ export function Pomodoro() {
   const [agora, setAgora] = useState(() => Date.now());
 
   const duracao = DURACAO_POMODORO[pomodoro.fase];
-  const decorrido = pomodoro.iniciadoEm
+  // O que já foi cumprido antes da pausa mais o que corre agora. Pausar guarda o
+  // acumulado, então retomar continua de onde parou em vez de recomeçar.
+  const correndo = pomodoro.iniciadoEm
     ? Math.floor((agora - new Date(pomodoro.iniciadoEm).getTime()) / 1000)
     : 0;
+  const decorrido = pomodoro.acumuladoSegundos + Math.max(0, correndo);
   const restante = duracao - decorrido;
   const rodando = pomodoro.iniciadoEm !== null;
 
@@ -60,7 +63,7 @@ export function Pomodoro() {
   }, [rodando, restante, concluir, pomodoro.fase]);
 
   const ehFoco = pomodoro.fase === "foco";
-  const progresso = rodando ? Math.min(100, (decorrido / duracao) * 100) : 0;
+  const progresso = Math.min(100, (decorrido / duracao) * 100);
 
   return (
     <div className="fixed bottom-20 right-4 z-50 md:bottom-4">
@@ -72,7 +75,9 @@ export function Pomodoro() {
           className="gap-1.5 shadow-lg transition-transform hover:scale-105"
         >
           {ehFoco ? <Timer className="h-4 w-4" /> : <Coffee className="h-4 w-4" />}
-          <span className="tabular-nums">{rodando ? formatar(restante) : "Pomodoro"}</span>
+          <span className="tabular-nums">
+            {rodando || decorrido > 0 ? formatar(restante) : "Pomodoro"}
+          </span>
         </Button>
       ) : (
         <div className="w-56 space-y-3 rounded-xl border border-border bg-background/95 p-4 shadow-xl backdrop-blur">
@@ -89,9 +94,7 @@ export function Pomodoro() {
             </button>
           </div>
 
-          <p className="text-center text-4xl font-black tabular-nums">
-            {formatar(rodando ? restante : duracao)}
-          </p>
+          <p className="text-center text-4xl font-black tabular-nums">{formatar(restante)}</p>
 
           <div className="h-1.5 overflow-hidden rounded-full bg-muted">
             <div
@@ -112,7 +115,7 @@ export function Pomodoro() {
             ) : (
               <Button size="sm" onClick={() => iniciar(pomodoro.fase)} className="flex-1 gap-1.5">
                 <Play className="h-3.5 w-3.5" />
-                Começar
+                {decorrido > 0 ? "Retomar" : "Começar"}
               </Button>
             )}
             <Button

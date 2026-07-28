@@ -103,6 +103,14 @@ export interface RevisaoItem {
   topico: string;
   disciplinaId: string;
   concursoId: string;
+  /**
+   * Unidade do edital (id do subtópico, ou do tópico quando não há subdivisão).
+   *
+   * Opcional porque as revisões antigas guardavam só o nome do assunto como
+   * texto solto — sem isso não há como abrir a revisão e mostrar o que estudar,
+   * nem cruzar com as questões daquele assunto.
+   */
+  unidadeId?: string;
   proximaRevisao: string; // ISO date
   intervaloAtual: 1 | 7 | 15 | 30;
 }

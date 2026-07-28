@@ -22,8 +22,17 @@ export const CONCURSO_PADRAO = "bb-ti-2026";
  */
 export interface Pomodoro {
   fase: "foco" | "pausa";
-  /** ISO do início da fase atual. `null` = parado. */
+  /** ISO de quando o relógio voltou a correr. `null` = pausado. */
   iniciadoEm: string | null;
+  /**
+   * Segundos já cumpridos da fase antes da pausa atual.
+   *
+   * Sem isto, pausar perdia o tempo decorrido e o timer recomeçava do zero —
+   * "Pausar" virava "Zerar". O tempo restante é `duração - (acumulado + tempo
+   * desde iniciadoEm)`, o que mantém a leitura derivada e resistente ao
+   * estrangulamento de timer da aba em segundo plano.
+   */
+  acumuladoSegundos: number;
   /** Ciclos de foco concluídos, e em que dia — para zerar sozinho na virada. */
   ciclosConcluidos: number;
   diaDosCiclos: string | null;
@@ -53,6 +62,20 @@ interface StoreState {
   toggleStatus: (subtopicoId: string, campo: keyof StatusTopico) => void;
   registrarResposta: (r: RespostaHistorico) => void;
   addRevisao: (r: RevisaoItem) => void;
+  /**
+   * Agenda revisão de uma unidade do edital por causa de um erro.
+   *
+   * É o gatilho que faltava: a agenda existia mas só era preenchida à mão, e
+   * revisão que depende de o usuário lembrar de cadastrar é revisão que não
+   * acontece. Erro é o sinal mais barato e mais confiável de que o assunto não
+   * está fixado.
+   */
+  agendarRevisaoPorErro: (dados: {
+    unidadeId: string;
+    topico: string;
+    disciplinaId: string;
+    concursoId: string;
+  }) => void;
   marcarRevisada: (id: string) => void;
   reset: () => void;
 }
@@ -118,7 +141,13 @@ export const useStore = create<StoreState>()(
       metaDiaria: 20,
       darkMode: false,
       concursoAtivoId: CONCURSO_PADRAO,
-      pomodoro: { fase: "foco", iniciadoEm: null, ciclosConcluidos: 0, diaDosCiclos: null },
+      pomodoro: {
+        fase: "foco",
+        iniciadoEm: null,
+        acumuladoSegundos: 0,
+        ciclosConcluidos: 0,
+        diaDosCiclos: null,
+      },
       editalStatus: {},
       historico: [],
       revisoes: initialRevisoes,
@@ -127,8 +156,31 @@ export const useStore = create<StoreState>()(
       definirConcursoAtivo: (id) => set({ concursoAtivoId: id }),
 
       iniciarPomodoro: (fase) =>
-        set({ pomodoro: { ...get().pomodoro, fase, iniciadoEm: new Date().toISOString() } }),
-      pararPomodoro: () => set({ pomodoro: { ...get().pomodoro, iniciadoEm: null } }),
+        set((s) => ({
+          pomodoro: {
+            ...s.pomodoro,
+            fase,
+            // Trocar de fase começa do zero; retomar a mesma fase mantém o que já
+            // foi cumprido.
+            acumuladoSegundos: fase === s.pomodoro.fase ? s.pomodoro.acumuladoSegundos : 0,
+            iniciadoEm: new Date().toISOString(),
+          },
+        })),
+
+      pararPomodoro: () =>
+        set((s) => {
+          if (!s.pomodoro.iniciadoEm) return s;
+          const decorrido = Math.floor(
+            (Date.now() - new Date(s.pomodoro.iniciadoEm).getTime()) / 1000,
+          );
+          return {
+            pomodoro: {
+              ...s.pomodoro,
+              acumuladoSegundos: s.pomodoro.acumuladoSegundos + Math.max(0, decorrido),
+              iniciadoEm: null,
+            },
+          };
+        }),
       // Troca manual de fase. Não conta ciclo: pular o foco pela metade não é
       // um ciclo cumprido, e inflar esse número tornaria o contador do dia
       // inútil como medida de estudo.
@@ -138,6 +190,7 @@ export const useStore = create<StoreState>()(
             ...s.pomodoro,
             fase: s.pomodoro.fase === "foco" ? "pausa" : "foco",
             iniciadoEm: null,
+            acumuladoSegundos: 0,
           },
         })),
       concluirFasePomodoro: () =>
@@ -151,6 +204,8 @@ export const useStore = create<StoreState>()(
               // quando a pausa começa é o usuário, não o relógio.
               fase: foiFoco ? "pausa" : "foco",
               iniciadoEm: null,
+              // Fase nova nasce zerada; sem isto ela já começaria vencida.
+              acumuladoSegundos: 0,
               ciclosConcluidos: foiFoco
                 ? virouODia
                   ? 1
@@ -189,6 +244,33 @@ export const useStore = create<StoreState>()(
           };
         }),
       addRevisao: (r) => set((s) => ({ revisoes: [...s.revisoes, r] })),
+
+      agendarRevisaoPorErro: ({ unidadeId, topico, disciplinaId, concursoId }) =>
+        set((s) => {
+          const jaExiste = s.revisoes.some(
+            (r) => r.unidadeId === unidadeId && r.concursoId === concursoId,
+          );
+          // Errar de novo o mesmo assunto NÃO reinicia o intervalo nem duplica a
+          // agenda: a revisão já marcada continua valendo. Reagendar a cada erro
+          // encheria a tela do mesmo tópico e faria a agenda perder o sentido.
+          if (jaExiste) return s;
+
+          return {
+            revisoes: [
+              ...s.revisoes,
+              {
+                id: `rev-${unidadeId}-${concursoId}`,
+                topico,
+                disciplinaId,
+                concursoId,
+                unidadeId,
+                // Primeiro intervalo do 1-7-15-30: rever amanhã o que se errou hoje.
+                proximaRevisao: new Date(Date.now() + 86400000).toISOString(),
+                intervaloAtual: 1,
+              },
+            ],
+          };
+        }),
       marcarRevisada: (id) =>
         set((s) => ({
           revisoes: s.revisoes.map((r) => {
@@ -240,7 +322,9 @@ export const useStore = create<StoreState>()(
           concursoAtivoId: p.concursoAtivoId ?? CONCURSO_PADRAO,
           // Estado gravado antes do pomodoro existir não tem esse campo; sem o
           // padrão aqui a tela quebraria ao ler `pomodoro.fase` de undefined.
-          pomodoro: p.pomodoro ?? atual.pomodoro,
+          // `acumuladoSegundos` não existia antes; sem o padrão, o cálculo do
+          // tempo restante viraria NaN e o timer mostraria "NaN:NaN".
+          pomodoro: { ...atual.pomodoro, ...(p.pomodoro ?? {}) },
           historico: comConcurso(p.historico ?? []),
           revisoes: comConcurso(p.revisoes ?? atual.revisoes),
         } as StoreState;
