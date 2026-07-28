@@ -143,12 +143,24 @@ Não saia consertando por conta própria; é o mapa do que está pendente por de
 2. **Classificação incompleta**: só 32 das 271 questões têm tópico do edital, todas de TI. Sem isso não
    existe análise de incidência, e o prompt de estudo (`src/lib/promptEstudo.ts`) sai sem exemplo da
    banca. É o gargalo de quase tudo.
-3. **As telas ainda não filtram por `concursoAtivoId`.** O catálogo multi-concurso existe e o store
-   guarda o concurso ativo, mas `/`, `/edital`, `/questoes`, `/provas` e `/revisoes` continuam
-   mostrando tudo. O backend também não conhece concursos — o `concursoId` é carimbado no `services/`.
+3. **O backend não conhece concursos.** O `concursoId` é carimbado no `services/`, e o recorte por
+   concurso e por cargo mora em `useAcervoDoConcurso` — um lugar só, porque escapou três vezes
+   quando estava espalhado pelas telas.
 4. **Populações diferentes no mesmo acervo.** As provas de Agente Comercial trazem `informatica` e
    `vendas`, que **não estão no edital de Agente de Tecnologia**. Nunca some essas disciplinas com as
    de TI numa estatística: os Conhecimentos Básicos são compartilhados, o resto não.
 5. **Sem autenticação e sem sincronia entre dispositivos** — consequência direta do localStorage.
 6. **Sem LLM em tempo de execução, por decisão.** O app monta prompts para o usuário levar a uma IA
-   gratuita de fora; não há chave de API e não deve haver.
+   gratuita de fora; não há chave de API e não deve haver. Vale para aula, gabarito comentado e
+   classificação (`manage.py prompt_classificacao`). O que protege não é confiar na IA — é
+   `classificar_questoes` recusar o que não fecha com o edital.
+7. **O edital é GLOBAL, e isso trava o multi-concurso.** `Disciplina` e sua árvore de tópicos não
+   pertencem a concurso nenhum: são compartilhadas. Enquanto só o BB tinha edital importado, não
+   incomodou. Agora incomoda: as questões da Cebraspe (BNB) são de MVC, DevOps, contêineres, TDD e
+   requisitos — **nada disso existe no edital do BB**, cujo TI é aprendizado de máquina, banco de
+   dados, big data, mobile, estrutura de dados e linguagens. Classificá-las contra a árvore do BB é
+   impossível para a maioria, e forçar produziria estatística falsa.
+
+   O conserto é `Disciplina` passar a pertencer a um concurso, com uma árvore por edital. Até lá,
+   prova de outro órgão entra como **treino de formato**: serve para sentir o estilo da banca, não
+   para alimentar a análise de incidência.
