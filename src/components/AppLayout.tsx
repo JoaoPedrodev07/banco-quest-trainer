@@ -9,6 +9,7 @@ import {
   Trophy,
   BarChart3,
   Layers,
+  CalendarDays,
 } from "lucide-react";
 import { useEffect } from "react";
 import { useStore } from "@/store/useStore";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/plano", label: "Plano", icon: CalendarDays },
   { to: "/edital", label: "Edital", icon: BookOpen },
   { to: "/questoes", label: "Questões", icon: ListChecks },
   { to: "/flashcards", label: "Flashcards", icon: Layers },

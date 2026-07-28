@@ -58,7 +58,18 @@ export const concursos: Concurso[] = [
     // Provas do acervo local. As de Agente Comercial entram porque os
     // Conhecimentos Básicos são os mesmos do cargo de TI — mas as questões de
     // Informática e Vendas delas são de outro cargo e ficam em disciplina própria.
-    provaIds: ["bb-ti-2023", "bb-comercial-a-2023", "bb-comercial-b-2023", "bb-comercial-c-2023"],
+    provaIds: [
+      "bb-ti-2023",
+      "bb-comercial-a-2023",
+      "bb-comercial-b-2023",
+      "bb-comercial-c-2023",
+      // 2021 entra pelos Conhecimentos Básicos, que se repetem entre os cargos e
+      // entre as edições. Dá a segunda aplicação de prova — sem ela, a análise de
+      // incidência descreve um caderno só e não tem como sugerir tendência.
+      "bb-2021-a",
+      "bb-2021-b",
+      "bb-2021-c",
+    ],
     fonte: FONTE_BB_2026,
   },
   {
