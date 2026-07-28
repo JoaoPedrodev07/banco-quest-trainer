@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
-import { PromptEstudo } from "@/components/PromptEstudo";
-import { useDisciplinas } from "@/services/hooks";
+import { AulaSubtopico } from "@/components/AulaSubtopico";
+import { useAulas, useDisciplinas, useQuestoes } from "@/services/hooks";
+import { unidadesFracas } from "@/lib/desempenho";
 import { useStore } from "@/store/useStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,8 +40,18 @@ function unidades(topico: Topico): { id: string; nome: string }[] {
 }
 
 function EditalPage() {
-  const { editalStatus, toggleStatus } = useStore();
+  const { editalStatus, toggleStatus, historico, concursoAtivoId } = useStore();
   const { disciplinas, carregando } = useDisciplinas();
+  const { questoes } = useQuestoes();
+  const { aulas } = useAulas(concursoAtivoId);
+
+  // Assuntos onde o desempenho real é pior — a linha correspondente do edital
+  // destaca o botão de aula, que é o caminho mais curto entre "descobri a
+  // fraqueza" e "tenho material para estudar".
+  const fracos = useMemo(
+    () => unidadesFracas(historico, questoes, concursoAtivoId),
+    [historico, questoes, concursoAtivoId],
+  );
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [expandidas, setExpandidas] = useState<Record<string, boolean>>({});
 
@@ -157,12 +168,14 @@ function EditalPage() {
                               >
                                 <p className="text-sm min-w-0 flex-1">{s.nome}</p>
                                 <div className="flex items-center gap-4 shrink-0">
-                                  <PromptEstudo
+                                  <AulaSubtopico
                                     disciplina={d}
                                     topicoNome={t.nome}
-                                    subtopicoId={s.id}
-                                    subtopicoNome={s.nome}
+                                    unidadeId={s.id}
+                                    unidadeNome={s.nome}
                                     ehTopico={!temCabecalho}
+                                    aula={aulas.get(s.id)}
+                                    prioritario={fracos.has(s.id)}
                                   />
                                   {(
                                     ["teoria", "revisao", "questoes"] as (keyof StatusTopico)[]

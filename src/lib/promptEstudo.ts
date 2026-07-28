@@ -107,10 +107,50 @@ ${exemplos.map(questaoEmTexto).join("\n\n---\n\n")}`,
 4. Feche com um resumo de 10 linhas que eu possa reler no dia da prova.
 5. No fim, sugira 3 termos de busca para eu procurar videoaula no YouTube sobre isso.
 
-Se algum ponto do assunto costuma cair mas não aparece nas questões acima, diga isso explicitamente em vez de omitir.`,
+Se algum ponto do assunto costuma cair mas não aparece nas questões acima, diga isso explicitamente em vez de omitir.
+
+## Formato da resposta
+Responda em **Markdown**, com títulos (\`##\`), listas e **negrito**. Vou colar sua resposta inteira num app que renderiza Markdown, então não escreva nada fora dela (sem "claro, aqui está" no começo). Fórmulas podem ir em texto simples — evite LaTeX, porque o app não renderiza fórmula.`,
   );
 
   return blocos.join("\n\n");
+}
+
+/**
+ * Prompt do gabarito comentado de uma questão.
+ *
+ * Separado do prompt de aula porque a pergunta é outra: aqui o assunto já foi
+ * estudado e o que falta é entender **aquela** questão — em especial por que as
+ * outras quatro alternativas estão erradas, que é o que a banca cobra e o que o
+ * gabarito oficial nunca explica (a banca publica a letra, não o raciocínio).
+ */
+export function montarPromptGabarito(
+  questao: Questao,
+  disciplinaNome: string,
+  banca: string | null,
+): string {
+  const cabecalho = banca
+    ? `Esta questão é da banca ${banca}.`
+    : "A banca da minha prova ainda não foi definida; esta questão é de uma prova anterior do mesmo órgão.";
+
+  return [
+    `Explique o gabarito desta questão de concurso público. Aja como um professor corrigindo a prova comigo.`,
+    `## A questão
+- Disciplina: ${disciplinaNome}
+- Prova: ${questao.banca} ${questao.ano}
+
+${cabecalho}
+
+${questaoEmTexto(questao, 0)}`,
+    `## O que quero de você
+1. Diga qual é o assunto exato cobrado — o mais específico possível, não "matemática" mas "regra de três composta".
+2. Explique o raciocínio até a resposta correta, passo a passo, sem pular etapa.
+3. **Para cada uma das outras alternativas, explique por que está errada.** Se alguma foi feita para induzir a um erro comum, diga qual erro é esse.
+4. Diga o que eu precisaria saber de antemão para acertar esta questão em 2 minutos de prova.
+
+${questao.correta ? "" : "Atenção: esta questão foi **anulada** pela banca e não tem gabarito oficial. Explique o que provavelmente causou a anulação, e não invente uma resposta correta.\n\n"}## Formato da resposta
+Responda em **Markdown**, sem nenhum texto fora dela. Evite LaTeX — o app não renderiza fórmula.`,
+  ].join("\n\n");
 }
 
 /**

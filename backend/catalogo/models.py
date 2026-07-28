@@ -212,3 +212,66 @@ class Alternativa(models.Model):
 
     def __str__(self) -> str:
         return f"({self.letra}) {self.texto[:50]}"
+
+
+class Aula(models.Model):
+    """Texto explicativo de uma unidade do edital, gerado por IA e guardado uma vez.
+
+    Fica no acervo, junto com provas e questões, e não no localStorage: aula é
+    conteúdo (igual para qualquer um que abrir aquele assunto), não progresso do
+    usuário.
+
+    **Não tem `Fonte` de propósito.** `Fonte` responde "de qual documento oficial
+    isto veio", e a resposta aqui é "de nenhum" — é texto derivado. Quem renderiza
+    tem a obrigação de avisar que o conteúdo é gerado e precisa ser conferido
+    contra o edital; é o §2.2 do CLAUDE.md aplicado a um tipo de dado que a regra
+    não previa quando foi escrita.
+
+    A unidade é `topico` + `subtopico` opcional, e não só `subtopico`, porque
+    metade das disciplinas do edital não tem subdivisão nenhuma (Português,
+    Matemática, Inglês, Estatística). Amarrar a aula a `subtopico` deixaria essas
+    disciplinas sem aula possível — o mesmo erro que travava a classificação.
+    """
+
+    topico = models.ForeignKey(Topico, on_delete=models.CASCADE, related_name="aulas")
+    subtopico = models.ForeignKey(
+        Subtopico, on_delete=models.CASCADE, related_name="aulas", null=True, blank=True
+    )
+    # O backend ainda não modela concursos; o id vem do catálogo do frontend
+    # (`src/data/concursos.ts`). Guardar como texto mantém a aula ligada ao
+    # concurso certo sem inventar uma tabela que ninguém mais usa hoje.
+    concurso_id = models.SlugField(max_length=80, validators=[slug_validator])
+    conteudo_markdown = models.TextField()
+    gerado_em = models.DateTimeField(auto_now=True)
+    modelo = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Qual IA gerou, para dar o que invalidar se o modelo mudar.",
+    )
+
+    class Meta:
+        verbose_name = "aula"
+        verbose_name_plural = "aulas"
+        ordering = ["topico_id", "subtopico_id"]
+        constraints = [
+            # Uma aula por unidade do edital por concurso. Sem isto, "gerar de novo"
+            # empilharia versões e a tela teria de escolher uma sem critério.
+            models.UniqueConstraint(
+                fields=["topico", "subtopico", "concurso_id"],
+                name="aula_unica_por_unidade_com_subtopico",
+                condition=models.Q(subtopico__isnull=False),
+            ),
+            models.UniqueConstraint(
+                fields=["topico", "concurso_id"],
+                name="aula_unica_por_unidade_sem_subtopico",
+                condition=models.Q(subtopico__isnull=True),
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Aula de {self.subtopico_id or self.topico_id} ({self.concurso_id})"
+
+    @property
+    def unidade_id(self) -> str:
+        """O id que a tela usa para casar aula com linha do edital."""
+        return self.subtopico_id or self.topico_id

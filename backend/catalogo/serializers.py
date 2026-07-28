@@ -9,7 +9,7 @@ frontend antigo os ignora, o novo os usa para não mentir sobre a procedência.
 
 from rest_framework import serializers
 
-from .models import Alternativa, Disciplina, Fonte, Prova, Questao, Subtopico, Topico
+from .models import Alternativa, Aula, Disciplina, Fonte, Prova, Questao, Subtopico, Topico
 
 
 class FonteSerializer(serializers.ModelSerializer):
@@ -108,3 +108,55 @@ class ProvaSerializer(serializers.ModelSerializer):
             "urlGabarito",
             "fonte",
         ]
+
+
+class AulaSerializer(serializers.ModelSerializer):
+    """Aula de uma unidade do edital.
+
+    `unidadeId` é o campo que a tela usa: ela conhece a linha do edital por um id
+    só (o do subtópico, ou o do tópico quando a disciplina não tem subdivisão) e
+    não deveria precisar saber qual dos dois é. Na escrita, o serializer resolve
+    esse id para o par (tópico, subtópico) — é o único lugar que precisa entender
+    a diferença.
+    """
+
+    unidadeId = serializers.CharField(write_only=True)
+    concursoId = serializers.CharField(source="concurso_id")
+    conteudoMarkdown = serializers.CharField(source="conteudo_markdown")
+    geradoEm = serializers.DateTimeField(source="gerado_em", read_only=True)
+
+    class Meta:
+        model = Aula
+        fields = ["unidadeId", "concursoId", "conteudoMarkdown", "geradoEm", "modelo"]
+
+    def to_representation(self, instance):
+        dados = super().to_representation(instance)
+        dados["unidadeId"] = instance.unidade_id
+        return dados
+
+    def validate_unidadeId(self, valor):
+        if Subtopico.objects.filter(pk=valor).exists() or Topico.objects.filter(pk=valor).exists():
+            return valor
+        raise serializers.ValidationError(
+            f"'{valor}' não é tópico nem subtópico do edital. "
+            "Aula presa a uma unidade inexistente nunca apareceria na tela."
+        )
+
+    def create(self, validated_data):
+        unidade_id = validated_data.pop("unidadeId")
+        subtopico = Subtopico.objects.filter(pk=unidade_id).select_related("topico").first()
+        topico = subtopico.topico if subtopico else Topico.objects.get(pk=unidade_id)
+
+        # `update_or_create` e não `create`: a unicidade por (unidade, concurso) é
+        # garantida no banco, e regravar precisa substituir a aula anterior em vez
+        # de estourar erro de constraint na cara do usuário.
+        aula, _ = Aula.objects.update_or_create(
+            topico=topico,
+            subtopico=subtopico,
+            concurso_id=validated_data["concurso_id"],
+            defaults={
+                "conteudo_markdown": validated_data["conteudo_markdown"],
+                "modelo": validated_data.get("modelo", ""),
+            },
+        )
+        return aula

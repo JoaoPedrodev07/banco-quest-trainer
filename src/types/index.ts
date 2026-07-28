@@ -107,6 +107,25 @@ export interface RevisaoItem {
   intervaloAtual: 1 | 7 | 15 | 30;
 }
 
+/**
+ * Aula de uma unidade do edital.
+ *
+ * É conteúdo do acervo, não progresso do usuário: mora no backend junto com
+ * provas e questões, e não no localStorage. Não tem `Fonte` porque não veio de
+ * documento nenhum — é texto gerado, e quem renderiza tem que dizer isso.
+ *
+ * `unidadeId` é o id do subtópico, ou o do tópico quando a disciplina não tem
+ * subdivisão. A tela conhece a linha do edital por um id só e não precisa saber
+ * qual dos dois é.
+ */
+export interface Aula {
+  unidadeId: string;
+  concursoId: string;
+  conteudoMarkdown: string;
+  geradoEm: string; // ISO
+  modelo?: string;
+}
+
 /** Status de um concurso no calendário público. */
 export type StatusConcurso =
   "inscricoes_abertas" | "inscricoes_encerradas" | "previsto" | "encerrado";

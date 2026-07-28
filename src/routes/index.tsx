@@ -3,9 +3,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/store/useStore";
+import { MINIMO_PARA_JULGAR, pontosFracos } from "@/lib/desempenho";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { useDisciplinas, useQuestoes } from "@/services/hooks";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line, CartesianGrid } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Tooltip,
+  LineChart,
+  Line,
+  CartesianGrid,
+} from "recharts";
 import { Flame, Target, CheckCircle2, TrendingUp, Calendar } from "lucide-react";
 import { useMemo } from "react";
 
@@ -13,20 +24,29 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Dashboard — Foco BB TI 2026" },
-      { name: "description", content: "Acompanhe seu progresso rumo à aprovação no concurso do Banco do Brasil TI." },
+      {
+        name: "description",
+        content: "Acompanhe seu progresso rumo à aprovação no concurso do Banco do Brasil TI.",
+      },
       { property: "og:title", content: "Foco BB TI 2026" },
-      { property: "og:description", content: "Plataforma pessoal de estudos para o BB Agente de Tecnologia." },
+      {
+        property: "og:description",
+        content: "Plataforma pessoal de estudos para o BB Agente de Tecnologia.",
+      },
     ],
   }),
   component: Dashboard,
 });
 
 function Dashboard() {
-  const { dataProva, historico, editalStatus, streak, metaDiaria } = useStore();
+  const { dataProva, historico, editalStatus, streak, metaDiaria, concursoAtivoId } = useStore();
   const { disciplinas } = useDisciplinas();
   const { questoes } = useQuestoes();
 
-  const diasRestantes = Math.max(0, Math.ceil((new Date(dataProva).getTime() - Date.now()) / 86400000));
+  const diasRestantes = Math.max(
+    0,
+    Math.ceil((new Date(dataProva).getTime() - Date.now()) / 86400000),
+  );
 
   const totalRespondidas = historico.length;
   const acertos = historico.filter((h) => h.correta).length;
@@ -55,17 +75,26 @@ function Dashboard() {
     return arr;
   }, [historico]);
 
-  const pontosFracos = useMemo(() => {
-    return disciplinas
-      .map((d) => {
-        const hs = historico.filter((h) => h.disciplinaId === d.id);
-        const t = hs.length ? hs.filter((x) => x.correta).length / hs.length : 1;
-        return { disciplina: d, taxa: Math.round(t * 100), respondidas: hs.length };
-      })
-      .filter((x) => x.respondidas >= 2)
-      .sort((a, b) => a.taxa - b.taxa)
-      .slice(0, 3);
-  }, [disciplinas, historico]);
+  // Fraqueza por **assunto do edital**, não por disciplina. "Você vai mal em TI"
+  // não diz o que estudar — TI tem 21 subtópicos. "Você vai mal em normalização
+  // de banco de dados" diz. Só ficou possível depois que as questões passaram a
+  // ter tópico; antes disso o dashboard só sabia agrupar por disciplina.
+  const fracos = useMemo(
+    () => pontosFracos(historico, questoes, concursoAtivoId, 3),
+    [historico, questoes, concursoAtivoId],
+  );
+
+  /** Nome legível de uma unidade do edital, para não exibir o id cru na tela. */
+  const nomeDaUnidade = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const d of disciplinas) {
+      for (const t of d.topicos) {
+        mapa.set(t.id, t.nome);
+        for (const s of t.subtopicos) mapa.set(s.id, s.nome);
+      }
+    }
+    return mapa;
+  }, [disciplinas]);
 
   // Mesma regra da tela do edital: tópico sem subtópico conta como uma unidade.
   // No edital real, disciplinas inteiras (Português, Matemática) não têm
@@ -100,9 +129,21 @@ function Dashboard() {
       </Card>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard icon={<Target className="h-4 w-4" />} label="Questões" value={String(totalRespondidas)} />
-        <StatCard icon={<TrendingUp className="h-4 w-4" />} label="Acerto geral" value={`${taxa}%`} />
-        <StatCard icon={<CheckCircle2 className="h-4 w-4" />} label="Tópicos concluídos" value={`${topicosConcluidos}/${totalSubtopicos}`} />
+        <StatCard
+          icon={<Target className="h-4 w-4" />}
+          label="Questões"
+          value={String(totalRespondidas)}
+        />
+        <StatCard
+          icon={<TrendingUp className="h-4 w-4" />}
+          label="Acerto geral"
+          value={`${taxa}%`}
+        />
+        <StatCard
+          icon={<CheckCircle2 className="h-4 w-4" />}
+          label="Tópicos concluídos"
+          value={`${topicosConcluidos}/${totalSubtopicos}`}
+        />
         <StatCard icon={<Flame className="h-4 w-4" />} label="Streak" value={`${streak.dias}d`} />
       </div>
 
@@ -112,7 +153,9 @@ function Dashboard() {
         </CardHeader>
         <CardContent>
           <Progress value={progressoEdital} className="h-3" />
-          <p className="text-xs text-muted-foreground mt-2">{progressoEdital}% do edital concluído</p>
+          <p className="text-xs text-muted-foreground mt-2">
+            {progressoEdital}% do edital concluído
+          </p>
         </CardContent>
       </Card>
 
@@ -145,7 +188,13 @@ function Dashboard() {
                 <XAxis dataKey="dia" fontSize={10} />
                 <YAxis fontSize={11} />
                 <Tooltip />
-                <Line type="monotone" dataKey="qtd" stroke="var(--primary)" strokeWidth={2} dot={false} />
+                <Line
+                  type="monotone"
+                  dataKey="qtd"
+                  stroke="var(--primary)"
+                  strokeWidth={2}
+                  dot={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -157,25 +206,35 @@ function Dashboard() {
           <CardTitle className="text-base">Pontos fracos</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {pontosFracos.length === 0 && (
+          {fracos.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              Responda algumas questões para identificarmos seus pontos fracos.
+              Responda pelo menos {MINIMO_PARA_JULGAR} questões de um mesmo assunto para ele poder
+              aparecer aqui. Com uma ou duas respostas, errar é acaso, não fraqueza.
             </p>
           )}
-          {pontosFracos.map((p) => (
+          {fracos.map((p) => (
             <div
-              key={p.disciplina.id}
-              className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
+              key={p.unidadeId}
+              className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 transition-colors hover:border-primary/40"
             >
               <div className="min-w-0">
-                <p className="font-semibold truncate">{p.disciplina.nome}</p>
+                <p className="truncate font-semibold">
+                  {nomeDaUnidade.get(p.unidadeId) ?? p.unidadeId}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  {p.taxa}% de acerto em {p.respondidas} questões
+                  {p.taxa}% de acerto em {p.respondidas}{" "}
+                  {p.respondidas === 1 ? "questão" : "questões"} ·{" "}
+                  {disciplinas.find((d) => d.id === p.disciplinaId)?.nome ?? p.disciplinaId}
                 </p>
               </div>
-              <Button asChild size="sm">
-                <Link to="/questoes">Praticar agora</Link>
-              </Button>
+              <div className="flex shrink-0 gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/edital">Gerar aula</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link to="/questoes">Praticar</Link>
+                </Button>
+              </div>
             </div>
           ))}
         </CardContent>

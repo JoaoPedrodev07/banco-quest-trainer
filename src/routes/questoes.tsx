@@ -1,15 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
+import { GabaritoComentado } from "@/components/GabaritoComentado";
 import { useDisciplinas, useQuestoes } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,7 +27,10 @@ export const Route = createFileRoute("/questoes")({
       { title: "Simulados — Foco BB TI 2026" },
       { name: "description", content: "Monte simulados personalizados no estilo Cesgranrio." },
       { property: "og:title", content: "Banco de Questões" },
-      { property: "og:description", content: "Pratique com questões filtradas por disciplina e ano." },
+      {
+        property: "og:description",
+        content: "Pratique com questões filtradas por disciplina e ano.",
+      },
     ],
   }),
   component: QuestoesPage,
@@ -97,7 +106,10 @@ function QuestoesPage() {
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {disciplinas.map((d) => (
-              <label key={d.id} className="flex items-center gap-2 rounded-md border border-border p-3 cursor-pointer">
+              <label
+                key={d.id}
+                className="flex items-center gap-2 rounded-md border border-border p-3 cursor-pointer"
+              >
                 <Checkbox
                   checked={selecionadas.includes(d.id)}
                   onCheckedChange={(v) =>
@@ -194,13 +206,18 @@ function QuestoesPage() {
                       "w-full text-left rounded-lg border p-3 flex gap-3 items-start transition-colors",
                       !showResult && "hover:bg-accent",
                       showResult && isCorreta && "border-green-500 bg-green-50 dark:bg-green-950",
-                      showResult && isChosen && !isCorreta && "border-red-500 bg-red-50 dark:bg-red-950",
+                      showResult &&
+                        isChosen &&
+                        !isCorreta &&
+                        "border-red-500 bg-red-50 dark:bg-red-950",
                       !showResult && isChosen && "border-primary bg-primary/5",
                     )}
                   >
                     <span className="font-black text-primary">{a.letra}</span>
                     <span className="text-sm flex-1">{a.texto}</span>
-                    {showResult && isCorreta && <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />}
+                    {showResult && isCorreta && (
+                      <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+                    )}
                     {showResult && isChosen && !isCorreta && (
                       <XCircle className="h-5 w-5 text-red-600 shrink-0" />
                     )}
@@ -230,23 +247,17 @@ function QuestoesPage() {
             )}
 
             {respondida && (
-              <div className="rounded-lg bg-muted p-4 space-y-3">
+              <div className="rounded-lg bg-muted p-4">
                 {/* Questão vinda do caderno da banca não traz comentário: a
-                    Cesgranrio publica prova e gabarito, não explicação. Fingir
-                    que existe uma seria inventar conteúdo de estudo. */}
-                <p className="text-sm">
-                  {q.explicacao ? (
-                    <>
-                      <span className="font-bold">Explicação:</span> {q.explicacao}
-                    </>
-                  ) : (
-                    <span className="text-muted-foreground">
-                      Gabarito oficial: <strong>{q.correta}</strong>. A banca não publica
-                      explicação — use o campo abaixo para anotar o seu raciocínio.
-                    </span>
-                  )}
-                </p>
-                <Textarea placeholder="Anote seu comentário sobre a questão..." rows={2} />
+                    Cesgranrio publica prova e gabarito, não explicação. O
+                    comentário é gerado por IA fora do app e colado aqui — por
+                    isso vem sempre com o aviso de conteúdo gerado. */}
+                <GabaritoComentado
+                  questao={q}
+                  disciplinaNome={
+                    disciplinas.find((d) => d.id === q.disciplinaId)?.nome ?? q.disciplinaId
+                  }
+                />
               </div>
             )}
           </CardContent>

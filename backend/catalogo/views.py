@@ -14,8 +14,8 @@ from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .models import Disciplina, Prova, Questao
-from .serializers import DisciplinaSerializer, ProvaSerializer, QuestaoSerializer
+from .models import Aula, Disciplina, Prova, Questao
+from .serializers import AulaSerializer, DisciplinaSerializer, ProvaSerializer, QuestaoSerializer
 
 
 class DisciplinaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -101,3 +101,46 @@ def _edital_vigente() -> dict:
         return {"titulo": None, "url": None, "tipo": None}
     titulo, url, tipo = fonte
     return {"titulo": titulo, "url": url, "tipo": tipo}
+
+
+class AulaViewSet(viewsets.ModelViewSet):
+    """Aulas do acervo. **Este é o primeiro endpoint de escrita da API.**
+
+    Escrita liberada sem autenticação é uma decisão consciente e limitada a este
+    uso: o app roda em `127.0.0.1`, é de um usuário só, e não há login em lugar
+    nenhum do projeto. Se um dia isto for exposto na rede, **este endpoint é o
+    primeiro que precisa de autenticação** — hoje qualquer um que alcance a porta
+    8000 pode gravar aula e explicação.
+
+    O corpo aceita `unidadeId` (tópico ou subtópico) e regrava a aula existente
+    daquela unidade, em vez de acumular versões.
+    """
+
+    serializer_class = AulaSerializer
+    queryset = Aula.objects.select_related("topico", "subtopico").all()
+    filterset_fields = ["concurso_id"]
+    # `unidade_id` é propriedade, não coluna: a rota por id usaria o pk inteiro, e
+    # a tela não conhece esse número. Buscar é por lista filtrada.
+    http_method_names = ["get", "post", "delete", "head", "options"]
+
+
+@api_view(["POST"])
+def comentar_gabarito(request, questao_id: str):
+    """Grava o gabarito comentado de uma questão.
+
+    O texto é conteúdo gerado (o usuário traz de uma IA de fora), e não sai da
+    banca. Fica em `Questao.explicacao`, campo que já existia vazio, e a tela que
+    o exibe precisa dizer que é comentário gerado — a banca publica gabarito, não
+    explicação.
+    """
+    questao = Questao.objects.filter(pk=questao_id).first()
+    if questao is None:
+        return Response({"erro": f"questão '{questao_id}' não existe."}, status=404)
+
+    texto = (request.data or {}).get("explicacao", "")
+    if not isinstance(texto, str) or not texto.strip():
+        return Response({"erro": "campo 'explicacao' vazio."}, status=400)
+
+    questao.explicacao = texto.strip()
+    questao.save(update_fields=["explicacao", "atualizada_em"])
+    return Response({"id": questao.id, "explicacao": questao.explicacao})

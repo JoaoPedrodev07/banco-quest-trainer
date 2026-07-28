@@ -16,7 +16,7 @@ import { CONCURSO_PADRAO } from "@/store/useStore";
 import { disciplinas as disciplinasMock } from "@/data/disciplinas";
 import { provas as provasMock } from "@/data/provas";
 import { questoes as questoesMock } from "@/data/questoes";
-import type { Acervo, Disciplina, Prova, Questao } from "@/types";
+import type { Acervo, Aula, Disciplina, Prova, Questao } from "@/types";
 
 const BASE = ((import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000/api")
   .trim()
@@ -33,6 +33,27 @@ async function buscar<T>(caminho: string): Promise<T> {
   });
   if (!resposta.ok) {
     throw new Error(`GET ${caminho} devolveu HTTP ${resposta.status}`);
+  }
+  return (await resposta.json()) as T;
+}
+
+/**
+ * POST para os endpoints de escrita.
+ *
+ * Diferente de `comReserva`, aqui **não há reserva**: uma escrita que falha em
+ * silêncio faria o usuário acreditar que a aula foi salva e perder o texto que
+ * colou. O erro sobe para a tela decidir o que dizer.
+ */
+async function enviar<T>(caminho: string, corpo: unknown): Promise<T> {
+  const resposta = await fetch(`${BASE}${caminho}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(corpo),
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (!resposta.ok) {
+    const detalhe = await resposta.text().catch(() => "");
+    throw new Error(`POST ${caminho} devolveu HTTP ${resposta.status}. ${detalhe.slice(0, 300)}`);
   }
   return (await resposta.json()) as T;
 }
@@ -87,6 +108,28 @@ export const api = {
       return acervoLocal();
     }
   },
+
+  /**
+   * Aulas do concurso. Sem reserva de mock: aula é conteúdo que só existe depois
+   * de alguém gerar e salvar, e devolver uma lista falsa faria a tela oferecer
+   * "ver aula" para algo que não está gravado em lugar nenhum.
+   */
+  listAulas: (concursoId: string) =>
+    buscar<Aula[]>(`/aulas/?concurso_id=${encodeURIComponent(concursoId)}`),
+
+  salvarAula: (aula: Omit<Aula, "geradoEm">) =>
+    enviar<Aula>("/aulas/", {
+      unidadeId: aula.unidadeId,
+      concursoId: aula.concursoId,
+      conteudoMarkdown: aula.conteudoMarkdown,
+      modelo: aula.modelo ?? "",
+    }),
+
+  comentarGabarito: (questaoId: string, explicacao: string) =>
+    enviar<{ id: string; explicacao: string }>(
+      `/questoes/${encodeURIComponent(questaoId)}/comentar/`,
+      { explicacao },
+    ),
 };
 
 /**
@@ -98,4 +141,5 @@ export const chaves = {
   questoes: ["questoes"] as const,
   provas: ["provas"] as const,
   acervo: ["acervo"] as const,
+  aulas: (concursoId: string) => ["aulas", concursoId] as const,
 };
