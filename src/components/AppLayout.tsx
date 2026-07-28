@@ -1,5 +1,14 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, BookOpen, ListChecks, FileText, RotateCcw, Settings, Trophy } from "lucide-react";
+import {
+  LayoutDashboard,
+  BookOpen,
+  ListChecks,
+  FileText,
+  RotateCcw,
+  Settings,
+  Trophy,
+  BarChart3,
+} from "lucide-react";
 import { useEffect } from "react";
 import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
@@ -9,6 +18,7 @@ const navItems = [
   { to: "/edital", label: "Edital", icon: BookOpen },
   { to: "/questoes", label: "Questões", icon: ListChecks },
   { to: "/provas", label: "Provas", icon: FileText },
+  { to: "/analise", label: "Análise", icon: BarChart3 },
   { to: "/revisoes", label: "Revisões", icon: RotateCcw },
   { to: "/concursos", label: "Concursos", icon: Trophy },
 ];
