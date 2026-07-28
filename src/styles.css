@@ -29,6 +29,12 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-sucesso: var(--sucesso);
+  --color-sucesso-suave: var(--sucesso-suave);
+  --color-sucesso-foreground: var(--sucesso-foreground);
+  --color-atencao: var(--atencao);
+  --color-atencao-suave: var(--atencao-suave);
+  --color-atencao-foreground: var(--atencao-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -68,6 +74,16 @@
   --accent-foreground: oklch(0.2 0.05 265);
   --destructive: oklch(0.58 0.22 27);
   --destructive-foreground: oklch(0.985 0.01 90);
+  /* Acerto e atenção. Existem como token porque um app de estudo marca certo e
+     errado o tempo todo, e cor de paleta cravada na classe (`bg-green-50`) não
+     acompanha o modo escuro nem o resto do tema. `-suave` é o fundo; o tom cheio
+     é para ícone e borda, onde precisa de contraste. */
+  --sucesso: oklch(0.55 0.15 150);
+  --sucesso-suave: oklch(0.95 0.04 150);
+  --sucesso-foreground: oklch(0.22 0.06 150);
+  --atencao: oklch(0.62 0.15 70);
+  --atencao-suave: oklch(0.96 0.05 80);
+  --atencao-foreground: oklch(0.25 0.06 70);
   --border: oklch(0.9 0.01 260);
   --input: oklch(0.92 0.01 260);
   --ring: oklch(0.5 0.15 265);
@@ -103,6 +119,14 @@
   --accent-foreground: oklch(0.2 0.05 265);
   --destructive: oklch(0.68 0.2 22);
   --destructive-foreground: oklch(0.985 0.01 90);
+  /* No escuro o fundo suave vira escuro-esverdeado, não claro: manter o mesmo
+     valor do modo claro daria um bloco branco no meio de uma tela escura. */
+  --sucesso: oklch(0.72 0.16 150);
+  --sucesso-suave: oklch(0.3 0.06 150);
+  --sucesso-foreground: oklch(0.95 0.03 150);
+  --atencao: oklch(0.78 0.15 75);
+  --atencao-suave: oklch(0.32 0.06 70);
+  --atencao-foreground: oklch(0.96 0.03 80);
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.85 0.15 100);

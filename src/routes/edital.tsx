@@ -126,7 +126,7 @@ function EditalPage() {
             <Card key={d.id}>
               <button
                 onClick={() => setExpandidas((e) => ({ ...e, [d.id]: !aberta }))}
-                className="w-full flex items-center gap-3 p-4 text-left"
+                className="w-full flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted/40"
               >
                 {aberta ? (
                   <ChevronDown className="h-4 w-4 shrink-0" />
@@ -167,7 +167,7 @@ function EditalPage() {
                             return (
                               <div
                                 key={s.id}
-                                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3"
+                                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 transition-colors hover:border-primary/30 hover:bg-muted/30"
                               >
                                 <p className="text-sm min-w-0 flex-1">{s.nome}</p>
                                 <div className="flex items-center gap-4 shrink-0">

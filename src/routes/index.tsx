@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/store/useStore";
 import { MINIMO_PARA_JULGAR, pontosFracos } from "@/lib/desempenho";
+import { incentivoPorMeta, incentivoPorStreak, incentivoPorTaxa } from "@/lib/incentivo";
 import { CONCURSO_PADRAO } from "@/store/useStore";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { useAcervoDoConcurso } from "@/services/hooks";
@@ -66,6 +67,14 @@ function Dashboard() {
   const totalRespondidas = doConcurso.length;
   const acertos = doConcurso.filter((h) => h.correta).length;
   const taxa = totalRespondidas ? Math.round((acertos / totalRespondidas) * 100) : 0;
+
+  const respondidasHoje = useMemo(() => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    // slice(0,10) e não comparação de ISO completo: o ISO carrega hora, e
+    // comparar tudo faria "hoje" nunca casar (§2.5 do CLAUDE.md).
+    return doConcurso.filter((h) => h.data.slice(0, 10) === hoje).length;
+  }, [doConcurso]);
+  const mensagemStreak = incentivoPorStreak(streak.dias);
 
   const topicosConcluidos = Object.values(editalStatus).filter(
     (s) => s.teoria && s.revisao && s.questoes,
@@ -135,7 +144,10 @@ function Dashboard() {
             <h1 className="text-2xl md:text-3xl font-black mt-1">
               {concurso?.nome ?? "Escolha um concurso"}
             </h1>
-            <p className="text-sm opacity-90 mt-2">Meta diária: {metaDiaria} questões</p>
+            <p className="text-sm opacity-90 mt-2">
+              {incentivoPorMeta(respondidasHoje, metaDiaria)}
+            </p>
+            {mensagemStreak && <p className="mt-1 text-xs opacity-80">{mensagemStreak}</p>}
           </div>
           <div className="rounded-xl bg-accent px-5 py-3 text-accent-foreground">
             <div className="flex items-center gap-2 text-xs font-bold uppercase">
@@ -176,6 +188,8 @@ function Dashboard() {
         />
         <StatCard icon={<Flame className="h-4 w-4" />} label="Streak" value={`${streak.dias}d`} />
       </div>
+
+      <p className="text-sm text-muted-foreground">{incentivoPorTaxa(taxa, totalRespondidas)}</p>
 
       <Card>
         <CardHeader className="pb-2">

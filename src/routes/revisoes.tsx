@@ -47,7 +47,7 @@ function RevisoesPage() {
           const atrasada = data.getTime() < Date.now();
           const dias = Math.round((data.getTime() - Date.now()) / 86400000);
           return (
-            <Card key={r.id}>
+            <Card key={r.id} className="transition-colors hover:border-primary/40">
               <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">

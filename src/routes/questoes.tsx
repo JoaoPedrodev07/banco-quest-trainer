@@ -216,23 +216,27 @@ function QuestoesPage() {
                     disabled={respondida}
                     onClick={() => setRespostas((r) => ({ ...r, [q.id]: a.letra }))}
                     className={cn(
-                      "w-full text-left rounded-lg border p-3 flex gap-3 items-start transition-colors",
-                      !showResult && "hover:bg-accent",
-                      showResult && isCorreta && "border-green-500 bg-green-50 dark:bg-green-950",
+                      "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-all duration-150",
+                      // `hover:bg-accent` pintava a alternativa de amarelo forte:
+                      // neste tema o accent é o amarelo do BB, reservado para
+                      // destaque de verdade. Passar o mouse tem que sugerir, não gritar.
+                      !showResult &&
+                        "hover:-translate-y-px hover:border-primary/40 hover:bg-muted hover:shadow-sm",
+                      showResult && isCorreta && "border-sucesso bg-sucesso-suave",
                       showResult &&
                         isChosen &&
                         !isCorreta &&
-                        "border-red-500 bg-red-50 dark:bg-red-950",
+                        "border-destructive bg-destructive/10",
                       !showResult && isChosen && "border-primary bg-primary/5",
                     )}
                   >
                     <span className="font-black text-primary">{a.letra}</span>
                     <TextoDaQuestao className="text-sm flex-1">{a.texto}</TextoDaQuestao>
                     {showResult && isCorreta && (
-                      <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+                      <CheckCircle2 className="h-5 w-5 shrink-0 text-sucesso" />
                     )}
                     {showResult && isChosen && !isCorreta && (
-                      <XCircle className="h-5 w-5 text-red-600 shrink-0" />
+                      <XCircle className="h-5 w-5 shrink-0 text-destructive" />
                     )}
                   </button>
                 );
