@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/store/useStore";
 import { MINIMO_PARA_JULGAR, pontosFracos } from "@/lib/desempenho";
+import { CONCURSO_PADRAO } from "@/store/useStore";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
-import { useDisciplinas, useQuestoes } from "@/services/hooks";
+import { useAcervoDoConcurso } from "@/services/hooks";
+import { SemAcervo } from "@/components/SemAcervo";
 import {
   BarChart,
   Bar,
@@ -40,16 +42,29 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const { dataProva, historico, editalStatus, streak, metaDiaria, concursoAtivoId } = useStore();
-  const { disciplinas } = useDisciplinas();
-  const { questoes } = useQuestoes();
+  const { concurso, disciplinas, questoes, vazio } = useAcervoDoConcurso(concursoAtivoId);
 
-  const diasRestantes = Math.max(
-    0,
-    Math.ceil((new Date(dataProva).getTime() - Date.now()) / 86400000),
+  // A data vem do concurso; `dataProva` do store é a sobrescrita do usuário,
+  // que pode saber uma data mais precisa que a notícia. Quando nenhuma das duas
+  // existe, a tela NÃO conta dias: o app fazia contagem regressiva para
+  // 25/10/2026, uma data que nunca foi anunciada por ninguém.
+  const dataEfetiva = concurso?.dataProva ?? (concurso?.id === CONCURSO_PADRAO ? dataProva : null);
+  const diasRestantes = dataEfetiva
+    ? Math.max(0, Math.ceil((new Date(dataEfetiva).getTime() - Date.now()) / 86400000))
+    : null;
+  // A contagem só é "oficial" quando o concurso tem data publicada. No BB ela sai
+  // de `dataProva` do store, que é um chute do usuário (ou o padrão do protótipo)
+  // — contar dias sem dizer isso é a mesma mentira de antes, só mais discreta.
+  const dataEstimada = diasRestantes !== null && !concurso?.dataProva;
+
+  // Só o histórico deste concurso: respostas de outro concurso inflariam o
+  // total e a taxa de acerto de um edital que a pessoa nem está estudando.
+  const doConcurso = useMemo(
+    () => historico.filter((h) => h.concursoId === concursoAtivoId),
+    [historico, concursoAtivoId],
   );
-
-  const totalRespondidas = historico.length;
-  const acertos = historico.filter((h) => h.correta).length;
+  const totalRespondidas = doConcurso.length;
+  const acertos = doConcurso.filter((h) => h.correta).length;
   const taxa = totalRespondidas ? Math.round((acertos / totalRespondidas) * 100) : 0;
 
   const topicosConcluidos = Object.values(editalStatus).filter(
@@ -111,19 +126,34 @@ function Dashboard() {
     <div className="space-y-6">
       <AvisoAcervo />
 
+      {vazio && <SemAcervo nomeDoConcurso={concurso?.nome} />}
+
       <Card className="border-0 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
         <CardContent className="p-6 flex items-center justify-between gap-4 flex-wrap">
           <div className="min-w-0">
             <p className="text-sm opacity-90">Olá, futuro aprovado 👋</p>
-            <h1 className="text-2xl md:text-3xl font-black mt-1">Rumo ao BB Agente de TI</h1>
+            <h1 className="text-2xl md:text-3xl font-black mt-1">
+              {concurso?.nome ?? "Escolha um concurso"}
+            </h1>
             <p className="text-sm opacity-90 mt-2">Meta diária: {metaDiaria} questões</p>
           </div>
           <div className="rounded-xl bg-accent px-5 py-3 text-accent-foreground">
             <div className="flex items-center gap-2 text-xs font-bold uppercase">
-              <Calendar className="h-4 w-4" /> Faltam
+              <Calendar className="h-4 w-4" /> {diasRestantes === null ? "Data" : "Faltam"}
             </div>
-            <p className="text-4xl font-black leading-none mt-1">{diasRestantes}</p>
-            <p className="text-xs mt-1">dias para a prova</p>
+            {diasRestantes === null ? (
+              <>
+                <p className="mt-1 text-xl font-black leading-tight">a definir</p>
+                <p className="mt-1 text-xs">edital não publicado</p>
+              </>
+            ) : (
+              <>
+                <p className="text-4xl font-black leading-none mt-1">{diasRestantes}</p>
+                <p className="text-xs mt-1">
+                  {dataEstimada ? "dias — data estimada" : "dias para a prova"}
+                </p>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

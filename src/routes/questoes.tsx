@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { GabaritoComentado } from "@/components/GabaritoComentado";
 import { TextoDaQuestao } from "@/components/Markdown";
-import { useDisciplinas, useQuestoes } from "@/services/hooks";
+import { useAcervoDoConcurso } from "@/services/hooks";
+import { SemAcervo } from "@/components/SemAcervo";
 import { useStore } from "@/store/useStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,8 +52,13 @@ function QuestoesPage() {
   const [inicio, setInicio] = useState(0);
 
   const { historico, registrarResposta, concursoAtivoId } = useStore();
-  const { disciplinas } = useDisciplinas();
-  const { questoes: allQuestoes, carregando } = useQuestoes();
+  const {
+    concurso,
+    disciplinas,
+    questoes: allQuestoes,
+    carregando,
+    vazio,
+  } = useAcervoDoConcurso(concursoAtivoId);
 
   // As disciplinas chegam depois do primeiro render, então a seleção inicial
   // "todas marcadas" só dá para montar quando elas existem. Roda uma vez: depois
@@ -100,6 +106,8 @@ function QuestoesPage() {
         </div>
 
         <AvisoAcervo />
+
+        {vazio && <SemAcervo nomeDoConcurso={concurso?.nome} />}
 
         <Card>
           <CardHeader>

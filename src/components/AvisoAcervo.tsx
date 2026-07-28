@@ -10,13 +10,23 @@
 import { AlertTriangle, BadgeCheck, WifiOff } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useAcervo } from "@/services/hooks";
+import { useAcervo, useAcervoDoConcurso } from "@/services/hooks";
+import { useStore } from "@/store/useStore";
 
 export function AvisoAcervo() {
   const { acervo } = useAcervo();
+  const concursoAtivoId = useStore((s) => s.concursoAtivoId);
+  const { vazio } = useAcervoDoConcurso(concursoAtivoId);
+
   if (!acervo) return null;
 
   const { online, questoes, editalVigente } = acervo;
+
+  // Com o concurso em foco sem acervo, este aviso descreveria o conteúdo de
+  // OUTRO concurso — anunciando o edital do BB para quem escolheu o TCE-RJ.
+  // Quem fala nesse caso é o `SemAcervo` da tela. O aviso de servidor fora do ar
+  // continua, porque esse é problema de infraestrutura, não de recorte.
+  if (vazio && online) return null;
 
   if (!online) {
     return (

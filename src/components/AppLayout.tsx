@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 import { useStore } from "@/store/useStore";
+import { concursoPorId } from "@/data/concursos";
 import { Pomodoro } from "@/components/Pomodoro";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ const navItems = [
 export function AppLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const darkMode = useStore((s) => s.darkMode);
+  const concursoAtivo = concursoPorId(useStore((s) => s.concursoAtivoId));
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
@@ -46,8 +48,13 @@ export function AppLayout() {
             <span className="text-primary-foreground font-black">BB</span>
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold truncate">Foco BB TI 2026</p>
-            <p className="text-xs text-muted-foreground">Cesgranrio</p>
+            {/* Marca o concurso em foco, não um nome fixo: depois que o app
+                virou multi-concurso, "Foco BB TI 2026" na barra lateral
+                contradiz a tela quando o usuário escolhe outro. */}
+            <p className="text-sm font-bold truncate">{concursoAtivo?.nome ?? "Foco"}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {concursoAtivo?.banca ?? "banca a definir"}
+            </p>
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1">

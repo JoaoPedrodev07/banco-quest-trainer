@@ -14,6 +14,7 @@ import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api, chaves } from "@/services";
+import { concursoPorId } from "@/data/concursos";
 import type { Aula, Disciplina, Prova, Questao } from "@/types";
 
 const SEM_DISCIPLINAS: Disciplina[] = [];
@@ -81,4 +82,47 @@ export function useComentarGabarito() {
       api.comentarGabarito(questaoId, explicacao),
     onSuccess: () => cliente.invalidateQueries({ queryKey: chaves.questoes }),
   });
+}
+
+/**
+ * O acervo recortado no concurso em foco.
+ *
+ * Existe para a regra do recorte morar num lugar só. Cada tela reimplementando
+ * "o que pertence a este concurso" é como surgem divergências caladas: o
+ * dashboard contando 271 questões enquanto o simulado sorteia de 166.
+ *
+ * O recorte é pelas **provas do concurso** (`Concurso.provaIds`), e não por um
+ * campo `concursoId` na questão, porque é a prova que pertence a um concurso —
+ * a questão pertence à prova. `vazio` é verdadeiro quando o concurso existe no
+ * catálogo mas não tem nada importado; a tela precisa dizer isso em vez de
+ * mostrar zero como se fosse desempenho.
+ */
+export function useAcervoDoConcurso(concursoId: string) {
+  const { disciplinas, carregando: cd } = useDisciplinas();
+  const { questoes, carregando: cq } = useQuestoes();
+  const { provas, carregando: cp } = useProvas();
+
+  return useMemo(() => {
+    const concurso = concursoPorId(concursoId);
+    const idsDeProva = new Set(concurso?.provaIds ?? []);
+
+    const provasDoConcurso = provas.filter((p) => idsDeProva.has(p.id));
+    const questoesDoConcurso = questoes.filter((q) => q.provaId && idsDeProva.has(q.provaId));
+
+    // As disciplinas vêm do que as provas do concurso realmente cobram. Usar a
+    // lista inteira da API mostraria disciplina de outro concurso no edital.
+    const idsDeDisciplina = new Set(questoesDoConcurso.map((q) => q.disciplinaId));
+    const disciplinasDoConcurso = idsDeDisciplina.size
+      ? disciplinas.filter((d) => idsDeDisciplina.has(d.id))
+      : [];
+
+    return {
+      concurso,
+      disciplinas: disciplinasDoConcurso,
+      questoes: questoesDoConcurso,
+      provas: provasDoConcurso,
+      carregando: cd || cq || cp,
+      vazio: !cd && !cq && !cp && questoesDoConcurso.length === 0,
+    };
+  }, [concursoId, disciplinas, questoes, provas, cd, cq, cp]);
 }

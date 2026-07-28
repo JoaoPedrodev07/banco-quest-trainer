@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { AulaSubtopico } from "@/components/AulaSubtopico";
-import { useAulas, useDisciplinas, useQuestoes } from "@/services/hooks";
+import { useAcervoDoConcurso, useAulas } from "@/services/hooks";
+import { SemAcervo } from "@/components/SemAcervo";
 import { unidadesFracas } from "@/lib/desempenho";
 import { useStore } from "@/store/useStore";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,8 +42,8 @@ function unidades(topico: Topico): { id: string; nome: string }[] {
 
 function EditalPage() {
   const { editalStatus, toggleStatus, historico, concursoAtivoId } = useStore();
-  const { disciplinas, carregando } = useDisciplinas();
-  const { questoes } = useQuestoes();
+  const { concurso, disciplinas, questoes, carregando, vazio } =
+    useAcervoDoConcurso(concursoAtivoId);
   const { aulas } = useAulas(concursoAtivoId);
 
   // Assuntos onde o desempenho real é pior — a linha correspondente do edital
@@ -87,6 +88,8 @@ function EditalPage() {
       </div>
 
       <AvisoAcervo />
+
+      {vazio && <SemAcervo nomeDoConcurso={concurso?.nome} />}
 
       <Card>
         <CardContent className="p-4 space-y-2">

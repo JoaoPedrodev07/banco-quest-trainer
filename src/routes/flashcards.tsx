@@ -5,7 +5,8 @@ import { ArrowRight, Check, Eye, RotateCcw, X } from "lucide-react";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { Markdown, AvisoGerado, TextoDaQuestao } from "@/components/Markdown";
 import { concursoPorId } from "@/data/concursos";
-import { useDisciplinas, useQuestoes } from "@/services/hooks";
+import { useAcervoDoConcurso } from "@/services/hooks";
+import { SemAcervo } from "@/components/SemAcervo";
 import { useStore } from "@/store/useStore";
 import { disciplinasDoCargo } from "@/lib/incidencia";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useProvas } from "@/services/hooks";
 import type { Questao } from "@/types";
 
 export const Route = createFileRoute("/flashcards")({
@@ -62,9 +62,7 @@ function FlashcardsPage() {
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
   const concurso = concursoPorId(concursoAtivoId);
   const registrarResposta = useStore((s) => s.registrarResposta);
-  const { disciplinas } = useDisciplinas();
-  const { questoes } = useQuestoes();
-  const { provas } = useProvas();
+  const { disciplinas, questoes, provas, vazio } = useAcervoDoConcurso(concursoAtivoId);
 
   const [disciplinaId, setDisciplinaId] = useState("todas");
   const [baralho, setBaralho] = useState<Questao[]>([]);
@@ -141,6 +139,8 @@ function FlashcardsPage() {
         </div>
 
         <AvisoAcervo />
+
+        {vazio && <SemAcervo nomeDoConcurso={concurso?.nome} />}
 
         <Card>
           <CardContent className="space-y-4 p-5">

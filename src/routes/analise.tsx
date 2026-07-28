@@ -4,7 +4,8 @@ import { ChevronDown, ChevronRight, Info, TriangleAlert } from "lucide-react";
 
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { concursoPorId } from "@/data/concursos";
-import { useDisciplinas, useProvas, useQuestoes } from "@/services/hooks";
+import { useAcervoDoConcurso } from "@/services/hooks";
+import { SemAcervo } from "@/components/SemAcervo";
 import { useStore } from "@/store/useStore";
 import { aplicacoesDistintas, disciplinasDoCargo, incidencia } from "@/lib/incidencia";
 import { Badge } from "@/components/ui/badge";
@@ -28,9 +29,7 @@ export const Route = createFileRoute("/analise")({
 function AnalisePage() {
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
   const concurso = concursoPorId(concursoAtivoId);
-  const { disciplinas, carregando } = useDisciplinas();
-  const { questoes } = useQuestoes();
-  const { provas } = useProvas();
+  const { disciplinas, questoes, provas, carregando, vazio } = useAcervoDoConcurso(concursoAtivoId);
   const [abertas, setAbertas] = useState<Record<string, boolean>>({});
 
   const escopo = useMemo(
@@ -58,6 +57,8 @@ function AnalisePage() {
       </div>
 
       <AvisoAcervo />
+
+      {vazio && <SemAcervo nomeDoConcurso={concurso?.nome} />}
 
       {/* A ressalva vem ANTES dos números, não em rodapé. Com uma aplicação de
           prova, a diferença entre o 1º e o 2º lugar da lista é ruído, e quem lê

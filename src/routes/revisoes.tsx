@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useStore } from "@/store/useStore";
-import { useDisciplinas } from "@/services/hooks";
+import { useAcervoDoConcurso } from "@/services/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,10 +19,15 @@ export const Route = createFileRoute("/revisoes")({
 });
 
 function RevisoesPage() {
-  const { revisoes, marcarRevisada } = useStore();
-  const { disciplinas } = useDisciplinas();
+  const { revisoes, marcarRevisada, concursoAtivoId } = useStore();
+  const { disciplinas } = useAcervoDoConcurso(concursoAtivoId);
 
-  const ordenadas = [...revisoes].sort(
+  // Revisão de outro concurso não aparece aqui: a agenda é do edital que a
+  // pessoa está estudando, e misturar faria vencer revisão de assunto que ela
+  // nem cobra mais.
+  const doConcurso = revisoes.filter((r) => r.concursoId === concursoAtivoId);
+
+  const ordenadas = [...doConcurso].sort(
     (a, b) => new Date(a.proximaRevisao).getTime() - new Date(b.proximaRevisao).getTime(),
   );
 
@@ -30,7 +35,9 @@ function RevisoesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl md:text-3xl font-black">Revisões</h1>
-        <p className="text-sm text-muted-foreground">Intervalos de 1, 7, 15 e 30 dias. Revise para consolidar.</p>
+        <p className="text-sm text-muted-foreground">
+          Intervalos de 1, 7, 15 e 30 dias. Revise para consolidar.
+        </p>
       </div>
 
       <div className="space-y-3">
@@ -49,7 +56,8 @@ function RevisoesPage() {
                     <Badge variant="secondary">{r.intervaloAtual}d</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {d?.nome} · {atrasada ? `Atrasada há ${Math.abs(dias)} dia(s)` : `Em ${dias} dia(s)`}
+                    {d?.nome} ·{" "}
+                    {atrasada ? `Atrasada há ${Math.abs(dias)} dia(s)` : `Em ${dias} dia(s)`}
                   </p>
                 </div>
                 <Button
