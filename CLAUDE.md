@@ -137,9 +137,11 @@ npm run format     # Prettier
 
 Não saia consertando por conta própria; é o mapa do que está pendente por decisão.
 
-1. **Sem nenhum teste** e sem script de teste, nos dois lados. A lógica que mais merece cobertura é
-   pura e fácil de testar: `proximoIntervalo` e a contagem de `streak` (`useStore.ts`), e o parser da
-   Cesgranrio (`ingest/parsers/cesgranrio.py`), que quebra em silêncio se a banca mudar a diagramação.
+1. **Testes existem só no parser** (`manage.py test ingest`, 10 casos). Nasceram de um defeito real:
+   questão cujas alternativas são figuras entrava com as cinco letras vazias, impossível de
+   responder e sem nada avisando. O que ainda não tem cobertura e merece: `proximoIntervalo` e a
+   contagem de `streak` (`useStore.ts`), ambas com regra de data que erra em silêncio. O frontend
+   não tem runner de teste configurado.
 2. **Classificação incompleta**: só 32 das 271 questões têm tópico do edital, todas de TI. Sem isso não
    existe análise de incidência, e o prompt de estudo (`src/lib/promptEstudo.ts`) sai sem exemplo da
    banca. É o gargalo de quase tudo.

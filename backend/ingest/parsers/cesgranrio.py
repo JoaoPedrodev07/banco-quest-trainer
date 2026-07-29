@@ -219,8 +219,30 @@ class QuestaoBruta:
     disciplina_id: str | None = None
 
     @property
+    def alternativas_sem_conteudo(self) -> list[str]:
+        """Letras cujo texto não tem conteúdo aproveitável.
+
+        Conta só caracteres alfanuméricos: a marcação de negrito (`**`) e a
+        pontuação que sobra de dentro de uma figura não são conteúdo.
+        """
+        return sorted(
+            letra
+            for letra, texto in self.alternativas.items()
+            if len(re.sub(r"[^0-9A-Za-zÀ-ÿ]", "", texto or "")) == 0
+        )
+
+    @property
     def completa(self) -> bool:
-        return bool(self.enunciado) and set(self.alternativas) == {"A", "B", "C", "D", "E"}
+        if not self.enunciado or set(self.alternativas) != {"A", "B", "C", "D", "E"}:
+            return False
+        # Alternativa desenhada (árvore binária, diagrama E-R, gráfico) sai vazia
+        # da extração de texto. A questão chega com as cinco letras e nenhuma
+        # opção legível — impossível de responder, e sem nada na tela avisando.
+        #
+        # O corte é em DUAS vazias, não em uma: uma alternativa curta pode ser
+        # legítima (questão de matemática responde com número), e recusar por uma
+        # só jogaria fora questão boa. Duas vazias já não acontecem por acaso.
+        return len(self.alternativas_sem_conteudo) < 2
 
     def motivo_incompleta(self) -> str:
         if not self.enunciado:
@@ -228,6 +250,12 @@ class QuestaoBruta:
         faltando = sorted({"A", "B", "C", "D", "E"} - set(self.alternativas))
         if faltando:
             return f"alternativas ausentes: {', '.join(faltando)}"
+        vazias = self.alternativas_sem_conteudo
+        if len(vazias) >= 2:
+            return (
+                f"alternativas sem texto ({', '.join(vazias)}): a questão depende de figura, "
+                f"que a extração de PDF não captura"
+            )
         return ""
 
 
