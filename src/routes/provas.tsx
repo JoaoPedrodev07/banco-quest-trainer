@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { useProvas } from "@/services/hooks";
@@ -126,13 +126,25 @@ function ProvasPage() {
                     <Download className="h-3 w-3 mr-1" /> PDF
                   </Button>
                 )}
-                <Button
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => toast.info("Modo online em breve")}
-                >
-                  <FileText className="h-3 w-3 mr-1" /> Resolver
-                </Button>
+                {/* Resolver = simular a prova inteira, na ordem original e com o
+                    relógio do concurso. Só faz sentido se o caderno tiver questões
+                    no acervo; sem elas o botão prometeria o que não entrega. */}
+                {(p.questoesDisponiveis ?? 0) > 0 ? (
+                  <Button asChild size="sm" className="flex-1">
+                    <Link to="/questoes" search={{ prova: p.id }}>
+                      <FileText className="h-3 w-3 mr-1" /> Resolver
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    disabled
+                    title="Nenhuma questão desta prova foi importada"
+                  >
+                    <FileText className="h-3 w-3 mr-1" /> Resolver
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

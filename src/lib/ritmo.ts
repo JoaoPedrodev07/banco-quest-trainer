@@ -53,3 +53,25 @@ export function resumoDeRitmo(tempos: number[]): {
 
   return { total, media, acimaDoAlvo, mensagem };
 }
+
+/**
+ * Duração real da prova, em segundos.
+ *
+ * O BB dá 4h para 70 questões. Simular sem relógio total treina o conteúdo mas
+ * não a prova: o que reprova quem sabe a matéria é chegar na questão 55 com
+ * 20 minutos restantes.
+ *
+ * Escala pelo número de questões do caderno, para uma prova de 60 não herdar o
+ * tempo de uma de 70.
+ */
+export function duracaoDaProva(qtdQuestoes: number): number {
+  return qtdQuestoes * RITMO_ALVO_SEGUNDOS;
+}
+
+/** hh:mm:ss para o relógio da prova; minutos não bastam em 4 horas. */
+export function formatarRelogio(segundos: number): string {
+  const s = Math.max(0, Math.floor(segundos));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+}

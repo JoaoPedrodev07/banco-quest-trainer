@@ -5,7 +5,14 @@ import { GabaritoComentado } from "@/components/GabaritoComentado";
 import { TextoDaQuestao } from "@/components/Markdown";
 import { useAcervoDoConcurso } from "@/services/hooks";
 import { pontosFracos } from "@/lib/desempenho";
-import { RITMO_ALVO_SEGUNDOS, avaliarRitmo, formatarDuracao, resumoDeRitmo } from "@/lib/ritmo";
+import {
+  RITMO_ALVO_SEGUNDOS,
+  avaliarRitmo,
+  duracaoDaProva,
+  formatarDuracao,
+  formatarRelogio,
+  resumoDeRitmo,
+} from "@/lib/ritmo";
 import { SemAcervo } from "@/components/SemAcervo";
 import { useStore } from "@/store/useStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +33,14 @@ import { cn } from "@/lib/utils";
 import type { Questao } from "@/types";
 
 export const Route = createFileRoute("/questoes")({
+  /**
+   * `?prova=<id>` entra em modo prova completa: carrega o caderno inteiro, na
+   * ordem original, com o tempo real do concurso. É o que a tela de Provas
+   * aciona no "Resolver".
+   */
+  validateSearch: (busca: Record<string, unknown>): { prova?: string } => ({
+    prova: typeof busca.prova === "string" && busca.prova ? busca.prova : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Simulados — Foco BB TI 2026" },
@@ -58,6 +73,7 @@ function QuestoesPage() {
   const [respostas, setRespostas] = useState<Record<string, string>>({});
   const [inicio, setInicio] = useState(0);
 
+  const { prova: provaSolicitada } = Route.useSearch();
   const { historico, registrarResposta, concursoAtivoId, agendarRevisaoPorErro } = useStore();
   const {
     concurso,
@@ -105,6 +121,26 @@ function QuestoesPage() {
       new Set(pontosFracos(historico, allQuestoes, concursoAtivoId, 99).map((d) => d.unidadeId)),
     [historico, allQuestoes, concursoAtivoId],
   );
+
+  // Modo prova completa: dispara sozinho quando se chega por `?prova=`.
+  const [provaMontada, setProvaMontada] = useState<string | null>(null);
+  useEffect(() => {
+    if (!provaSolicitada || provaMontada === provaSolicitada || allQuestoes.length === 0) return;
+    const doCaderno = allQuestoes
+      .filter((q) => q.provaId === provaSolicitada && !q.anulada)
+      // Ordem original do caderno, não sorteada: simular prova é treinar a
+      // sequência real, inclusive o cansaço de chegar na questão 60.
+      .sort((a, b) => (a.numeroNaProva ?? 0) - (b.numeroNaProva ?? 0));
+    if (doCaderno.length === 0) return;
+    setProvaMontada(provaSolicitada);
+    setLista(doCaderno);
+    setRespostas({});
+    setTemposPorQuestao({});
+    setIdx(0);
+    setInicio(Date.now());
+    setInicioQuestao(Date.now());
+    setEtapa("resolvendo");
+  }, [provaSolicitada, provaMontada, allQuestoes]);
 
   const iniciar = () => {
     const errouIds = new Set(historico.filter((h) => !h.correta).map((h) => h.questaoId));
@@ -273,6 +309,9 @@ function QuestoesPage() {
             Questão {idx + 1} de {lista.length}
           </Badge>
           <div className="flex items-center gap-2">
+            {provaMontada && (
+              <RelogioDaProva inicio={inicio} duracao={duracaoDaProva(lista.length)} />
+            )}
             <RitmoDaQuestao inicio={inicioQuestao} respondida={respondida} />
             <Badge>{disciplinas.find((d) => d.id === q.disciplinaId)?.nome}</Badge>
           </div>
@@ -517,6 +556,36 @@ function RitmoDaQuestao({ inicio, respondida }: { inicio: number; respondida: bo
       title={`Ritmo da prova: ${formatarDuracao(RITMO_ALVO_SEGUNDOS)} por questão`}
     >
       {formatarDuracao(segundos)}
+    </Badge>
+  );
+}
+
+/**
+ * Relógio regressivo da prova inteira.
+ *
+ * Fica separado do cronômetro da questão porque mede outra coisa e muda de cor
+ * noutro momento: aqui o que importa é o tempo que resta para o caderno todo.
+ * Vira alerta nos últimos 15 minutos — o ponto em que ainda dá para decidir
+ * chutar o resto em vez de descobrir depois que acabou.
+ */
+function RelogioDaProva({ inicio, duracao }: { inicio: number; duracao: number }) {
+  const [agora, setAgora] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const restante = duracao - Math.floor((agora - inicio) / 1000);
+  const acabando = restante <= 15 * 60;
+
+  return (
+    <Badge
+      variant="outline"
+      className={cn("tabular-nums", acabando && "border-destructive text-destructive")}
+      title="Tempo restante da prova inteira"
+    >
+      {restante <= 0 ? "tempo esgotado" : formatarRelogio(restante)}
     </Badge>
   );
 }
