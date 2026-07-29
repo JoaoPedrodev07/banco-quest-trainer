@@ -83,7 +83,10 @@ _RE_ALTERNATIVA_INLINE = re.compile(r"\(([A-E])\)\s*([^()]*?)(?=\s*\([A-E]\)|$)"
 # tocar no resto — que é onde está a palavra destacada.
 _RE_ROTULO_ALTERNATIVA = re.compile(r"^\*{0,2}\([A-E]\)\*{0,2}\s*")
 _RE_SO_NUMERO = re.compile(r"^(\d{1,3})$")
-_RE_GABARITO_TIPO = re.compile(r"^GABARITO\s+(\d+)$", re.I)
+# O marcador de tipo aparece sozinho numa linha no gabarito do BB ("GABARITO 1")
+# e no FIM do título no da Caixa ("PROVA 1 - TÉCNICO BANCÁRIO NOVO - GABARITO 1").
+# Aceitar as duas formas evita um parser por concurso da mesma banca.
+_RE_GABARITO_TIPO = re.compile(r"(?:^|[-–—]\s*)GABARITO\s+(\d+)\s*$", re.I)
 # "36 - E", "24- B", "12 – A" (travessão) e "40 - ANULADA".
 _RE_RESPOSTA = re.compile(r"(\d{1,3})\s*[-–—]\s*(ANULADA|[A-E])\b", re.I)
 
@@ -174,7 +177,9 @@ def parse_gabarito(texto: str, tipo: int = 1) -> dict[int, Resposta]:
             continue
         normal = _normalizar(bruta)
 
-        marca_tipo = _RE_GABARITO_TIPO.match(normal)
+        # `search`, não `match`: no gabarito da Caixa o marcador vem no fim do
+        # título da prova, não sozinho na linha.
+        marca_tipo = _RE_GABARITO_TIPO.search(normal)
         if marca_tipo:
             tipo_atual = int(marca_tipo.group(1))
             disciplina_atual = None
