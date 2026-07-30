@@ -31,7 +31,7 @@ interface Props {
 }
 
 export function NotaDeCorte({ historico }: Props) {
-  const { resultado, semBase, taxas } = useMemo(() => {
+  const { resultado, semBase } = useMemo(() => {
     const taxas: Record<string, number | null> = {};
     for (const d of COMPOSICAO_PROVA) {
       const respostas = historico.filter((h) => h.disciplinaId === d.disciplinaId);
@@ -40,7 +40,7 @@ export function NotaDeCorte({ historico }: Props) {
       taxas[d.disciplinaId] =
         respostas.length >= 5 ? respostas.filter((r) => r.correta).length / respostas.length : null;
     }
-    return { ...projetarNota(taxas), taxas };
+    return projetarNota(taxas);
   }, [historico]);
 
   const listas = concorrenciaPorLista();
