@@ -6,6 +6,7 @@ import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { concursoPorId } from "@/data/concursos";
 import { useAcervoDoConcurso } from "@/services/hooks";
 import { SemAcervo } from "@/components/SemAcervo";
+import { AnaliseAvancada } from "@/components/AnaliseAvancada";
 import { useStore } from "@/store/useStore";
 import { aplicacoesDistintas, disciplinasDoCargo, incidencia } from "@/lib/incidencia";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,7 @@ function AnalisePage() {
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
   const concurso = concursoPorId(concursoAtivoId);
   const { disciplinas, questoes, provas, carregando, vazio } = useAcervoDoConcurso(concursoAtivoId);
+  const historico = useStore((s) => s.historico);
   const [abertas, setAbertas] = useState<Record<string, boolean>>({});
 
   const escopo = useMemo(
@@ -105,6 +107,10 @@ function AnalisePage() {
 
       {carregando && <p className="text-sm text-muted-foreground">Carregando o acervo…</p>}
 
+      {!vazio && !carregando && (
+        <AnaliseAvancada disciplinas={disciplinas} questoes={questoes} historico={historico} />
+      )}
+
       <div className="space-y-3">
         {dados.map((d) => {
           const aberta = abertas[d.disciplina.id] ?? false;
@@ -147,8 +153,10 @@ function AnalisePage() {
                         <p className="min-w-0 flex-1 truncate text-sm">{t.nome}</p>
                         <p className="shrink-0 text-xs font-semibold tabular-nums">
                           {t.questoes} {t.questoes === 1 ? "questão" : "questões"}
+                          {/* A faixa vem junto do número porque o número sozinho
+                              sugere precisão que duas aplicações não sustentam. */}
                           <span className="ml-1 font-normal text-muted-foreground">
-                            ({t.fatia}%)
+                            (~{t.faixa.minEsperado}–{t.faixa.maxEsperado} numa prova de 70)
                           </span>
                         </p>
                       </div>

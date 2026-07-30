@@ -1,4 +1,5 @@
 import type { Questao, RespostaHistorico } from "@/types";
+import { ehFraquezaReal } from "@/lib/estatistica";
 
 /**
  * Desempenho por unidade do edital (subtópico, ou tópico quando não há
@@ -79,10 +80,23 @@ export function pontosFracos(
   concursoId?: string,
   limite = 5,
 ): DesempenhoUnidade[] {
-  return desempenhoPorUnidade(historico, questoes, concursoId)
-    .filter((d) => d.respondidas >= MINIMO_PARA_JULGAR && d.taxa < LIMITE_TAXA_FRACA)
-    .sort((a, b) => a.taxa - b.taxa || b.respondidas - a.respondidas)
-    .slice(0, limite);
+  const todos = desempenhoPorUnidade(historico, questoes, concursoId);
+
+  // A média do próprio usuário é a referência, não um número fixo: 55% de acerto
+  // é fraqueza para quem tem 80% de média e é resultado bom para quem tem 45%.
+  const respondidas = todos.reduce((a, d) => a + d.respondidas, 0);
+  const acertos = todos.reduce((a, d) => a + d.acertos, 0);
+  const taxaGeral = respondidas ? acertos / respondidas : 0;
+
+  return (
+    todos
+      // Teste estatístico no lugar do limiar fixo: só acusa quando o teto plausível
+      // do assunto fica abaixo da média geral. O critério antigo chamava de fraqueza
+      // 1 acerto em 3 — azar em três questões, não assunto mal aprendido.
+      .filter((d) => ehFraquezaReal(d.acertos, d.respondidas, taxaGeral))
+      .sort((a, b) => a.taxa - b.taxa || b.respondidas - a.respondidas)
+      .slice(0, limite)
+  );
 }
 
 /** Só os ids, para a tela do edital destacar as linhas sem recalcular por linha. */

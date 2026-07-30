@@ -110,6 +110,16 @@ export interface RespostaHistorico {
   escolhida: string;
   correta: boolean;
   data: string; // ISO date
+  /**
+   * Quanto tempo a questão levou, em segundos.
+   *
+   * Opcional porque nem toda origem cronometra (flashcard não tem relógio) e
+   * porque o histórico gravado antes deste campo existir não tem o dado (§2.4).
+   * Quem lê precisa descartar o `undefined` em vez de tratá-lo como zero: zero
+   * segundos vira "respondeu num piscar", e o diagnóstico de ritmo passa a
+   * acusar pressa em quem nunca foi cronometrado.
+   */
+  segundos?: number;
 }
 
 export interface RevisaoItem {

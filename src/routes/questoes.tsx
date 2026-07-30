@@ -244,7 +244,7 @@ function QuestoesPage() {
               <span className="block text-xs text-muted-foreground">
                 {unidadesFracas.size === 0
                   ? "Responda pelo menos 3 questões de um mesmo assunto para ele poder ser considerado fraco."
-                  : `${unidadesFracas.size} ${unidadesFracas.size === 1 ? "assunto" : "assuntos"} abaixo de 60% de acerto. Traz questões NOVAS desses assuntos, não as que você já errou.`}
+                  : `${unidadesFracas.size} ${unidadesFracas.size === 1 ? "assunto" : "assuntos"} em que seu acerto está abaixo da sua própria média, e não por azar de uma ou outra questão. Traz questões NOVAS desses assuntos, não as que você já errou.`}
               </span>
             </span>
           </label>
@@ -275,12 +275,10 @@ function QuestoesPage() {
     const responder = (letra: string) => {
       if (respondida) return;
       const acertou = letra === q.correta;
+      const segundos = Math.max(0, Math.floor((Date.now() - inicioQuestao) / 1000));
 
       setRespostas((r) => ({ ...r, [q.id]: letra }));
-      setTemposPorQuestao((tp) => ({
-        ...tp,
-        [q.id]: Math.max(0, Math.floor((Date.now() - inicioQuestao) / 1000)),
-      }));
+      setTemposPorQuestao((tp) => ({ ...tp, [q.id]: segundos }));
       registrarResposta({
         questaoId: q.id,
         disciplinaId: q.disciplinaId,
@@ -288,6 +286,9 @@ function QuestoesPage() {
         escolhida: letra,
         correta: acertou,
         data: new Date().toISOString(),
+        // O tempo ia só para o estado local da tela e morria ao sair dela. Sem
+        // persistir, o diagnóstico de ritmo por disciplina não tinha o que ler.
+        segundos,
       });
 
       // Errou: agenda a revisão daquele assunto sozinha.

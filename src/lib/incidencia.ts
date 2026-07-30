@@ -1,4 +1,5 @@
 import type { Concurso, Disciplina, Prova, Questao } from "@/types";
+import { faixaDeIncidencia, type FaixaDeIncidencia } from "@/lib/estatistica";
 
 /**
  * Quanto cada assunto do edital caiu nas provas anteriores.
@@ -20,6 +21,14 @@ export interface IncidenciaTopico {
   questoes: number;
   /** Fatia da disciplina, em pontos percentuais. */
   fatia: number;
+  /**
+   * Quantas questões deste assunto esperar numa prova de 70.
+   *
+   * A fatia sozinha sugere precisão que duas aplicações de prova não sustentam:
+   * "25%" lido como certeza faz o candidato dimensionar semanas de estudo em
+   * cima de ruído. A faixa mostra o tamanho da dúvida junto com o número.
+   */
+  faixa: FaixaDeIncidencia;
 }
 
 export interface IncidenciaDisciplina {
@@ -77,6 +86,7 @@ export function incidencia(
           fatia: classificadas.length
             ? Math.round(((porTopico.get(t.id) ?? 0) / classificadas.length) * 100)
             : 0,
+          faixa: faixaDeIncidencia(porTopico.get(t.id) ?? 0, classificadas.length, 70),
         }))
         // Tópico sem questão nenhuma continua no edital e pode cair; some da lista
         // só para não afogar o que tem sinal. A tela diz quantos ficaram de fora.
