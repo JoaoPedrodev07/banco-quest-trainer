@@ -7,6 +7,7 @@ import { concursoPorId } from "@/data/concursos";
 import { useAcervoDoConcurso } from "@/services/hooks";
 import { SemAcervo } from "@/components/SemAcervo";
 import { AnaliseAvancada } from "@/components/AnaliseAvancada";
+import { NotaDeCorte } from "@/components/NotaDeCorte";
 import { useStore } from "@/store/useStore";
 import { aplicacoesDistintas, disciplinasDoCargo, incidencia } from "@/lib/incidencia";
 import { Badge } from "@/components/ui/badge";
@@ -106,6 +107,10 @@ function AnalisePage() {
       )}
 
       {carregando && <p className="text-sm text-muted-foreground">Carregando o acervo…</p>}
+
+      {/* O piso do edital vem antes de qualquer análise do acervo: em 2023 o
+          corte da MR 158 ficou colado nele, então é o número que decide. */}
+      <NotaDeCorte historico={historico.filter((h) => h.concursoId === concursoAtivoId)} />
 
       {!vazio && !carregando && (
         <AnaliseAvancada disciplinas={disciplinas} questoes={questoes} historico={historico} />
