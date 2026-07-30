@@ -147,22 +147,26 @@ export interface CenarioDeNota {
  * `Math.random`.
  */
 export function simularNota(
-  disciplinas: { questoesNaProva: number; taxaAcerto: number }[],
+  disciplinas: { questoesNaProva: number; taxaAcerto: number; valorPorQuestao?: number }[],
   opcoes: { simulacoes?: number; descontaErro?: boolean; aleatorio?: () => number } = {},
 ): CenarioDeNota {
   const { simulacoes = 2000, descontaErro = false, aleatorio = Math.random } = opcoes;
   const notas: number[] = [];
 
   for (let i = 0; i < simulacoes; i++) {
-    let acertos = 0;
-    let erros = 0;
+    let nota = 0;
     for (const d of disciplinas) {
+      // O peso importa: no BB, questão de Inglês vale 1,0 e a de TI vale 1,5.
+      // Contar questão em vez de ponto dá um número na escala errada — e foi
+      // exatamente o que a tela chegou a mostrar: "entre 157 e 171" numa prova
+      // que vale 100. Padrão 1 mantém a função utilizável em prova sem peso.
+      const valor = d.valorPorQuestao ?? 1;
       for (let q = 0; q < d.questoesNaProva; q++) {
-        if (aleatorio() < d.taxaAcerto) acertos += 1;
-        else erros += 1;
+        if (aleatorio() < d.taxaAcerto) nota += valor;
+        else if (descontaErro) nota -= valor;
       }
     }
-    notas.push(descontaErro ? acertos - erros : acertos);
+    notas.push(Math.round(nota * 10) / 10);
   }
 
   notas.sort((a, b) => a - b);

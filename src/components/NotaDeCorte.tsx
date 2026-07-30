@@ -11,7 +11,7 @@
  */
 
 import { useMemo } from "react";
-import { AlertTriangle, CheckCircle2, ScrollText } from "lucide-react";
+import { AlertTriangle, CheckCircle2, HelpCircle, ScrollText } from "lucide-react";
 
 import {
   COMPOSICAO_PROVA,
@@ -31,7 +31,7 @@ interface Props {
 }
 
 export function NotaDeCorte({ historico }: Props) {
-  const { resultado, semBase } = useMemo(() => {
+  const { resultado, semBase, motivosReais, motivosIndeterminados } = useMemo(() => {
     const taxas: Record<string, number | null> = {};
     for (const d of COMPOSICAO_PROVA) {
       const respostas = historico.filter((h) => h.disciplinaId === d.disciplinaId);
@@ -62,10 +62,20 @@ export function NotaDeCorte({ historico }: Props) {
               <strong className="text-base tabular-nums">{resultado.pontos.toFixed(1)}</strong>{" "}
               <span className="text-muted-foreground">de 100</span>
             </p>
-            <Badge variant={resultado.eliminado ? "destructive" : "secondary"}>
-              {resultado.eliminado
+            <Badge
+              variant={
+                motivosReais.length > 0
+                  ? "destructive"
+                  : motivosIndeterminados.length > 0
+                    ? "outline"
+                    : "secondary"
+              }
+            >
+              {motivosReais.length > 0
                 ? "Eliminado pelas regras"
-                : `${resultado.folgaTotal.toFixed(1)} pts acima do piso`}
+                : motivosIndeterminados.length > 0
+                  ? "Ainda não dá para dizer"
+                  : `${resultado.folgaTotal.toFixed(1)} pts acima do piso`}
             </Badge>
           </div>
           <Progress value={resultado.pontos} className="h-2" />
@@ -76,12 +86,12 @@ export function NotaDeCorte({ historico }: Props) {
         </div>
 
         {/* Os quatro filtros do 7.1.4 — quem reprova candidato bom. */}
-        {resultado.eliminado ? (
+        {motivosReais.length > 0 && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               <ul className="ml-4 list-disc space-y-1 text-xs">
-                {resultado.motivos.map((m) => (
+                {motivosReais.map((m) => (
                   <li key={m.regra}>
                     <strong>{m.regra}:</strong> {m.detalhe}
                   </li>
@@ -89,7 +99,36 @@ export function NotaDeCorte({ historico }: Props) {
               </ul>
             </AlertDescription>
           </Alert>
-        ) : (
+        )}
+
+        {/*
+          Filtro que só falha por causa do preenchimento não é veredito, é
+          lacuna. Antes esta tela dizia "Eliminado" para quem tinha respondido
+          só TI e Português: o bloco de Básicos afundava porque o app chutou
+          20% em Inglês, Matemática e Atualidades. Desanimar alguém com um
+          número que o próprio app inventou é o pior erro possível aqui.
+        */}
+        {motivosReais.length === 0 && motivosIndeterminados.length > 0 && (
+          <Alert>
+            <HelpCircle className="h-4 w-4" />
+            <AlertDescription className="space-y-1 text-xs">
+              <p>
+                Ainda não dá para dizer se você passa do piso — não porque você vá mal, mas porque
+                falta histórico:
+              </p>
+              <ul className="ml-4 list-disc">
+                {motivosIndeterminados.map((m) => (
+                  <li key={m.regra}>
+                    <strong>{m.regra}</strong> — o número atual vem do chute de 20% nas disciplinas
+                    que você ainda não treinou, não do seu desempenho.
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {resultado.motivos.length === 0 && (
           <Alert>
             <CheckCircle2 className="h-4 w-4" />
             <AlertDescription className="text-xs">
@@ -102,8 +141,8 @@ export function NotaDeCorte({ historico }: Props) {
         {semBase.length > 0 && (
           <p className="text-xs text-muted-foreground">
             Sem base para projetar <strong>{semBase.join(", ")}</strong> — menos de 5 questões
-            respondidas. Essas disciplinas entraram na conta pelo acaso puro (20%), que é o piso de
-            quem não estudou. Responder questões delas é o que mais muda este número.
+            respondidas. Responder questões dessas disciplinas é, de longe, o que mais muda este
+            número: é a diferença entre uma projeção e um chute.
           </p>
         )}
 

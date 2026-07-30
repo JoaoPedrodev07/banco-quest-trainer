@@ -184,34 +184,71 @@ export function avaliarCorte(acertosPorDisciplina: Record<string, number>): Resu
   };
 }
 
+export interface ProjecaoDeNota {
+  resultado: ResultadoDeCorte;
+  /** Disciplinas sem histórico suficiente, preenchidas pelo acaso puro. */
+  semBase: string[];
+  /**
+   * Blocos que contêm disciplina sem base — logo, blocos cujo veredito de
+   * eliminação é do preenchimento, não seu.
+   */
+  blocosIncompletos: Bloco[];
+  /** Motivos que só existem por causa do preenchimento, e não valem como veredito. */
+  motivosIndeterminados: MotivoDeEliminacao[];
+  /** Motivos sustentados pelo seu histórico de verdade. */
+  motivosReais: MotivoDeEliminacao[];
+}
+
 /**
  * Projeta a nota a partir da sua taxa de acerto por disciplina.
  *
  * Aceita taxa (0–1) em vez de acertos porque é isso que o histórico do app
- * produz. Disciplina sem histórico entra como `null` e é devolvida na lista
- * `semBase`: fingir 0% para quem nunca respondeu inventa uma eliminação, e
- * fingir a média geral inventa uma aprovação.
+ * produz. Disciplina sem histórico entra como `null`: fingir 0% inventa uma
+ * eliminação e fingir a média geral inventa uma aprovação, então o preenchimento
+ * é o acaso puro (1 em 5).
+ *
+ * Só que preencher não basta. Preenchendo Inglês, Matemática e Atualidades com
+ * 20%, o bloco de Básicos afunda sozinho e a tela acusava "Eliminado" em quem
+ * apenas ainda não tinha respondido questão dessas matérias. Um veredito falso
+ * de eliminação é pior que nenhum veredito: desanima com base em algo que o
+ * próprio app inventou. Por isso a projeção separa o que o histórico sustenta
+ * do que veio do preenchimento, e quem chama decide o que exibir.
  */
-export function projetarNota(taxaPorDisciplina: Record<string, number | null>): {
-  resultado: ResultadoDeCorte;
-  semBase: string[];
-} {
+export function projetarNota(taxaPorDisciplina: Record<string, number | null>): ProjecaoDeNota {
   const acertos: Record<string, number> = {};
   const semBase: string[] = [];
+  const blocosIncompletos = new Set<Bloco>();
 
   for (const d of COMPOSICAO_PROVA) {
     const taxa = taxaPorDisciplina[d.disciplinaId];
     if (taxa === null || taxa === undefined) {
       semBase.push(d.nome);
-      // Sem base, projeta pelo acaso puro (1 em 5): é o piso honesto de quem
-      // não estudou nada, e não zero, que dispararia eliminação falsa.
+      blocosIncompletos.add(d.bloco);
       acertos[d.disciplinaId] = d.questoes * 0.2;
     } else {
       acertos[d.disciplinaId] = d.questoes * taxa;
     }
   }
 
-  return { resultado: avaliarCorte(acertos), semBase };
+  const resultado = avaliarCorte(acertos);
+
+  // O motivo do total depende dos dois blocos: basta um incompleto para ele
+  // não valer como veredito.
+  const indeterminado = (m: MotivoDeEliminacao) => {
+    if (m.regra === "50% do total") return blocosIncompletos.size > 0;
+    if (m.regra === "50% de Conhecimentos Básicos") return blocosIncompletos.has("basicos");
+    if (m.regra === "50% de Conhecimentos Específicos") return blocosIncompletos.has("especificos");
+    // Nota zero nunca é indeterminada: o preenchimento por acaso jamais zera.
+    return false;
+  };
+
+  return {
+    resultado,
+    semBase,
+    blocosIncompletos: [...blocosIncompletos],
+    motivosIndeterminados: resultado.motivos.filter(indeterminado),
+    motivosReais: resultado.motivos.filter((m) => !indeterminado(m)),
+  };
 }
 
 export type ListaDeConcorrencia = "ampla" | "pcd" | "negros";

@@ -94,6 +94,37 @@ describe("projetarNota", () => {
     expect(resultado.motivos.map((m) => m.regra)).not.toContain("nota zero em disciplina");
   });
 
+  it("não acusa eliminação quando o bloco que falhou foi preenchido pelo app", () => {
+    // O caso real que apareceu na tela: histórico só de TI e Português. O bloco
+    // de Básicos afundava porque o app chutou 20% em Inglês, Matemática e
+    // Atualidades — "Eliminado" que veio do preenchimento, não do candidato.
+    const p = projetarNota({ ti: 0.85, portugues: 0.7 });
+    expect(p.resultado.motivos.map((m) => m.regra)).toContain("50% de Conhecimentos Básicos");
+    expect(p.motivosReais).toEqual([]);
+    expect(p.blocosIncompletos).toContain("basicos");
+  });
+
+  it("mantém a eliminação quando o bloco que falhou tem base completa", () => {
+    // Básicos completos e bem; Específicos completos e mal. A eliminação por
+    // Específicos é do candidato, e precisa continuar aparecendo.
+    const p = projetarNota({
+      portugues: 0.9,
+      ingles: 0.9,
+      matematica: 0.9,
+      atualidades: 0.9,
+      estatistica: 0.1,
+      bancarios: 0.1,
+      ti: 0.1,
+    });
+    expect(p.motivosReais.map((m) => m.regra)).toContain("50% de Conhecimentos Específicos");
+    expect(p.blocosIncompletos).toEqual([]);
+  });
+
+  it("o motivo do total fica indeterminado se qualquer bloco tiver lacuna", () => {
+    const p = projetarNota({ ti: 0.2 });
+    expect(p.motivosIndeterminados.map((m) => m.regra)).toContain("50% do total");
+  });
+
   it("80% em tudo passa do piso com folga", () => {
     const taxas = Object.fromEntries(COMPOSICAO_PROVA.map((d) => [d.disciplinaId, 0.8]));
     const { resultado } = projetarNota(taxas);

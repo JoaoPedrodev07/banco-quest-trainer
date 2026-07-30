@@ -118,6 +118,35 @@ describe("simularNota", () => {
     expect(com.mediana).toBeLessThan(sem.mediana);
   });
 
+  it("soma PONTOS quando a questão tem peso, não questões", () => {
+    // O bug que a tela mostrou: sem peso, a simulação devolvia 157-171 numa
+    // prova de 100 pontos. 70 questões de 1,5 são 105 pontos, não 70.
+    const sempreAcerta = () => 0;
+    const r = simularNota([{ questoesNaProva: 70, taxaAcerto: 1, valorPorQuestao: 1.5 }], {
+      simulacoes: 3,
+      aleatorio: sempreAcerta,
+    });
+    expect(r.mediana).toBe(105);
+  });
+
+  it("sem peso declarado, continua contando questão (1 ponto cada)", () => {
+    const r = simularNota([{ questoesNaProva: 10, taxaAcerto: 1 }], {
+      simulacoes: 3,
+      aleatorio: () => 0,
+    });
+    expect(r.mediana).toBe(10);
+  });
+
+  it("o desconto por erro respeita o peso da questão", () => {
+    const sempreErra = () => 1;
+    const r = simularNota([{ questoesNaProva: 4, taxaAcerto: 0, valorPorQuestao: 1.5 }], {
+      simulacoes: 3,
+      descontaErro: true,
+      aleatorio: sempreErra,
+    });
+    expect(r.mediana).toBe(-6);
+  });
+
   it("é determinística quando o gerador é fixo", () => {
     const sempreAcerta = () => 0;
     const r = simularNota([{ questoesNaProva: 10, taxaAcerto: 0.5 }], {

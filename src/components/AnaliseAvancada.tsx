@@ -12,6 +12,7 @@ import { useMemo } from "react";
 import { Clock, Dices, Target, TrendingDown } from "lucide-react";
 
 import { concursoPorId } from "@/data/concursos";
+import { COMPOSICAO_PROVA, TOTAL_PROVA } from "@/lib/corte";
 import { useStore } from "@/store/useStore";
 import {
   assuntosPara,
@@ -79,24 +80,27 @@ export function AnaliseAvancada({ disciplinas, questoes, historico }: Props) {
 
   // ------------------------------------------------------------ simulação
   const simulacao = useMemo(() => {
-    const porDisciplina = disciplinas
-      .map((d) => {
-        const respostas = doConcurso.filter((h) => h.disciplinaId === d.id);
-        const naProva = questoes.filter((q) => q.disciplinaId === d.id).length;
-        return {
-          questoesNaProva: naProva,
-          respondidas: respostas.length,
-          taxaAcerto: respostas.length
-            ? respostas.filter((r) => r.correta).length / respostas.length
-            : 0,
-        };
-      })
-      .filter((d) => d.questoesNaProva > 0);
+    // A prova simulada é a do EDITAL (70 questões, 100 pontos), não o acervo.
+    // Contar as questões do acervo simulava um caderno de 263 questões e
+    // devolvia nota acima de 150 — número impossível, na escala errada.
+    const porDisciplina = COMPOSICAO_PROVA.map((d) => {
+      const respostas = doConcurso.filter((h) => h.disciplinaId === d.disciplinaId);
+      return {
+        questoesNaProva: d.questoes,
+        valorPorQuestao: d.valorPorQuestao,
+        respondidas: respostas.length,
+        // Disciplina sem histórico entra pelo acaso puro, igual à projeção do
+        // corte: 0% inventaria um desastre em quem só não respondeu ainda.
+        taxaAcerto: respostas.length
+          ? respostas.filter((r) => r.correta).length / respostas.length
+          : 0.2,
+      };
+    });
 
     const suficiente = porDisciplina.reduce((a, d) => a + d.respondidas, 0) >= MINIMO_PARA_SIMULAR;
     if (!suficiente) return null;
     return simularNota(porDisciplina, { descontaErro: questoes.some((q) => q.pontuacaoLiquida) });
-  }, [disciplinas, questoes, doConcurso]);
+  }, [questoes, doConcurso]);
 
   const chute = decisaoDeChute(questoes.some((q) => q.pontuacaoLiquida));
 
@@ -118,15 +122,16 @@ export function AnaliseAvancada({ disciplinas, questoes, historico }: Props) {
             <>
               <p className="text-sm">
                 Em 70% dos cenários simulados sua nota ficaria entre{" "}
-                <strong className="text-foreground">{simulacao.p15}</strong> e{" "}
-                <strong className="text-foreground">{simulacao.p85}</strong>, com mediana em{" "}
-                <strong>{simulacao.mediana}</strong>.
+                <strong className="text-foreground">{simulacao.p15.toFixed(1)}</strong> e{" "}
+                <strong className="text-foreground">{simulacao.p85.toFixed(1)}</strong> pontos de{" "}
+                {TOTAL_PROVA}, com mediana em <strong>{simulacao.mediana.toFixed(1)}</strong>.
               </p>
               <p className="text-xs text-muted-foreground">
-                {simulacao.simulacoes.toLocaleString("pt-BR")} simulações a partir do seu acerto por
-                disciplina. É uma faixa, e não uma previsão: ela se estreita conforme você responde
-                mais. <strong>Não</strong> inclui a nota de corte — a de 2026 não existe, e a de
-                2023 variou de 51 a 85 pontos conforme a microrregião.
+                {simulacao.simulacoes.toLocaleString("pt-BR")} simulações sobre a prova do edital
+                (70 questões, {TOTAL_PROVA} pontos), a partir do seu acerto por disciplina. É uma
+                faixa, e não uma previsão: ela se estreita conforme você responde mais. Disciplina
+                que você ainda não treinou entra pelo acaso puro (20%), então a faixa sobe sozinha
+                assim que você começa a respondê-la.
               </p>
             </>
           ) : (
@@ -226,6 +231,18 @@ function CartaoCobertura({ curva }: { curva: PontoDeCobertura[] }) {
         <p className="text-xs text-muted-foreground">
           Só conta questão já classificada por assunto. Assunto do edital que nunca caiu não aparece
           aqui — e ausência no acervo não é garantia de que não cai.
+        </p>
+        {/*
+          O edital não divide todas as disciplinas com a mesma granularidade, e a
+          curva sente isso: Inglês tem um tópico só, que absorve as 35 questões e
+          sobe ao topo, enquanto Português está fatiada em muitos e cada pedaço
+          parece pequeno. Isso é do edital, não do seu desempenho — e sem o aviso
+          a lista sugere uma prioridade que ela não mediu.
+        */}
+        <p className="text-xs text-muted-foreground">
+          Compare com cuidado assuntos de disciplinas diferentes: o edital fatia umas em muitos
+          tópicos e outras em um só. Inglês aparece no topo porque tem um tópico único levando as 35
+          questões, não porque cai mais que Português.
         </p>
       </CardContent>
     </Card>
