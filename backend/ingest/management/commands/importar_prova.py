@@ -81,6 +81,16 @@ class Command(BaseCommand):
                 "cargo: o caderno de TI ficaria com o gabarito da prova geral."
             ),
         )
+        parser.add_argument(
+            "--concurso",
+            default="",
+            help=(
+                "Slug do concurso a que a prova pertence (ex.: bb-ti-2026). Sem ele a "
+                "prova fica orfa e nao aparece em tela nenhuma, porque o acervo e "
+                "recortado por concurso. Prova de outro orgao merece concurso proprio: "
+                "somar orgao diferente na mesma analise produz estatistica falsa."
+            ),
+        )
         parser.add_argument("--orgao", default="Banco do Brasil")
         parser.add_argument("--cargo", default="Escriturário — Agente de Tecnologia")
         parser.add_argument("--url-prova", default="")
@@ -265,6 +275,11 @@ class Command(BaseCommand):
                 "cargo": op["cargo"],
                 "orgao": op["orgao"],
                 "qtd_questoes": op["total"],
+                # Sem isto a prova entra no banco e **não aparece em tela nenhuma**:
+                # o acervo é recortado por concurso (`useAcervoDoConcurso`), então
+                # prova sem concurso fica órfã. O importador é anterior à Fase 3,
+                # que criou o vínculo, e o esquecia em silêncio.
+                "concurso_id": op["concurso"] or None,
                 "url_prova": op["url_prova"],
                 "url_gabarito": op["url_gabarito"],
                 "aplicada_em": op["aplicada_em"] or None,
