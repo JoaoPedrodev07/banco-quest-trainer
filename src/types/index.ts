@@ -120,6 +120,40 @@ export interface RespostaHistorico {
    * acusar pressa em quem nunca foi cronometrado.
    */
   segundos?: number;
+  /**
+   * O que o candidato escreveu **antes** de ver o gabarito.
+   *
+   * Existe porque acerto sozinho não distingue quem sabe de quem eliminou bem —
+   * e essa diferença é justamente a que decide se o assunto ainda precisa de
+   * teoria ou já pode ser estudado pelo gabarito comentado. Escrever o motivo
+   * antes da resposta aparecer também é recuperação ativa, então o campo vale
+   * mesmo quando ninguém julga o texto depois.
+   *
+   * Opcional: todo histórico gravado antes deste campo existir não tem o dado
+   * (§2.4), e quem lê precisa tratar a ausência como "não sei", nunca como
+   * "raciocínio ruim".
+   */
+  raciocinio?: string;
+  /**
+   * Como o próprio candidato avaliou o raciocínio dele depois de ver o gabarito.
+   *
+   * `bateu` — chegou pelo caminho certo. `torto` — acertou por eliminação, sorte
+   * ou caminho errado. `chutei` — não havia raciocínio.
+   *
+   * É autoavaliação de propósito: julgar texto livre exigiria IA em tempo de
+   * execução, que o §7.6 não permite. O comando em lote pode revisar isto
+   * depois; até lá, a nota é de quem respondeu.
+   */
+  autoavaliacao?: "bateu" | "torto" | "chutei";
+  /**
+   * Veredito de uma revisão posterior do `raciocinio` por IA externa, em lote.
+   *
+   * Fica **separado** de `autoavaliacao` em vez de sobrescrevê-la: são duas
+   * medidas diferentes (o que o candidato achou e o que a revisão concluiu), e
+   * juntá-las apagaria o dado que mostra quando alguém está se superestimando —
+   * que é exatamente o que este ciclo existe para revelar.
+   */
+  vereditoIa?: "coerente" | "parcial" | "incoerente";
 }
 
 export interface RevisaoItem {
@@ -156,6 +190,31 @@ export interface Aula {
   conteudoMarkdown: string;
   geradoEm: string; // ISO
   modelo?: string;
+}
+
+/**
+ * Uma linha da fila de revisão de classificação (Fase 2, `CLAUDE.md` §8).
+ *
+ * Só aparece aqui o que ainda não foi confirmado por humano — confiança baixa
+ * ou vindo de heurística/IA externa. Confirmar via `revisar` some a linha da
+ * lista (não é histórico, é trabalho pendente).
+ */
+export interface ClassificacaoRevisao {
+  id: number;
+  questaoId: string;
+  enunciado: string;
+  disciplinaId: string;
+  topicoId: string;
+  topicoNome: string;
+  subtopicoId: string | null;
+  subtopicoNome: string | null;
+  confianca: number;
+  origemClassificacao: "humana" | "heuristica" | "llm_externa";
+  justificativa: string;
+  revisadaPorHumano: boolean;
+  revisadaEm: string | null;
+  /** Nº de questões já classificadas sob o mesmo tópico — usado pra ordenar a fila. */
+  impactoTopico: number;
 }
 
 /** Status de um concurso no calendário público. */
