@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { AulaSubtopico } from "@/components/AulaSubtopico";
 import { useAcervoDoConcurso, useAulas } from "@/services/hooks";
@@ -16,6 +16,16 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import type { StatusTopico, Topico } from "@/types";
 
 export const Route = createFileRoute("/edital")({
+  /**
+   * `?unidade=<id>` abre direto a aula daquele item do edital.
+   *
+   * É o que faz o botão "Ver aula" da tela de Revisões levar **à aula**, e não à
+   * lista inteira com tudo fechado — de onde o candidato ainda teria que
+   * encontrar sozinho o assunto que ele acabou de errar.
+   */
+  validateSearch: (busca: Record<string, unknown>): { unidade?: string } => ({
+    unidade: typeof busca.unidade === "string" && busca.unidade ? busca.unidade : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Edital Verticalizado — Foco BB TI 2026" },
@@ -66,6 +76,24 @@ function EditalPage() {
 
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [expandidas, setExpandidas] = useState<Record<string, boolean>>({});
+
+  // Chegou por `?unidade=`: abre a disciplina que contém o assunto, senão a aula
+  // ficaria dentro de um bloco fechado e o link não teria levado a lugar nenhum.
+  const { unidade: unidadeSolicitada } = Route.useSearch();
+  const [unidadeAberta, setUnidadeAberta] = useState<string | null>(null);
+  useEffect(() => {
+    if (!unidadeSolicitada || unidadeAberta === unidadeSolicitada || !disciplinas.length) return;
+    const dona = disciplinas.find((disc) =>
+      disc.topicos.some((t) => unidades(t).some((u) => u.id === unidadeSolicitada)),
+    );
+    if (!dona) return;
+    setExpandidas((e) => ({ ...e, [dona.id]: true }));
+    // O filtro pode estar escondendo justamente esta linha (assunto já concluído
+    // com o filtro em "pendentes"): sem soltar o filtro, o link levaria a uma
+    // disciplina aberta e vazia.
+    setFiltro("todos");
+    setUnidadeAberta(unidadeSolicitada);
+  }, [unidadeSolicitada, unidadeAberta, disciplinas]);
 
   const totalSub = disciplinas.reduce(
     (a, d) => a + d.topicos.reduce((x, t) => x + unidades(t).length, 0),
@@ -211,6 +239,7 @@ function EditalPage() {
                                     ehTopico={!temCabecalho}
                                     aula={aulas.get(s.id)}
                                     prioritario={fracos.has(s.id)}
+                                    abrirAoChegar={s.id === unidadeSolicitada}
                                   />
                                   {(
                                     ["teoria", "revisao", "questoes"] as (keyof StatusTopico)[]

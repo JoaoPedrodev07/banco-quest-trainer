@@ -190,7 +190,7 @@ export const api = {
    * "ver aula" para algo que não está gravado em lugar nenhum.
    */
   listAulas: (concursoId: string) =>
-    buscar<Aula[]>(`/aulas/?concurso_id=${encodeURIComponent(concursoId)}`),
+    buscarTudo<Aula>(`/aulas/?concurso_id=${encodeURIComponent(concursoId)}`),
 
   salvarAula: (aula: Omit<Aula, "geradoEm">) =>
     enviar<Aula>("/aulas/", {
@@ -211,7 +211,7 @@ export const api = {
    * mock: é ferramenta de curadoria do acervo, não conteúdo de estudo — sem
    * backend não há o que revisar, e fingir uma lista vazia já resolve a tela.
    */
-  listFilaRevisao: () => buscar<ClassificacaoRevisao[]>("/classificacoes/fila-revisao/"),
+  listFilaRevisao: () => buscarTudo<ClassificacaoRevisao>("/classificacoes/fila-revisao/"),
 
   revisarClassificacao: (id: number) =>
     enviar<ClassificacaoRevisao>(`/classificacoes/fila-revisao/${id}/revisar/`, {}),

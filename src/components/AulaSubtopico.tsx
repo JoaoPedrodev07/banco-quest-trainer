@@ -10,7 +10,7 @@
  * existe, "Gerar aula" quando não.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { BookOpen, Check, Copy, Dumbbell, Save, Sparkles, Youtube } from "lucide-react";
 import { toast } from "sonner";
@@ -43,6 +43,12 @@ interface Props {
   aula?: Aula;
   /** Destaca o botão: o dashboard aponta os assuntos onde o desempenho é pior. */
   prioritario?: boolean;
+  /**
+   * Abre o diálogo sozinho ao montar. É como `/edital?unidade=<id>` leva direto
+   * à aula — o caminho que a tela de Revisões usa para o candidato cair no
+   * assunto que errou, em vez de na lista inteira.
+   */
+  abrirAoChegar?: boolean;
 }
 
 export function AulaSubtopico({
@@ -53,10 +59,19 @@ export function AulaSubtopico({
   ehTopico,
   aula,
   prioritario = false,
+  abrirAoChegar = false,
 }: Props) {
-  const [aberto, setAberto] = useState(false);
+  const [aberto, setAberto] = useState(abrirAoChegar);
   const [copiado, setCopiado] = useState(false);
   const [rascunho, setRascunho] = useState("");
+
+  // O estado inicial cobre o caso normal (o componente nasce já com a ordem de
+  // abrir). Este efeito cobre o outro: a disciplina já estava expandida, o
+  // componente já existia, e a ordem chegou depois — aí não há montagem nova
+  // para o valor inicial pegar.
+  useEffect(() => {
+    if (abrirAoChegar) setAberto(true);
+  }, [abrirAoChegar]);
   const { questoes } = useQuestoes();
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
   const concurso = concursoPorId(concursoAtivoId);

@@ -148,8 +148,13 @@ function RevisoesPage() {
                   )}
 
                   <div className="flex flex-wrap gap-2">
+                    {/* Levam ao assunto **desta** revisão, não à tela genérica: o
+                        candidato acabou de errar isto, e obrigá-lo a procurar de
+                        novo na lista inteira é perder o motivo de o botão existir.
+                        Revisão antiga, sem `unidadeId`, cai na tela sem filtro —
+                        é o melhor que dá, e continua melhor que nada. */}
                     <Button asChild size="sm" variant="outline" className="gap-1.5">
-                      <Link to="/edital">
+                      <Link to="/edital" search={r.unidadeId ? { unidade: r.unidadeId } : {}}>
                         <Sparkles className="h-3.5 w-3.5" />
                         Ver aula
                       </Link>
@@ -161,7 +166,7 @@ function RevisoesPage() {
                       </Link>
                     </Button>
                     <Button asChild size="sm" variant="outline" className="gap-1.5">
-                      <Link to="/questoes">
+                      <Link to="/questoes" search={r.unidadeId ? { assunto: r.unidadeId } : {}}>
                         <ListChecks className="h-3.5 w-3.5" />
                         Praticar
                       </Link>
