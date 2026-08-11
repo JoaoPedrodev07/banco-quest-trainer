@@ -20,6 +20,14 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Segredos. O backend já ignorava `backend/.env`, mas a raiz não — e é aqui que
+# o Vite lê `.env`/`.env.local` para as variáveis `VITE_*`. Como a `main` sincroniza
+# com o Lovable, uma chave commitada aqui não fica só no repositório local: ela
+# some do controle no push, e revogar vira a única saída.
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

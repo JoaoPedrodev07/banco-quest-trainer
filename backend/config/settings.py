@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,10 +31,22 @@ def env_list(nome: str, padrao: list[str]) -> list[str]:
     return [item.strip() for item in valor.split(",") if item.strip()]
 
 
-# Em produção a chave PRECISA vir do ambiente; o fallback só existe para o
-# primeiro `runserver` local não quebrar.
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-inseguro-troque-em-producao")
 DEBUG = env_bool("DJANGO_DEBUG", True)
+
+# A chave assina sessão, cookie e token de recuperação de senha. O fallback de
+# desenvolvimento **não pode** valer em produção: o valor está no repositório,
+# então quem o conhece forja qualquer coisa assinada. Antes ele era usado em
+# silêncio quando a variável faltava — um deploy esquecido subia inseguro sem
+# nada acusar. Agora a falta derruba o processo na hora, que é o único momento
+# em que alguém ainda está olhando.
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY é obrigatória quando DJANGO_DEBUG=False. "
+            "Gere uma com: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+        )
+    SECRET_KEY = "dev-inseguro-troque-em-producao"
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ["localhost", "127.0.0.1", "[::1]"])
 
 INSTALLED_APPS = [
@@ -116,7 +129,39 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"]
     + (["rest_framework.renderers.BrowsableAPIRenderer"] if DEBUG else []),
+    # Sem paginação, `/api/questoes/` devolvia o acervo inteiro numa resposta só —
+    # 1,6 MB com 838 questões, e crescendo a cada prova importada. O custo não é
+    # só de banda: é uma requisição barata de fazer e cara de servir, que é a
+    # forma mais simples de derrubar a API sem precisar de volume.
+    "DEFAULT_PAGINATION_CLASS": "catalogo.pagination.PaginacaoPadrao",
+    "PAGE_SIZE": 200,
+    # Limite de requisições por IP. `AnonRateThrottle` cobre toda a API porque
+    # não há usuário autenticado: a API é pública e só de leitura.
+    "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle"],
+    "DEFAULT_THROTTLE_RATES": {"anon": os.getenv("API_THROTTLE_ANON", "240/min")},
 }
+
+# Cabeçalhos e cookies de produção. Ficam sob `not DEBUG` porque HSTS e
+# redirecionamento para HTTPS quebrariam o desenvolvimento local, que roda em
+# http://localhost — e um HSTS emitido por engano fica gravado no navegador do
+# desenvolvedor por um ano.
+if not DEBUG:
+    # O proxy (nginx, Cloudflare, Railway) termina o TLS e repassa em texto; sem
+    # isto o Django acha que a conexão é insegura e entra em laço de redirect.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", True)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_HSTS_SECONDS", "31536000"))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = "same-origin"
+    X_FRAME_OPTIONS = "DENY"
+    # O admin do Django é a única superfície de escrita exposta pela web. Sem
+    # CSRF_TRUSTED_ORIGINS o login dele falha atrás de proxy HTTPS.
+    CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", [])
 
 # 8080 é a porta que o `npm run dev` deste projeto usa de fato (o Vite vem
 # configurado pelo preset do Lovable); 5173 é o padrão do Vite e fica na lista

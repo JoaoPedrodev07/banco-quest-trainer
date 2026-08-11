@@ -16,7 +16,7 @@ import { CONCURSO_PADRAO } from "@/store/useStore";
 import { disciplinas as disciplinasMock } from "@/data/disciplinas";
 import { provas as provasMock } from "@/data/provas";
 import { questoes as questoesMock } from "@/data/questoes";
-import type { Acervo, Aula, Disciplina, Prova, Questao } from "@/types";
+import type { Acervo, Aula, ClassificacaoRevisao, Disciplina, Prova, Questao } from "@/types";
 
 const BASE = ((import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000/api")
   .trim()
@@ -37,10 +37,69 @@ async function buscar<T>(caminho: string): Promise<T> {
   return (await resposta.json()) as T;
 }
 
+/** Resposta paginada do DRF. */
+interface Pagina<T> {
+  count: number;
+  next: string | null;
+  results: T[];
+}
+
+function ehPaginada<T>(valor: unknown): valor is Pagina<T> {
+  return typeof valor === "object" && valor !== null && Array.isArray((valor as Pagina<T>).results);
+}
+
+/**
+ * Busca uma coleção inteira, seguindo a paginação do backend.
+ *
+ * O simulado sorteia, filtra e ordena do lado do cliente, então ele precisa mesmo
+ * de todas as questões do concurso — o que a paginação muda é que elas vêm em
+ * partes, e não numa resposta de 1,6 MB.
+ *
+ * Aceita as duas formas de propósito: lista pura (como a API respondia antes, e
+ * como os endpoints pequenos ainda podem responder) e objeto paginado. Assim o
+ * frontend não quebra se subir contra um backend de versão diferente — que é
+ * exatamente o cenário em que a queda para mock seria silenciosa e confusa.
+ *
+ * O teto de páginas existe para um `next` que aponte para si mesmo não virar
+ * laço infinito no navegador do usuário.
+ */
+const MAX_PAGINAS = 50;
+
+async function buscarTudo<T>(caminho: string): Promise<T[]> {
+  const primeira = await buscar<T[] | Pagina<T>>(caminho);
+  if (Array.isArray(primeira)) return primeira;
+  if (!ehPaginada<T>(primeira)) return [];
+
+  const itens = [...primeira.results];
+  let proxima = primeira.next;
+  let paginas = 1;
+
+  while (proxima && paginas < MAX_PAGINAS) {
+    // O `next` do DRF vem absoluto; `buscar` monta a URL a partir de BASE, então
+    // aqui a chamada é direta.
+    const resposta = await fetch(proxima, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!resposta.ok) throw new Error(`GET ${proxima} devolveu HTTP ${resposta.status}`);
+    const pagina = (await resposta.json()) as Pagina<T>;
+    itens.push(...pagina.results);
+    proxima = pagina.next;
+    paginas += 1;
+  }
+
+  if (proxima) {
+    console.warn(
+      `[services] parei em ${MAX_PAGINAS} páginas de ${caminho}; a lista pode estar incompleta.`,
+    );
+  }
+  return itens;
+}
+
 /**
  * POST para os endpoints de escrita.
  *
- * Diferente de `comReserva`, aqui **não há reserva**: uma escrita que falha em
+ * Diferente das leituras, aqui **não há reserva**: uma escrita que falha em
  * silêncio faria o usuário acreditar que a aula foi salva e perder o texto que
  * colou. O erro sobe para a tela decidir o que dizer.
  */
@@ -58,9 +117,17 @@ async function enviar<T>(caminho: string, corpo: unknown): Promise<T> {
   return (await resposta.json()) as T;
 }
 
-async function comReserva<T>(caminho: string, reserva: T): Promise<T> {
+/**
+ * Busca uma coleção com queda para mock, percorrendo todas as páginas.
+ *
+ * Substituiu a versão de valor único quando a API passou a paginar: todos os
+ * consumidores desta camada pedem coleção, e manter as duas deixaria uma delas
+ * sem uso e pronta para ser escolhida por engano — voltando a ler só a primeira
+ * página sem que nada acusasse.
+ */
+async function comReservaLista<T>(caminho: string, reserva: T[]): Promise<T[]> {
   try {
-    return await buscar<T>(caminho);
+    return await buscarTudo<T>(caminho);
   } catch (erro) {
     console.warn(`[services] backend indisponível em ${BASE}${caminho}; usando mocks.`, erro);
     return reserva;
@@ -98,15 +165,15 @@ export const api = {
   // devolver, senão manda as árvores de todos misturadas.
   listDisciplinas: async (concursoId: string = CONCURSO_PADRAO) =>
     comConcurso(
-      await comReserva<Disciplina[]>(
+      await comReservaLista<Disciplina>(
         `/disciplinas/?concursoId=${encodeURIComponent(concursoId)}`,
         disciplinasMock,
       ),
       concursoId,
     ),
-  listQuestoes: () => comReserva<Questao[]>("/questoes/", questoesMock),
+  listQuestoes: () => comReservaLista<Questao>("/questoes/", questoesMock),
   listProvas: async () =>
-    comConcurso(await comReserva<Prova[]>("/provas/", provasMock), CONCURSO_PADRAO),
+    comConcurso(await comReservaLista<Prova>("/provas/", provasMock), CONCURSO_PADRAO),
 
   async acervo(): Promise<Acervo> {
     try {
@@ -138,6 +205,16 @@ export const api = {
       `/questoes/${encodeURIComponent(questaoId)}/comentar/`,
       { explicacao },
     ),
+
+  /**
+   * Fila de revisão de classificação (Fase 2, `CLAUDE.md` §8). Sem reserva de
+   * mock: é ferramenta de curadoria do acervo, não conteúdo de estudo — sem
+   * backend não há o que revisar, e fingir uma lista vazia já resolve a tela.
+   */
+  listFilaRevisao: () => buscar<ClassificacaoRevisao[]>("/classificacoes/fila-revisao/"),
+
+  revisarClassificacao: (id: number) =>
+    enviar<ClassificacaoRevisao>(`/classificacoes/fila-revisao/${id}/revisar/`, {}),
 };
 
 /**
@@ -150,4 +227,5 @@ export const chaves = {
   provas: ["provas"] as const,
   acervo: ["acervo"] as const,
   aulas: (concursoId: string) => ["aulas", concursoId] as const,
+  filaRevisao: ["fila-revisao"] as const,
 };
