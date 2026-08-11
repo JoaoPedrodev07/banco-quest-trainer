@@ -5,6 +5,8 @@ import { AulaSubtopico } from "@/components/AulaSubtopico";
 import { useAcervoDoConcurso, useAulas } from "@/services/hooks";
 import { SemAcervo } from "@/components/SemAcervo";
 import { unidadesFracas } from "@/lib/desempenho";
+import { dominioPorUnidade, rotuloDoDominio } from "@/lib/dominio";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store/useStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -53,6 +55,15 @@ function EditalPage() {
     () => unidadesFracas(historico, questoes, concursoAtivoId),
     [historico, questoes, concursoAtivoId],
   );
+  // O veredito por assunto: se o candidato já pode estudar pelo gabarito ou
+  // ainda precisa de teoria. Sai do par acerto+raciocínio registrado no
+  // simulado, não do acerto sozinho — acerto por eliminação parece domínio e
+  // não é. Calculado na leitura, nunca guardado (§2.3).
+  const dominio = useMemo(
+    () => dominioPorUnidade(historico, questoes, concursoAtivoId),
+    [historico, questoes, concursoAtivoId],
+  );
+
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [expandidas, setExpandidas] = useState<Record<string, boolean>>({});
 
@@ -169,7 +180,28 @@ function EditalPage() {
                                 key={s.id}
                                 className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 transition-colors hover:border-primary/30 hover:bg-muted/30"
                               >
-                                <p className="text-sm min-w-0 flex-1">{s.nome}</p>
+                                <div className="min-w-0 flex-1 space-y-1">
+                                  <p className="text-sm">{s.nome}</p>
+                                  {/* O veredito só aparece quando há evidência:
+                                      sem resposta com raciocínio registrado, a
+                                      linha some em vez de dizer "sem dados" em
+                                      todos os 142 assuntos de uma vez. */}
+                                  {dominio.get(s.id) && (
+                                    <p
+                                      className={cn(
+                                        "text-xs",
+                                        dominio.get(s.id)!.nivel === "pode_gabarito" &&
+                                          "text-sucesso",
+                                        dominio.get(s.id)!.nivel === "precisa_teoria" &&
+                                          "text-amber-700 dark:text-amber-400",
+                                        dominio.get(s.id)!.nivel === "sem_dados" &&
+                                          "text-muted-foreground",
+                                      )}
+                                    >
+                                      {rotuloDoDominio(dominio.get(s.id))}
+                                    </p>
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-4 shrink-0">
                                   <AulaSubtopico
                                     disciplina={d}
