@@ -69,6 +69,12 @@ export const concursos: Concurso[] = [
       "bb-2021-a",
       "bb-2021-b",
       "bb-2021-c",
+      // Edições antigas do cargo de Escriturário, antes da divisão entre Agente
+      // Comercial e Agente de Tecnologia. Entram pelo mesmo motivo que 2021: são
+      // Conhecimentos Básicos do mesmo órgão e da mesma banca. Não trazem TI —
+      // o cargo de tecnologia não existia ainda.
+      "bb-escriturario-2018",
+      "bb-escriturario-2014",
     ],
     fonte: FONTE_BB_2026,
   },
@@ -152,6 +158,23 @@ concursos.push(
     dataProva: "2021-12-19",
     editalUrl: null,
     provaIds: ["fgv-banestes-ti-2021"],
+    fonte: FONTE_TREINO,
+  },
+  {
+    // A mais valiosa das três: é a **mesma banca** que aplicou o BB até 2023, e
+    // num concurso bancário recente. Se a Cesgranrio levar o contrato de 2026,
+    // este é o treino mais próximo do real que o acervo tem.
+    id: "cesgranrio-caixa-2024",
+    nome: "Caixa 2024 — Técnico Bancário (treino Cesgranrio)",
+    orgao: "Caixa Econômica Federal",
+    cargo: "Técnico Bancário Novo",
+    banca: "Cesgranrio",
+    salario: null,
+    vagas: null,
+    status: "encerrado",
+    dataProva: "2024-05-26",
+    editalUrl: null,
+    provaIds: ["cesgranrio-caixa-ti-2024", "cesgranrio-caixa-geral-2024"],
     fonte: FONTE_TREINO,
   },
   {

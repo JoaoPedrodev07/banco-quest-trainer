@@ -84,9 +84,29 @@ function QuestoesPage() {
     concurso,
     disciplinas,
     questoes: allQuestoes,
+    provas,
     carregando,
     vazio,
   } = useAcervoDoConcurso(concursoAtivoId);
+
+  /**
+   * De onde a questão veio, para a tela nunca deixar passar prova de outro órgão
+   * como se fosse cobrança do seu edital.
+   *
+   * O `doConcurso` sai da **fonte do concurso**, não da comparação de órgão com
+   * o concurso ativo: quando o candidato troca para um treino de formato, o
+   * órgão do concurso passa a ser o daquela prova e a comparação casaria sempre,
+   * justamente no caso em que o aviso mais importa.
+   */
+  const provaPorId = useMemo(() => new Map(provas.map((p) => [p.id, p])), [provas]);
+  const ehTreinoDeFormato = concurso?.fonte?.eOficial === false;
+  const origemDaQuestao = (q: Questao) => ({
+    orgao:
+      (q.provaId ? provaPorId.get(q.provaId)?.orgao : undefined) ??
+      concurso?.orgao ??
+      "origem não registrada",
+    doConcurso: !ehTreinoDeFormato,
+  });
 
   // As disciplinas chegam depois do primeiro render, então a seleção inicial
   // "todas marcadas" só dá para montar quando elas existem. Roda uma vez: depois
@@ -357,9 +377,22 @@ function QuestoesPage() {
 
         <Card>
           <CardContent className="p-5 space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {q.banca} · {q.ano}
-              {q.numeroNaProva ? ` · questão ${q.numeroNaProva}` : ""}
+            <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
+              <span>
+                {origemDaQuestao(q).orgao} · {q.banca} · {q.ano}
+                {q.numeroNaProva ? ` · questão ${q.numeroNaProva}` : ""}
+              </span>
+              {/* Questão de outro órgão treina o formato da banca, mas não é do
+                  seu edital: o assunto pode nem existir nele. Sem esta marca, o
+                  candidato lê tudo como se fosse cobrança do BB. */}
+              {!origemDaQuestao(q).doConcurso && (
+                <Badge
+                  variant="outline"
+                  className="border-amber-500/50 text-amber-700 dark:text-amber-400"
+                >
+                  Treino de formato — fora do seu edital
+                </Badge>
+              )}
             </p>
             {q.textoBase && (
               <details className="rounded-lg border border-border bg-muted/40 p-3">
