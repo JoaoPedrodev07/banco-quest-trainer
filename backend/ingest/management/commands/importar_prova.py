@@ -71,6 +71,16 @@ class Command(BaseCommand):
                 "caderno traz o nome da materia em elemento grafico, fora do texto)."
             ),
         )
+        parser.add_argument(
+            "--secao-gabarito",
+            default="",
+            help=(
+                "Recorta o gabarito a partir desta marca antes de ler, para o caso de um "
+                "PDF que traz varias provas do mesmo concurso (ex.: 'PROVA 2'). Sem isto, "
+                "o parser pega a primeira secao com o --tipo pedido, que pode ser de outro "
+                "cargo: o caderno de TI ficaria com o gabarito da prova geral."
+            ),
+        )
         parser.add_argument("--orgao", default="Banco do Brasil")
         parser.add_argument("--cargo", default="Escriturário — Agente de Tecnologia")
         parser.add_argument("--url-prova", default="")
@@ -107,6 +117,8 @@ class Command(BaseCommand):
 
         # ---- gabarito: dá a letra certa E a disciplina de cada questão
         texto_gabarito = extrair_texto(doc_gabarito.caminho, colunas=1)
+        if op["secao_gabarito"]:
+            texto_gabarito = self._recortar_secao(texto_gabarito, op["secao_gabarito"])
         if op["banca"].strip().upper() == "FGV":
             respostas = parser_fgv.parse_gabarito(
                 texto_gabarito, cargo=op["cargo"], tipo=op["tipo"]
@@ -354,6 +366,47 @@ class Command(BaseCommand):
         if op["dry_run"]:
             self.stdout.write("")
             self.stdout.write("Nada foi gravado. Rode de novo sem --dry-run para importar.")
+
+    @staticmethod
+    def _recortar_secao(texto: str, marca: str) -> str:
+        """Corta o gabarito a partir de `marca`, para PDF com várias provas juntas.
+
+        A Cesgranrio publica **um** PDF de gabarito por concurso, com todas as
+        provas dentro: na Caixa 2024 são seis seções ("PROVA 1 ... GABARITO 1" a
+        "GABARITO 5", mais "PROVA 2 ... TECNOLOGIA DA INFORMAÇÃO - GABARITO 1").
+        Como o parser procura a primeira seção com o tipo pedido, o caderno de TI
+        casaria com o gabarito da prova geral — 60 questões com a resposta errada,
+        e nada na tela denunciando, porque toda alternativa continua plausível.
+
+        Falha alto quando a marca não aparece **exatamente uma vez**: marca
+        ambígua escolheria uma seção por acidente de ordem, que é o mesmo erro
+        com outro nome. Comparação sem acento e sem caixa porque a marca é
+        digitada à mão no terminal, onde acento é fonte de erro boba.
+        """
+        import unicodedata
+
+        def simplificar(valor: str) -> str:
+            sem_acento = unicodedata.normalize("NFKD", valor)
+            return "".join(c for c in sem_acento if not unicodedata.combining(c)).upper()
+
+        alvo, texto_simples = simplificar(marca), simplificar(texto)
+        ocorrencias = [
+            i for i in range(len(texto_simples)) if texto_simples.startswith(alvo, i)
+        ]
+
+        if not ocorrencias:
+            raise ErroDeIngestao(
+                f"a marca {marca!r} não aparece no gabarito. Confira a grafia exata da "
+                f"seção no PDF (ex.: 'TECNOLOGIA DA INFORMACAO - GABARITO 1')."
+            )
+        if len(ocorrencias) > 1:
+            raise ErroDeIngestao(
+                f"a marca {marca!r} aparece {len(ocorrencias)} vezes no gabarito, então "
+                f"não dá para saber qual seção você quer. Use um trecho mais específico, "
+                f"que inclua o cargo e o número do gabarito."
+            )
+
+        return texto[ocorrencias[0] :]
 
     @staticmethod
     def _ler_faixas(bruto: str) -> dict[str, tuple[int, int]]:
