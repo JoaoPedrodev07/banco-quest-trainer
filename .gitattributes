@@ -1,0 +1,16 @@
+# Fim de linha: LF no repositório e também no disco.
+#
+# O histórico nunca foi o problema — o índice deste projeto já é 100% LF, sem um
+# único arquivo gravado com CRLF. O problema é o checkout: o Git for Windows vem
+# com `core.autocrlf=true`, então ele materializa esses mesmos arquivos com CRLF
+# no disco. O Prettier lê o disco, não o índice, e por isso `npm run lint`
+# acusava ~28 mil erros `Delete ␍` em arquivos que ninguém havia tocado — ruído
+# que escondia o erro de verdade quando aparecia um.
+#
+# `eol=lf` tem precedência sobre `core.autocrlf`, então a regra vale para
+# qualquer máquina que clonar o projeto, sem depender de cada uma configurar o
+# Git do mesmo jeito.
+* text=auto eol=lf
+
+# Binário: sem conversão nenhuma, sob pena de corromper o arquivo.
+*.ico binary
