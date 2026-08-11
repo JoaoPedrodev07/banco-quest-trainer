@@ -14,6 +14,7 @@ import {
   resumoDeRitmo,
 } from "@/lib/ritmo";
 import { SemAcervo } from "@/components/SemAcervo";
+import { ehTreinoDeFormato } from "@/data/concursos";
 import { useStore } from "@/store/useStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -77,9 +79,21 @@ function QuestoesPage() {
   const [idx, setIdx] = useState(0);
   const [respostas, setRespostas] = useState<Record<string, string>>({});
   const [inicio, setInicio] = useState(0);
+  // Alternativa marcada mas ainda **não** confirmada. Existe para abrir espaço
+  // entre escolher e ver o gabarito — é nesse espaço que o raciocínio é escrito.
+  // Sem ela, o gabarito aparece no clique e qualquer justificativa depois disso
+  // é justificativa da resposta certa, não do que a pessoa pensou.
+  const [preEscolha, setPreEscolha] = useState<string | null>(null);
+  const [raciocinio, setRaciocinio] = useState("");
 
   const { prova: provaSolicitada, assunto: assuntoSolicitado } = Route.useSearch();
-  const { historico, registrarResposta, concursoAtivoId, agendarRevisaoPorErro } = useStore();
+  const {
+    historico,
+    registrarResposta,
+    avaliarRaciocinio,
+    concursoAtivoId,
+    agendarRevisaoPorErro,
+  } = useStore();
   const {
     concurso,
     disciplinas,
@@ -99,13 +113,13 @@ function QuestoesPage() {
    * justamente no caso em que o aviso mais importa.
    */
   const provaPorId = useMemo(() => new Map(provas.map((p) => [p.id, p])), [provas]);
-  const ehTreinoDeFormato = concurso?.fonte?.eOficial === false;
+  const ehTreino = ehTreinoDeFormato(concurso);
   const origemDaQuestao = (q: Questao) => ({
     orgao:
       (q.provaId ? provaPorId.get(q.provaId)?.orgao : undefined) ??
       concurso?.orgao ??
       "origem não registrada",
-    doConcurso: !ehTreinoDeFormato,
+    doConcurso: !ehTreino,
   });
 
   // As disciplinas chegam depois do primeiro render, então a seleção inicial
@@ -198,6 +212,14 @@ function QuestoesPage() {
     setInicioQuestao(Date.now());
     setEtapa("resolvendo");
   }, [assuntoSolicitado, assuntoMontado, allQuestoes]);
+
+  // Trocar de questão limpa o rascunho: raciocínio escrito para uma questão
+  // vazando para a seguinte seria pior que campo vazio — daria a impressão de
+  // já ter respondido.
+  useEffect(() => {
+    setPreEscolha(null);
+    setRaciocinio("");
+  }, [idx]);
 
   const iniciar = () => {
     const errouIds = new Set(historico.filter((h) => !h.correta).map((h) => h.questaoId));
@@ -319,6 +341,19 @@ function QuestoesPage() {
     const escolhida = respostas[q.id];
     const respondida = !!escolhida;
 
+    // A resposta gravada desta questão, para a tela poder mostrar de volta o que
+    // foi escrito e qual nota já recebeu. É a última: refazer a mesma questão é
+    // comum, e a avaliação que vale é a da tentativa atual.
+    let iRegistro = -1;
+    for (let i = historico.length - 1; i >= 0; i--) {
+      if (historico[i].questaoId === q.id && historico[i].concursoId === concursoAtivoId) {
+        iRegistro = i;
+        break;
+      }
+    }
+    const raciocinioDaResposta = iRegistro >= 0 ? historico[iRegistro].raciocinio : undefined;
+    const avaliacaoAtual = iRegistro >= 0 ? historico[iRegistro].autoavaliacao : undefined;
+
     /**
      * Registra a resposta.
      *
@@ -329,7 +364,7 @@ function QuestoesPage() {
      * resposta do simulado chegava ao histórico. Streak, pontos fracos e análise
      * ficavam todos zerados sem que nada na tela denunciasse.
      */
-    const responder = (letra: string) => {
+    const responder = (letra: string, motivo: string) => {
       if (respondida) return;
       const acertou = letra === q.correta;
       const segundos = Math.max(0, Math.floor((Date.now() - inicioQuestao) / 1000));
@@ -346,7 +381,13 @@ function QuestoesPage() {
         // O tempo ia só para o estado local da tela e morria ao sair dela. Sem
         // persistir, o diagnóstico de ritmo por disciplina não tinha o que ler.
         segundos,
+        raciocinio: motivo.trim() || undefined,
       });
+
+      // Sem raciocínio não há o que autoavaliar depois: o chute já se declarou.
+      // Registrar aqui evita deixar a resposta num limbo que a análise leria
+      // como "ainda não avaliada".
+      if (!motivo.trim()) avaliarRaciocinio(q.id, concursoAtivoId, "chutei");
 
       // Errou: agenda a revisão daquele assunto sozinha.
       const unidadeId = q.subtopicoId ?? q.topicoId;
@@ -413,13 +454,13 @@ function QuestoesPage() {
             {q.tipo === "certo_errado" ? (
               <div className="grid grid-cols-2 gap-2">
                 {(["C", "E"] as const).map((letra) => {
-                  const isChosen = escolhida === letra;
+                  const isChosen = (escolhida ?? preEscolha) === letra;
                   const isCorreta = letra === q.correta;
                   return (
                     <button
                       key={letra}
                       disabled={respondida}
-                      onClick={() => responder(letra)}
+                      onClick={() => !respondida && setPreEscolha(letra)}
                       className={cn(
                         "rounded-lg border p-4 text-center font-bold transition-all duration-150",
                         !respondida &&
@@ -447,7 +488,7 @@ function QuestoesPage() {
                     <button
                       key={a.letra}
                       disabled={respondida}
-                      onClick={() => responder(a.letra)}
+                      onClick={() => !respondida && setPreEscolha(a.letra)}
                       className={cn(
                         "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-all duration-150",
                         // `hover:bg-accent` pintava a alternativa de amarelo forte:
@@ -474,6 +515,90 @@ function QuestoesPage() {
                     </button>
                   );
                 })}
+              </div>
+            )}
+
+            {/* O passo que separa saber de eliminar bem.
+                A alternativa marcada não revela nada até o raciocínio ser
+                escrito: acerto sozinho não distingue quem domina o assunto de
+                quem chutou entre duas — e as duas coisas pedem estudo oposto. */}
+            {!respondida && preEscolha && (
+              <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                <div>
+                  <p className="text-sm font-semibold">
+                    Por que você marcou{" "}
+                    {preEscolha === "C" && q.tipo === "certo_errado"
+                      ? "Certo"
+                      : preEscolha === "E" && q.tipo === "certo_errado"
+                        ? "Errado"
+                        : preEscolha}
+                    ?
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Escreva antes de ver o gabarito. Depois da resposta na tela, o que sai é
+                    justificativa, não raciocínio.
+                  </p>
+                </div>
+                <Textarea
+                  value={raciocinio}
+                  onChange={(e) => setRaciocinio(e.target.value)}
+                  placeholder="O que te levou a essa alternativa? O que descartou as outras?"
+                  className="min-h-20 text-sm"
+                  autoFocus
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => responder(preEscolha, raciocinio)}
+                    disabled={!raciocinio.trim()}
+                  >
+                    Confirmar e ver o gabarito
+                  </Button>
+                  {/* Assumir o chute é informação, não desistência: é o que
+                      impede o acerto por sorte de virar "assunto dominado". */}
+                  <Button variant="ghost" onClick={() => responder(preEscolha, "")}>
+                    Chutei, não sei explicar
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Depois do gabarito: o candidato confere o próprio raciocínio.
+                É autoavaliação porque julgar texto livre exigiria IA em tempo de
+                execução (§7.6). Quem marca "bateu" no que não bateu engana o
+                próprio cronograma — nenhum app resolve isso, e fingir que
+                resolve seria pior. */}
+            {respondida && raciocinioDaResposta && (
+              <div className="space-y-2 rounded-lg border border-border p-4">
+                <p className="text-sm font-semibold">
+                  {escolhida === q.correta
+                    ? "Acertou. O seu raciocínio bateu com o gabarito?"
+                    : "Errou. Onde o seu raciocínio saiu do trilho?"}
+                </p>
+                <p className="rounded bg-muted/60 p-2 text-xs italic text-muted-foreground">
+                  “{raciocinioDaResposta}”
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      ["bateu", "Bateu com o gabarito"],
+                      ["torto", "Cheguei por caminho errado"],
+                      ["chutei", "Foi chute"],
+                    ] as const
+                  ).map(([nota, rotulo]) => (
+                    <Button
+                      key={nota}
+                      size="sm"
+                      variant={avaliacaoAtual === nota ? "default" : "outline"}
+                      onClick={() => avaliarRaciocinio(q.id, concursoAtivoId, nota)}
+                    >
+                      {rotulo}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  É isto que decide se o assunto ainda pede teoria ou já pode ser estudado pelo
+                  gabarito. Acerto por eliminação conta como “caminho errado”.
+                </p>
               </div>
             )}
 

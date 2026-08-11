@@ -10,6 +10,7 @@
 import { AlertTriangle, BadgeCheck, WifiOff } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ehTreinoDeFormato } from "@/data/concursos";
 import { useAcervo, useAcervoDoConcurso } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
 
@@ -28,7 +29,7 @@ export function AvisoAcervo() {
   // afirmava sobre a tela um número que não era o da tela.
   const total = doConcurso.length;
   const anuladas = doConcurso.filter((q) => q.anulada).length;
-  const ehTreinoDeFormato = concurso?.fonte?.eOficial === false;
+  const ehTreino = ehTreinoDeFormato(concurso);
 
   // Quantas questões existem no acervo mas **fora** deste concurso. Aparecem
   // como linha à parte, nunca somadas: elas são de outro órgão e outro edital,
@@ -78,7 +79,7 @@ export function AvisoAcervo() {
         {anuladas > 0 && ` (${anuladas} anuladas pela banca)`}
       </AlertTitle>
       <AlertDescription>
-        {ehTreinoDeFormato ? (
+        {ehTreino ? (
           <>
             Prova de <strong>{concurso?.orgao}</strong>, no catálogo para treinar o estilo da banca.
             O conteúdo programático é <strong>outro</strong>: serve para sentir como a banca cobra,
@@ -92,7 +93,9 @@ export function AvisoAcervo() {
         ) : (
           "Nenhum edital importado ainda: o conteúdo programático está vazio."
         )}
-        {emOutrosConcursos > 0 && (
+        {/* `total > 0` evita a linha aparecer durante o carregamento, quando o
+            recorte ainda está vazio e a subtração daria o acervo inteiro. */}
+        {total > 0 && emOutrosConcursos > 0 && (
           <>
             {" "}
             Há outras <strong>{emOutrosConcursos}</strong> questões no acervo, em concursos de

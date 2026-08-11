@@ -61,6 +61,19 @@ interface StoreState {
   toggleDark: () => void;
   toggleStatus: (subtopicoId: string, campo: keyof StatusTopico) => void;
   registrarResposta: (r: RespostaHistorico) => void;
+  /**
+   * Grava como o candidato avaliou o próprio raciocínio depois de ver o gabarito.
+   *
+   * Separado de `registrarResposta` porque acontece **depois** dela, por
+   * desenho: o raciocínio é escrito antes do gabarito aparecer (senão vira
+   * justificativa da resposta certa, não raciocínio), e a nota só pode ser dada
+   * depois. Duas gravações, dois momentos.
+   */
+  avaliarRaciocinio: (
+    questaoId: string,
+    concursoId: string,
+    nota: "bateu" | "torto" | "chutei",
+  ) => void;
   addRevisao: (r: RevisaoItem) => void;
   /**
    * Agenda revisão de uma unidade do edital por causa de um erro.
@@ -259,6 +272,25 @@ export const useStore = create<StoreState>()(
             streak: { ultimoDia: hoje, dias },
           };
         }),
+      avaliarRaciocinio: (questaoId, concursoId, nota) =>
+        set((s) => {
+          // Atualiza a resposta mais recente daquela questão, não todas: refazer
+          // a mesma questão depois é comum, e reescrever o passado apagaria
+          // justamente a evidência de que o entendimento mudou.
+          let alvo = -1;
+          for (let i = s.historico.length - 1; i >= 0; i--) {
+            const h = s.historico[i];
+            if (h.questaoId === questaoId && h.concursoId === concursoId) {
+              alvo = i;
+              break;
+            }
+          }
+          if (alvo < 0) return {};
+          const historico = [...s.historico];
+          historico[alvo] = { ...historico[alvo], autoavaliacao: nota };
+          return { historico };
+        }),
+
       addRevisao: (r) => set((s) => ({ revisoes: [...s.revisoes, r] })),
 
       agendarRevisaoPorErro: ({ unidadeId, topico, disciplinaId, concursoId }) =>

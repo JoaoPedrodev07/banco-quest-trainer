@@ -195,3 +195,14 @@ concursos.push(
 
 export const concursoPorId = (id: string): Concurso | undefined =>
   concursos.find((c) => c.id === id);
+
+/**
+ * O concurso está no catálogo só para treinar o estilo da banca?
+ *
+ * Testa o slug da fonte, e **não** `fonte.eOficial`: a fonte do BB 2026 também é
+ * não-oficial, porque o edital de 2026 ainda não saiu e o que existe é notícia
+ * de imprensa. Usar `eOficial` fazia o concurso alvo se declarar "treino de
+ * formato" — o aviso mais importante da tela, invertido.
+ */
+export const ehTreinoDeFormato = (c: Concurso | undefined): boolean =>
+  c?.fonte?.slug === FONTE_TREINO.slug;
