@@ -37,9 +37,14 @@ export const Route = createFileRoute("/questoes")({
    * `?prova=<id>` entra em modo prova completa: carrega o caderno inteiro, na
    * ordem original, com o tempo real do concurso. É o que a tela de Provas
    * aciona no "Resolver".
+   *
+   * `?assunto=<unidadeId>` treina só um item do edital. É o caminho que fecha o
+   * ciclo da aula: leu a teoria do assunto, resolve as questões reais dele sem
+   * passar pelo filtro de disciplina inteira.
    */
-  validateSearch: (busca: Record<string, unknown>): { prova?: string } => ({
+  validateSearch: (busca: Record<string, unknown>): { prova?: string; assunto?: string } => ({
     prova: typeof busca.prova === "string" && busca.prova ? busca.prova : undefined,
+    assunto: typeof busca.assunto === "string" && busca.assunto ? busca.assunto : undefined,
   }),
   head: () => ({
     meta: [
@@ -73,7 +78,7 @@ function QuestoesPage() {
   const [respostas, setRespostas] = useState<Record<string, string>>({});
   const [inicio, setInicio] = useState(0);
 
-  const { prova: provaSolicitada } = Route.useSearch();
+  const { prova: provaSolicitada, assunto: assuntoSolicitado } = Route.useSearch();
   const { historico, registrarResposta, concursoAtivoId, agendarRevisaoPorErro } = useStore();
   const {
     concurso,
@@ -141,6 +146,38 @@ function QuestoesPage() {
     setInicioQuestao(Date.now());
     setEtapa("resolvendo");
   }, [provaSolicitada, provaMontada, allQuestoes]);
+
+  // Modo assunto: dispara sozinho quando se chega por `?assunto=`, vindo da aula.
+  // Sem sorteio de ordem própria só para ficar diferente do modo prova: aqui a
+  // ordem original não significa nada (as questões vêm de cadernos diferentes),
+  // então vale embaralhar como no simulado normal.
+  const [assuntoMontado, setAssuntoMontado] = useState<string | null>(null);
+  useEffect(() => {
+    if (!assuntoSolicitado || assuntoMontado === assuntoSolicitado || allQuestoes.length === 0)
+      return;
+    const doAssunto = allQuestoes
+      // Casa tópico **ou** subtópico de propósito: quando a unidade é um tópico
+      // sem subdivisão, a questão guarda só `topicoId`; quando é um subtópico, o
+      // id nunca bate com `topicoId`. É a mesma conta que `AulaSubtopico` mostra
+      // no diálogo — se divergisse, o botão abriria um número de questões
+      // diferente do que ele mesmo promete.
+      .filter(
+        (q) =>
+          (q.subtopicoId === assuntoSolicitado || q.topicoId === assuntoSolicitado) && !q.anulada,
+      )
+      .sort(() => Math.random() - 0.5);
+    // Sem questão classificada neste assunto não há o que treinar; deixa a tela
+    // de configuração aparecer normalmente em vez de abrir um simulado vazio.
+    if (doAssunto.length === 0) return;
+    setAssuntoMontado(assuntoSolicitado);
+    setLista(doAssunto);
+    setRespostas({});
+    setTemposPorQuestao({});
+    setIdx(0);
+    setInicio(Date.now());
+    setInicioQuestao(Date.now());
+    setEtapa("resolvendo");
+  }, [assuntoSolicitado, assuntoMontado, allQuestoes]);
 
   const iniciar = () => {
     const errouIds = new Set(historico.filter((h) => !h.correta).map((h) => h.questaoId));

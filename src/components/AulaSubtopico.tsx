@@ -11,7 +11,8 @@
  */
 
 import { useMemo, useState } from "react";
-import { BookOpen, Check, Copy, Save, Sparkles, Youtube } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { BookOpen, Check, Copy, Dumbbell, Save, Sparkles, Youtube } from "lucide-react";
 import { toast } from "sonner";
 
 import { concursoPorId } from "@/data/concursos";
@@ -172,6 +173,18 @@ export function AulaSubtopico({
             <>
               <AvisoGerado oQue="conteúdo" />
               <Markdown>{aula.conteudoMarkdown}</Markdown>
+              {/* Fecha o ciclo: leu a teoria, treina o assunto sem passar pelo
+                  filtro de disciplina inteira. Só aparece quando há questão real
+                  classificada aqui — botão que abre simulado vazio é promessa falsa. */}
+              {questoesDoAssunto.length > 0 && (
+                <Button asChild size="sm" className="gap-1.5">
+                  <Link to="/questoes" search={{ assunto: unidadeId }}>
+                    <Dumbbell className="h-4 w-4" />
+                    Treinar {questoesDoAssunto.length}{" "}
+                    {questoesDoAssunto.length === 1 ? "questão" : "questões"} deste assunto
+                  </Link>
+                </Button>
+              )}
               <p className="border-t border-border pt-3 text-xs text-muted-foreground">
                 Salva em {new Date(aula.geradoEm).toLocaleString("pt-BR")}. Para trocar, cole uma
                 nova versão abaixo — ela substitui esta.
