@@ -80,24 +80,27 @@ function Dashboard() {
     (s) => s.teoria && s.revisao && s.questoes,
   ).length;
 
+  // Os gráficos leem `doConcurso`, o MESMO recorte dos cartões (ADR-004): eles
+  // usavam o histórico inteiro, e quem estuda mais de um concurso via a taxa do
+  // cartão contradizer a barra da mesma tela.
   const barData = useMemo(() => {
     return disciplinas.map((d) => {
-      const hs = historico.filter((h) => h.disciplinaId === d.id);
+      const hs = doConcurso.filter((h) => h.disciplinaId === d.id);
       const t = hs.length ? Math.round((hs.filter((x) => x.correta).length / hs.length) * 100) : 0;
       return { nome: d.nome.split(" ")[0], acerto: t, fill: d.cor };
     });
-  }, [disciplinas, historico]);
+  }, [disciplinas, doConcurso]);
 
   const lineData = useMemo(() => {
     const arr: { dia: string; qtd: number }[] = [];
     for (let i = 29; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000);
       const key = d.toISOString().slice(0, 10);
-      const qtd = historico.filter((h) => h.data.slice(0, 10) === key).length;
+      const qtd = doConcurso.filter((h) => h.data.slice(0, 10) === key).length;
       arr.push({ dia: d.getDate() + "/" + (d.getMonth() + 1), qtd });
     }
     return arr;
-  }, [historico]);
+  }, [doConcurso]);
 
   // Fraqueza por **assunto do edital**, não por disciplina. "Você vai mal em TI"
   // não diz o que estudar — TI tem 21 subtópicos. "Você vai mal em normalização
@@ -271,12 +274,19 @@ function Dashboard() {
                   {disciplinas.find((d) => d.id === p.disciplinaId)?.nome ?? p.disciplinaId}
                 </p>
               </div>
+              {/* Deep-link no assunto, como as Revisões já fazem: mandar para a
+                  tela genérica obrigaria a procurar de novo o que a lista acabou
+                  de apontar (ADR-004). */}
               <div className="flex shrink-0 gap-2">
                 <Button asChild size="sm" variant="outline">
-                  <Link to="/edital">Gerar aula</Link>
+                  <Link to="/edital" search={{ unidade: p.unidadeId }}>
+                    Gerar aula
+                  </Link>
                 </Button>
                 <Button asChild size="sm">
-                  <Link to="/questoes">Praticar</Link>
+                  <Link to="/questoes" search={{ assunto: p.unidadeId }}>
+                    Praticar
+                  </Link>
                 </Button>
               </div>
             </div>
