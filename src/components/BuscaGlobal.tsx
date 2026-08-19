@@ -117,7 +117,7 @@ export function BuscaGlobal() {
         concursosEncontrados.length +
         questoesEncontradas.length,
     };
-  }, [consultaAdiada, disciplinas, provas, questoes]);
+  }, [consultaAdiada, disciplinas, provas, questoes, concursos]);
 
   const fecharENavegar = (fn: () => void) => {
     setAberta(false);
@@ -156,97 +156,97 @@ export function BuscaGlobal() {
               value={consulta}
               onValueChange={setConsulta}
             />
-        <CommandList>
-          {!resultados && (
-            <p className="p-4 text-center text-sm text-muted-foreground">
-              Digite pelo menos {MINIMO_CARACTERES} caracteres. Também dá para colar o id de uma
-              questão.
-            </p>
-          )}
-          {resultados && resultados.total === 0 && (
-            <CommandEmpty>Nada encontrado no acervo deste concurso.</CommandEmpty>
-          )}
+            <CommandList>
+              {!resultados && (
+                <p className="p-4 text-center text-sm text-muted-foreground">
+                  Digite pelo menos {MINIMO_CARACTERES} caracteres. Também dá para colar o id de uma
+                  questão.
+                </p>
+              )}
+              {resultados && resultados.total === 0 && (
+                <CommandEmpty>Nada encontrado no acervo deste concurso.</CommandEmpty>
+              )}
 
-          {resultados && resultados.assuntos.length > 0 && (
-            <CommandGroup heading="Assuntos do edital">
-              {resultados.assuntos.map((a) => (
-                <CommandItem
-                  key={a.id}
-                  value={`assunto-${a.id}`}
-                  onSelect={() =>
-                    fecharENavegar(() => navigate({ to: "/edital", search: { unidade: a.id } }))
-                  }
-                >
-                  <BookOpen className="mr-2 h-4 w-4 shrink-0" />
-                  <span className="min-w-0 flex-1 truncate">{a.nome}</span>
-                  <span className="ml-2 shrink-0 text-xs text-muted-foreground">
-                    {a.disciplina}
-                  </span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
+              {resultados && resultados.assuntos.length > 0 && (
+                <CommandGroup heading="Assuntos do edital">
+                  {resultados.assuntos.map((a) => (
+                    <CommandItem
+                      key={a.id}
+                      value={`assunto-${a.id}`}
+                      onSelect={() =>
+                        fecharENavegar(() => navigate({ to: "/edital", search: { unidade: a.id } }))
+                      }
+                    >
+                      <BookOpen className="mr-2 h-4 w-4 shrink-0" />
+                      <span className="min-w-0 flex-1 truncate">{a.nome}</span>
+                      <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                        {a.disciplina}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
 
-          {resultados && resultados.questoes.length > 0 && (
-            <CommandGroup heading="Questões">
-              {resultados.questoes.map((questao) => (
-                <CommandItem
-                  key={questao.id}
-                  value={`questao-${questao.id}`}
-                  onSelect={() => {
-                    setAberta(false);
-                    setConsulta("");
-                    setQuestaoAberta(questao);
-                  }}
-                >
-                  <ListChecks className="mr-2 h-4 w-4 shrink-0" />
-                  <span className="min-w-0 flex-1 truncate">{questao.enunciado}</span>
-                  <span className="ml-2 shrink-0 text-xs text-muted-foreground">
-                    {questao.banca} {questao.ano}
-                  </span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
+              {resultados && resultados.questoes.length > 0 && (
+                <CommandGroup heading="Questões">
+                  {resultados.questoes.map((questao) => (
+                    <CommandItem
+                      key={questao.id}
+                      value={`questao-${questao.id}`}
+                      onSelect={() => {
+                        setAberta(false);
+                        setConsulta("");
+                        setQuestaoAberta(questao);
+                      }}
+                    >
+                      <ListChecks className="mr-2 h-4 w-4 shrink-0" />
+                      <span className="min-w-0 flex-1 truncate">{questao.enunciado}</span>
+                      <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                        {questao.banca} {questao.ano}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
 
-          {resultados && resultados.provas.length > 0 && (
-            <CommandGroup heading="Provas">
-              {resultados.provas.map((p) => (
-                <CommandItem
-                  key={p.id}
-                  value={`prova-${p.id}`}
-                  onSelect={() =>
-                    fecharENavegar(() => navigate({ to: "/questoes", search: { prova: p.id } }))
-                  }
-                >
-                  <FileText className="mr-2 h-4 w-4 shrink-0" />
-                  <span className="min-w-0 flex-1 truncate">
-                    {p.orgao} {p.ano} — {p.cargo}
-                  </span>
-                  <span className="ml-2 shrink-0 text-xs text-muted-foreground">{p.banca}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
+              {resultados && resultados.provas.length > 0 && (
+                <CommandGroup heading="Provas">
+                  {resultados.provas.map((p) => (
+                    <CommandItem
+                      key={p.id}
+                      value={`prova-${p.id}`}
+                      onSelect={() =>
+                        fecharENavegar(() => navigate({ to: "/questoes", search: { prova: p.id } }))
+                      }
+                    >
+                      <FileText className="mr-2 h-4 w-4 shrink-0" />
+                      <span className="min-w-0 flex-1 truncate">
+                        {p.orgao} {p.ano} — {p.cargo}
+                      </span>
+                      <span className="ml-2 shrink-0 text-xs text-muted-foreground">{p.banca}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
 
-          {resultados && resultados.concursos.length > 0 && (
-            <CommandGroup heading="Concursos">
-              {resultados.concursos.map((c) => (
-                <CommandItem
-                  key={c.id}
-                  value={`concurso-${c.id}`}
-                  onSelect={() =>
-                    fecharENavegar(() =>
-                      navigate({ to: "/concursos/$concursoId", params: { concursoId: c.id } }),
-                    )
-                  }
-                >
-                  <Trophy className="mr-2 h-4 w-4 shrink-0" />
-                  <span className="min-w-0 flex-1 truncate">{c.nome}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
+              {resultados && resultados.concursos.length > 0 && (
+                <CommandGroup heading="Concursos">
+                  {resultados.concursos.map((c) => (
+                    <CommandItem
+                      key={c.id}
+                      value={`concurso-${c.id}`}
+                      onSelect={() =>
+                        fecharENavegar(() =>
+                          navigate({ to: "/concursos/$concursoId", params: { concursoId: c.id } }),
+                        )
+                      }
+                    >
+                      <Trophy className="mr-2 h-4 w-4 shrink-0" />
+                      <span className="min-w-0 flex-1 truncate">{c.nome}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
             </CommandList>
           </Command>
         </DialogContent>

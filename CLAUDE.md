@@ -37,6 +37,7 @@ Origem: gerado no [Lovable](https://lovable.dev), com **sincronização de mão 
 ## 2. Regras de ouro (NUNCA quebre)
 
 ### 2.1 Nunca reescreva o histórico do git
+
 `force push`, `rebase`, `amend` ou `squash` de commits **já enviados** quebram a sincronia com o
 Lovable e o usuário **perde o histórico do projeto** lá (ver `AGENTS.md`). Esta regra vale mesmo quando
 o histórico ficaria "mais bonito": aqui, histórico feio e íntegro é melhor que histórico limpo e
@@ -46,23 +47,27 @@ quebrado. Precisa desfazer algo já enviado? Use `git revert`, que cria um commi
 > tudo que chega nela aparece no editor do Lovable.
 
 ### 2.2 Dado mockado é dado de mentira — e a UI precisa saber disso
+
 As 30 questões, 6 disciplinas e provas em `src/data/` são **exemplos**, não o edital real. Nunca
 escreva na tela nada que afirme que o conteúdo é oficial, que a estatística é confiável ou que o
 desempenho prevê aprovação. Quando o número vier de amostra pequena, diga isso.
 
 ### 2.3 Nada de estado derivado duplicado no store
+
 O store (`src/store/useStore.ts`) guarda **fato**, não conclusão: respostas dadas, tópicos marcados,
 revisões agendadas. Acerto percentual, streak exibido, progresso do edital e "questões hoje" são
 **calculados na leitura** (`useMemo` na rota). Guardar derivado gera divergência silenciosa quando o
 histórico muda.
 
 ### 2.4 localStorage é frágil — trate como tal
+
 O usuário pode limpar o navegador e perder tudo. Toda leitura do store precisa aguentar dado **ausente
 ou de uma versão anterior do schema** (campo novo = `?? valorPadrão`). Ao mudar o formato de algo já
 persistido, adicione `version` + `migrate` no `persist` — nunca assuma que o que está gravado tem o
 formato de hoje.
 
 ### 2.5 Datas: mês em JavaScript começa no zero
+
 `new Date(2026, 9, 25)` é **25/10/2026**, não setembro. É a data padrão da prova no store. Prefira ISO
 (`"2026-10-25"`) ao criar data nova, e compare sempre por `slice(0, 10)` quando a intenção for "mesmo
 dia" — comparar ISO completo inclui hora e quebra a contagem de streak.
@@ -245,6 +250,7 @@ incidência, "onde estudar agora", raio-X da banca, diff de edital) + Vitest no 
 §7.1).
 
 **Restrições adicionais desta linha** (somam-se às regras de ouro do §2):
+
 - Não preencher lacuna de dado (questão, edital, prova) com conhecimento geral do modelo. Se a
   informação não está no PDF ingerido, o campo fica nulo e é sinalizado.
 - Todo score/derivado desta linha (incidência, classificação automática) segue o §2.3: calculado
@@ -274,3 +280,16 @@ Estado persistido novo (todos com padrão vazio no `merge`, backup v2): `simulad
 `cadernos`, `tentativasProva`, `flashcardsSrs`, `cartoesProprios`, `anotacoes`. O `persist`
 está na **version 2** — as 4 revisões de demonstração do protótipo foram removidas e não
 existem mais; `revisoes` nasce vazio.
+
+## 10. Linha executada: IAZAN (ago/2026, branch `feat/ideias-iazan`)
+
+Extração de um backlog de outro projeto (`docs/ideias-do-iazan.md` tem a triagem
+item a item; ADRs 012–017 em `docs/adr/`): teste Vitest de terminologia proibida
+(`src/lib/terminologia.test.ts` — trava as frases que o §8 veta), pesquisa global
+Ctrl+K (`BuscaGlobal.tsx`, client-side), reportar problema na questão + fila de
+curadoria em `/classificacao` (model `ProblemaQuestao`), **catálogo de concursos
+servido pelo backend** (`GET /api/concursos/`, `manage.py seed_concursos`,
+`useConcursos`/`useConcurso` — `src/data/concursos.ts` virou reserva de mock;
+editar concurso é Django Admin), aula versionada com `prompt_versao` (regravar
+nunca apaga), assunto travado (3 erros seguidos → mudar de abordagem), alerta de
+ritmo na trilha, retrospectiva de 30 dias e ações rápidas no card Hoje.

@@ -142,10 +142,7 @@ function RevisoesPage() {
                     <p className="truncate font-bold">{nome}</p>
                     {atrasada && <Badge variant="destructive">Atrasada</Badge>}
                     {travado && (
-                      <Badge
-                        variant="outline"
-                        className="border-destructive/60 text-destructive"
-                      >
+                      <Badge variant="outline" className="border-destructive/60 text-destructive">
                         Travado
                       </Badge>
                     )}

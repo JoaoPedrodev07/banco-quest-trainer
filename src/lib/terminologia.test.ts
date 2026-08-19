@@ -62,9 +62,10 @@ describe("terminologia proibida (§8 do CLAUDE.md)", () => {
         .map((arquivo) => ({ arquivo, conteudo: readFileSync(arquivo, "utf-8") }))
         .filter(({ conteudo }) => padrao.test(conteudo))
         .map(({ arquivo }) => arquivo.replace(process.cwd(), ""));
-      expect(violacoes, `frase proibida (${porque}) encontrada em: ${violacoes.join(", ")}`).toEqual(
-        [],
-      );
+      expect(
+        violacoes,
+        `frase proibida (${porque}) encontrada em: ${violacoes.join(", ")}`,
+      ).toEqual([]);
     });
   }
 });

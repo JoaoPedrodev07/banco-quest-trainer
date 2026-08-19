@@ -85,8 +85,8 @@ export function ReportarProblema({ questaoId }: { questaoId: string }) {
         <DialogHeader>
           <DialogTitle>Reportar problema nesta questão</DialogTitle>
           <DialogDescription>
-            O report entra na fila de curadoria — nada muda na questão até alguém conferir contra
-            o PDF original.
+            O report entra na fila de curadoria — nada muda na questão até alguém conferir contra o
+            PDF original.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">

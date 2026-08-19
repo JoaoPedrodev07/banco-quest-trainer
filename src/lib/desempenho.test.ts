@@ -28,7 +28,11 @@ const QUESTOES = [questao("q1", "sql"), questao("q2", "sql"), questao("q3", "sql
 
 describe("assuntosTravados", () => {
   it("três erros seguidos travam o assunto", () => {
-    const historico = [resposta("q1", false, 1), resposta("q2", false, 2), resposta("q3", false, 3)];
+    const historico = [
+      resposta("q1", false, 1),
+      resposta("q2", false, 2),
+      resposta("q3", false, 3),
+    ];
     expect(assuntosTravados(historico, QUESTOES, "bb-ti-2026")).toEqual(new Set(["sql"]));
   });
 

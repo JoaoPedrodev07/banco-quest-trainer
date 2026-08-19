@@ -82,8 +82,7 @@ function FlashcardsPage() {
   const cartoesProprios = useStore((s) => s.cartoesProprios);
   const criarCartao = useStore((s) => s.criarCartao);
   const removerCartao = useStore((s) => s.removerCartao);
-  const { concurso, disciplinas, questoes, provas, vazio } =
-    useAcervoDoConcurso(concursoAtivoId);
+  const { concurso, disciplinas, questoes, provas, vazio } = useAcervoDoConcurso(concursoAtivoId);
 
   const [disciplinaId, setDisciplinaId] = useState("todas");
   const [baralho, setBaralho] = useState<Cartao[]>([]);
