@@ -282,8 +282,8 @@ function FlashcardsPage() {
             ) : candidatas.length > 0 ? (
               <div className="space-y-2">
                 <p className="rounded-md border border-sucesso/40 bg-sucesso-suave p-3 text-sm">
-                  Tudo em dia — nenhum cartão vencido e nenhum novo. É assim que uma agenda
-                  espaçada deve ficar; volte quando algo vencer.
+                  Tudo em dia — nenhum cartão vencido e nenhum novo. É assim que uma agenda espaçada
+                  deve ficar; volte quando algo vencer.
                 </p>
                 <Button variant="outline" className="w-full" onClick={comecarForaDaAgenda}>
                   Treinar mesmo assim (fora da agenda)

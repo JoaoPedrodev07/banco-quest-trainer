@@ -418,8 +418,7 @@ export const useStore = create<StoreState>()(
         set((s) => ({ revisoes: avancarRevisao(s.revisoes, id, new Date()) })),
       adiarRevisao: (id, dias) =>
         set((s) => ({ revisoes: adiarNaLista(s.revisoes, id, dias, new Date()) })),
-      removerRevisao: (id) =>
-        set((s) => ({ revisoes: s.revisoes.filter((r) => r.id !== id) })),
+      removerRevisao: (id) => set((s) => ({ revisoes: s.revisoes.filter((r) => r.id !== id) })),
 
       iniciarSimulado: (simulado) => set({ simuladoAtual: simulado }),
       atualizarSimulado: (patch) =>
@@ -433,8 +432,7 @@ export const useStore = create<StoreState>()(
       salvarCaderno: (c) => set((s) => ({ cadernos: [...s.cadernos, c] })),
       removerCaderno: (id) => set((s) => ({ cadernos: s.cadernos.filter((c) => c.id !== id) })),
 
-      registrarTentativaProva: (t) =>
-        set((s) => ({ tentativasProva: [...s.tentativasProva, t] })),
+      registrarTentativaProva: (t) => set((s) => ({ tentativasProva: [...s.tentativasProva, t] })),
 
       julgarFlashcard: (cartaoId, lembrou) =>
         set((s) => {

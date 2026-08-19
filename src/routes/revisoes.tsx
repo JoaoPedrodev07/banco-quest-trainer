@@ -251,8 +251,8 @@ function RevisoesPage() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Excluir esta revisão?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            “{nome}” sai da agenda. Se você errar uma questão deste assunto de
-                            novo, a revisão volta sozinha, do intervalo inicial.
+                            “{nome}” sai da agenda. Se você errar uma questão deste assunto de novo,
+                            a revisão volta sozinha, do intervalo inicial.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

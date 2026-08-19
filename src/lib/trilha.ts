@@ -102,5 +102,12 @@ export function montarTrilha(dados: {
     ritmoNecessario = Math.round((restantes / diasDeCobertura) * 10) / 10;
   }
 
-  return { faseAtual, diasRestantes, unidadesTotais, unidadesCobertas, unidadesTreinadas, ritmoNecessario };
+  return {
+    faseAtual,
+    diasRestantes,
+    unidadesTotais,
+    unidadesCobertas,
+    unidadesTreinadas,
+    ritmoNecessario,
+  };
 }

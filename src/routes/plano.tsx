@@ -58,8 +58,7 @@ function PlanoPage() {
   // Trilha até a prova (ADR-009). A data segue a mesma regra do dashboard: a do
   // concurso quando publicada; a estimativa do usuário só no concurso padrão; e
   // sem nenhuma das duas, a trilha não conta dias.
-  const dataEfetiva =
-    concurso?.dataProva ?? (concurso?.id === CONCURSO_PADRAO ? dataProva : null);
+  const dataEfetiva = concurso?.dataProva ?? (concurso?.id === CONCURSO_PADRAO ? dataProva : null);
   const dataEstimada = !!dataEfetiva && !concurso?.dataProva;
   const trilha = useMemo(() => {
     const unidadesTotais = doCargo.reduce(
@@ -96,7 +95,8 @@ function PlanoPage() {
   const revisoesVencidas = useMemo(
     () =>
       revisoes.filter(
-        (r) => r.concursoId === concursoAtivoId && new Date(r.proximaRevisao).getTime() < Date.now(),
+        (r) =>
+          r.concursoId === concursoAtivoId && new Date(r.proximaRevisao).getTime() < Date.now(),
       ).length,
     [revisoes, concursoAtivoId],
   );

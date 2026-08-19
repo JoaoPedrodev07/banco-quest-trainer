@@ -46,9 +46,9 @@ function ClassificacaoPage() {
       <div>
         <h1 className="text-2xl md:text-3xl font-black">Revisão de classificação</h1>
         <p className="text-sm text-muted-foreground">
-          Classificação automática (heurística ou IA externa) ainda não confirmada por humano —
-          Fase 2 do motor de incidência. Confirmar aqui é o que permite essa classificação entrar
-          com peso cheio na análise mais adiante.
+          Classificação automática (heurística ou IA externa) ainda não confirmada por humano — Fase
+          2 do motor de incidência. Confirmar aqui é o que permite essa classificação entrar com
+          peso cheio na análise mais adiante.
         </p>
       </div>
 

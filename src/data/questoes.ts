@@ -16,9 +16,16 @@ export const questoes: Questao[] = [
     banca: "Cesgranrio",
     enunciado:
       "Em 'Os candidatos aos quais foram entregues os documentos compareceram à prova', a expressão em destaque exerce função de:",
-    alternativas: alt("Sujeito", "Objeto direto", "Objeto indireto", "Complemento nominal", "Adjunto adnominal"),
+    alternativas: alt(
+      "Sujeito",
+      "Objeto direto",
+      "Objeto indireto",
+      "Complemento nominal",
+      "Adjunto adnominal",
+    ),
     correta: "C",
-    explicacao: "'Aos quais' funciona como objeto indireto do verbo 'entregar', que exige preposição 'a'.",
+    explicacao:
+      "'Aos quais' funciona como objeto indireto do verbo 'entregar', que exige preposição 'a'.",
   },
   {
     id: "q2",
@@ -41,7 +48,8 @@ export const questoes: Questao[] = [
     disciplinaId: "ingles",
     ano: 2023,
     banca: "Cesgranrio",
-    enunciado: "In 'The bank has been implementing new digital services', the verb tense expresses:",
+    enunciado:
+      "In 'The bank has been implementing new digital services', the verb tense expresses:",
     alternativas: alt(
       "Simple past",
       "Present perfect continuous",
@@ -75,7 +83,13 @@ export const questoes: Questao[] = [
     banca: "Cesgranrio",
     enunciado:
       "Um capital de R$ 10.000 aplicado a juros compostos de 2% ao mês, após 3 meses, terá montante aproximado de:",
-    alternativas: alt("R$ 10.600,00", "R$ 10.612,08", "R$ 10.500,00", "R$ 10.400,00", "R$ 11.000,00"),
+    alternativas: alt(
+      "R$ 10.600,00",
+      "R$ 10.612,08",
+      "R$ 10.500,00",
+      "R$ 10.400,00",
+      "R$ 11.000,00",
+    ),
     correta: "B",
     explicacao: "M = 10000 × 1,02³ ≈ 10.612,08.",
   },
@@ -115,7 +129,8 @@ export const questoes: Questao[] = [
     disciplinaId: "bancarios",
     ano: 2023,
     banca: "Cesgranrio",
-    enunciado: "O órgão máximo do Sistema Financeiro Nacional, responsável por formular a política monetária, é:",
+    enunciado:
+      "O órgão máximo do Sistema Financeiro Nacional, responsável por formular a política monetária, é:",
     alternativas: alt(
       "Banco Central do Brasil",
       "Conselho Monetário Nacional",
@@ -132,7 +147,13 @@ export const questoes: Questao[] = [
     ano: 2023,
     banca: "Cesgranrio",
     enunciado: "O Pix é uma solução de pagamentos instantâneos criada e gerida pelo:",
-    alternativas: alt("CMN", "Banco Central", "Banco do Brasil", "Febraban", "Ministério da Fazenda"),
+    alternativas: alt(
+      "CMN",
+      "Banco Central",
+      "Banco do Brasil",
+      "Febraban",
+      "Ministério da Fazenda",
+    ),
     correta: "B",
     explicacao: "O Pix foi criado e é operado pelo Bacen.",
   },
@@ -157,7 +178,8 @@ export const questoes: Questao[] = [
     disciplinaId: "ti",
     ano: 2023,
     banca: "Cesgranrio",
-    enunciado: "Em uma API REST, o método HTTP idempotente usado para atualização completa de um recurso é:",
+    enunciado:
+      "Em uma API REST, o método HTTP idempotente usado para atualização completa de um recurso é:",
     alternativas: alt("POST", "GET", "PUT", "PATCH", "OPTIONS"),
     correta: "C",
     explicacao: "PUT é idempotente e atualiza integralmente o recurso.",
@@ -167,7 +189,8 @@ export const questoes: Questao[] = [
     disciplinaId: "ti",
     ano: 2023,
     banca: "Cesgranrio",
-    enunciado: "No modelo TCP/IP, o protocolo responsável por transporte confiável orientado a conexão é:",
+    enunciado:
+      "No modelo TCP/IP, o protocolo responsável por transporte confiável orientado a conexão é:",
     alternativas: alt("UDP", "IP", "TCP", "ICMP", "ARP"),
     correta: "C",
     explicacao: "TCP oferece entrega confiável e orientada a conexão.",
@@ -194,7 +217,8 @@ export const questoes: Questao[] = [
     disciplinaId: "ti",
     ano: 2023,
     banca: "Cesgranrio",
-    enunciado: "No SQL, a cláusula usada para agrupar registros que possuem o mesmo valor em colunas específicas é:",
+    enunciado:
+      "No SQL, a cláusula usada para agrupar registros que possuem o mesmo valor em colunas específicas é:",
     alternativas: alt("ORDER BY", "GROUP BY", "HAVING", "JOIN", "WHERE"),
     correta: "B",
     explicacao: "GROUP BY agrupa por colunas; HAVING filtra os grupos.",
@@ -214,7 +238,8 @@ export const questoes: Questao[] = [
     disciplinaId: "ti",
     ano: 2021,
     banca: "Cesgranrio",
-    enunciado: "No DevOps, a prática de integrar código frequentemente ao repositório principal é conhecida como:",
+    enunciado:
+      "No DevOps, a prática de integrar código frequentemente ao repositório principal é conhecida como:",
     alternativas: alt(
       "Continuous Deployment",
       "Continuous Delivery",
@@ -246,14 +271,9 @@ export const questoes: Questao[] = [
     disciplinaId: "ti",
     ano: 2023,
     banca: "Cesgranrio",
-    enunciado: "O algoritmo de aprendizado supervisionado usado para classificação binária linear é:",
-    alternativas: alt(
-      "K-Means",
-      "Regressão Logística",
-      "PCA",
-      "Apriori",
-      "DBSCAN",
-    ),
+    enunciado:
+      "O algoritmo de aprendizado supervisionado usado para classificação binária linear é:",
+    alternativas: alt("K-Means", "Regressão Logística", "PCA", "Apriori", "DBSCAN"),
     correta: "B",
     explicacao: "Regressão logística é supervisionado e resolve classificação.",
   },

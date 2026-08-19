@@ -32,7 +32,12 @@ describe("anatomiaDoErro", () => {
   });
 
   it("abaixo do mínimo de erros a disciplina fica de fora — sem dados não é diagnóstico", () => {
-    expect(anatomiaDoErro(Array.from({ length: 9 }, () => erroChutado), 10)).toEqual([]);
+    expect(
+      anatomiaDoErro(
+        Array.from({ length: 9 }, () => erroChutado),
+        10,
+      ),
+    ).toEqual([]);
   });
 });
 

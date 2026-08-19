@@ -32,7 +32,12 @@ describe("proximoIntervalo", () => {
 });
 
 describe("agendarOuRegredir", () => {
-  const dados = { unidadeId: "u1", topico: "Normalização", disciplinaId: "ti", concursoId: "bb-ti-2026" };
+  const dados = {
+    unidadeId: "u1",
+    topico: "Normalização",
+    disciplinaId: "ti",
+    concursoId: "bb-ti-2026",
+  };
 
   it("cria agenda nova para amanhã quando a unidade não tem revisão", () => {
     const resultado = agendarOuRegredir([], dados, AGORA);

@@ -148,7 +148,8 @@ function Dashboard() {
   const revisoesVencidas = useMemo(
     () =>
       revisoes.filter(
-        (r) => r.concursoId === concursoAtivoId && new Date(r.proximaRevisao).getTime() < Date.now(),
+        (r) =>
+          r.concursoId === concursoAtivoId && new Date(r.proximaRevisao).getTime() < Date.now(),
       ).length,
     [revisoes, concursoAtivoId],
   );

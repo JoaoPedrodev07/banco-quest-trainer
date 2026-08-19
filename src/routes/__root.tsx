@@ -46,9 +46,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Erro ao carregar
-        </h1>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">Erro ao carregar</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Algo deu errado. Tente novamente ou volte para o início.
         </p>
@@ -80,10 +78,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Foco BB TI 2026 — Preparação para o concurso" },
-      { name: "description", content: "Plataforma pessoal de estudos para o BB Agente de Tecnologia (Cesgranrio)." },
+      {
+        name: "description",
+        content: "Plataforma pessoal de estudos para o BB Agente de Tecnologia (Cesgranrio).",
+      },
       { name: "author", content: "Foco BB TI" },
       { property: "og:title", content: "Foco BB TI 2026" },
-      { property: "og:description", content: "Sua rotina de estudos para o BB TI, com edital, questões e revisões." },
+      {
+        property: "og:description",
+        content: "Sua rotina de estudos para o BB TI, com edital, questões e revisões.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

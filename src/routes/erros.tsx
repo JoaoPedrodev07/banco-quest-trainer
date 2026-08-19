@@ -96,8 +96,8 @@ function ErrosPage() {
       <div>
         <h1 className="text-2xl font-black md:text-3xl">Caderno de erros</h1>
         <p className="text-sm text-muted-foreground">
-          Cada erro com o raciocínio que você escreveu na hora. Reler o próprio erro comentado
-          rende mais que dez questões novas. Acertou a questão de novo? Ela sai daqui sozinha.
+          Cada erro com o raciocínio que você escreveu na hora. Reler o próprio erro comentado rende
+          mais que dez questões novas. Acertou a questão de novo? Ela sai daqui sozinha.
         </p>
       </div>
 
@@ -128,8 +128,8 @@ function ErrosPage() {
         <TabsContent value="errados" className="space-y-3 pt-2">
           {errados.length === 0 && (
             <p className="rounded-md border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              Nenhum erro pendente neste recorte. Ou você ainda não respondeu questões, ou já
-              refez e acertou as que errou — os dois casos são o caderno funcionando.
+              Nenhum erro pendente neste recorte. Ou você ainda não respondeu questões, ou já refez
+              e acertou as que errou — os dois casos são o caderno funcionando.
             </p>
           )}
           {errados.map((item) => (
@@ -231,7 +231,9 @@ function ItemDoCaderno({
               <Badge variant="outline">{ROTULO_AVALIACAO[resposta.autoavaliacao]}</Badge>
             )}
           </div>
-          <TextoDaQuestao className={cn("block text-sm leading-relaxed", !aberta && "line-clamp-2")}>
+          <TextoDaQuestao
+            className={cn("block text-sm leading-relaxed", !aberta && "line-clamp-2")}
+          >
             {questao.enunciado}
           </TextoDaQuestao>
         </div>

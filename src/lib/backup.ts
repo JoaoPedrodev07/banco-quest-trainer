@@ -1,9 +1,4 @@
-import type {
-  CadernoSalvo,
-  CartaoProprio,
-  SrsDoCartao,
-  TentativaProva,
-} from "@/store/useStore";
+import type { CadernoSalvo, CartaoProprio, SrsDoCartao, TentativaProva } from "@/store/useStore";
 import type { RespostaHistorico, RevisaoItem, StatusTopico } from "@/types";
 
 /**

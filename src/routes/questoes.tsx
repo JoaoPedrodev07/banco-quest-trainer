@@ -541,7 +541,9 @@ function QuestoesPage() {
                 setQtd(Math.min(MAX_QUESTOES, Math.max(1, Number(e.target.value) || 1)))
               }
             />
-            <p className="text-xs text-muted-foreground">Até {MAX_QUESTOES} — o tamanho da prova real.</p>
+            <p className="text-xs text-muted-foreground">
+              Até {MAX_QUESTOES} — o tamanho da prova real.
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Ano da prova</Label>
@@ -680,7 +682,12 @@ function QuestoesPage() {
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <Button size="sm" variant="outline" className="gap-1" onClick={() => aplicarCaderno(c)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    onClick={() => aplicarCaderno(c)}
+                  >
                     <FolderOpen className="h-3.5 w-3.5" />
                     Aplicar
                   </Button>
@@ -1234,7 +1241,9 @@ function QuestoesPage() {
             numero={i + 1}
             escolhida={respostas[q.id]}
             segundos={tempos[q.id]}
-            disciplinaNome={disciplinas.find((d) => d.id === q.disciplinaId)?.nome ?? q.disciplinaId}
+            disciplinaNome={
+              disciplinas.find((d) => d.id === q.disciplinaId)?.nome ?? q.disciplinaId
+            }
             historico={historico}
             concursoId={concursoAtivoId}
             // Erro aberto por padrão só em simulado curto: numa prova de 70, abrir
@@ -1335,7 +1344,9 @@ function QuestaoDoResultado({
                     a.letra === escolhida &&
                       a.letra !== q.correta &&
                       "border-destructive bg-destructive/10",
-                    a.letra !== q.correta && a.letra !== escolhida && "border-transparent opacity-70",
+                    a.letra !== q.correta &&
+                      a.letra !== escolhida &&
+                      "border-transparent opacity-70",
                   )}
                 >
                   <span className="font-black text-primary">{a.letra}</span>

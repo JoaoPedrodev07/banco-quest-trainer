@@ -6,7 +6,10 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi"] },
+  // `backend/` é Django: o .venv traz milhares de .js vendorados (admin do
+  // Django, DRF) que o bloco do Prettier abaixo alcançava — o lint reportava
+  // 23 mil "erros" em código que não é nosso. `.wrangler` é artefato de build.
+  { ignores: ["dist", ".output", ".vinxi", ".wrangler", "backend/"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
