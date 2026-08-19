@@ -141,11 +141,11 @@ npm run format     # Prettier
 
 Não saia consertando por conta própria; é o mapa do que está pendente por decisão.
 
-1. **Testes existem só no parser** (`manage.py test ingest`, 10 casos). Nasceram de um defeito real:
-   questão cujas alternativas são figuras entrava com as cinco letras vazias, impossível de
-   responder e sem nada avisando. O que ainda não tem cobertura e merece: `proximoIntervalo` e a
-   contagem de `streak` (`useStore.ts`), ambas com regra de data que erra em silêncio. O frontend
-   não tem runner de teste configurado.
+1. **Testes: backend no parser e na API; frontend em Vitest nas regras de data e estatística.**
+   `manage.py test` (29 casos) e `npm test` (69 casos: `estatistica`, `corte`, `revisao`, `trilha`,
+   `anatomia-evolucao`). `proximoIntervalo` ganhou teste quando virou função pura em
+   `src/lib/revisao.ts` (ADR-003). O que ainda merece e não tem: a contagem de `streak`
+   (`useStore.ts`), regra de data que erra em silêncio.
 2. **Classificação incompleta, mas não do jeito que parece à primeira vista**: 232 das 590 questões
    têm tópico do edital (39%). Olhando só o recorte que importa para o cargo de Agente de Tecnologia
    — a prova `bb-ti-2023`, 34 questões de TI — a classificação já está em 31/34 (91%): não é mais o
@@ -259,3 +259,18 @@ incidência, "onde estudar agora", raio-X da banca, diff de edital) + Vitest no 
   diferente de evidência de baixa incidência, e a UI precisa dizer isso com essas palavras.
 - Trabalho em branch, PR pequeno, um por fase (mais estrito que o §4.3, que permite commit direto
   na `main` para o resto do projeto).
+
+## 9. Linha executada: Ciclo de Estudo (ago/2026, branch `feat/ciclo-de-estudo`)
+
+Onze ADRs em `docs/adr/` (leia antes de mexer nessas áreas), implementados em 4 camadas:
+caderno de erros (`/erros`), explicação no resultado do simulado, revisão espaçada que
+**regride** ao errar (regras puras em `src/lib/revisao.ts`), dashboard recortado por concurso,
+sessão de simulado persistente com grade e modo prova (`simuladoAtual` no store), filtros por
+assunto/inéditas + cadernos salvos, tentativas por prova (fotografia de evento), card "Hoje",
+trilha com fases (`src/lib/trilha.ts`), flashcards com SRS por cartão + cartões próprios,
+anotação por questão, anatomia do erro e evolução por janelas (`src/lib/estatistica.ts`).
+
+Estado persistido novo (todos com padrão vazio no `merge`, backup v2): `simuladoAtual`,
+`cadernos`, `tentativasProva`, `flashcardsSrs`, `cartoesProprios`, `anotacoes`. O `persist`
+está na **version 2** — as 4 revisões de demonstração do protótipo foram removidas e não
+existem mais; `revisoes` nasce vazio.
