@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnotacaoDaQuestao } from "@/components/AnotacaoDaQuestao";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { GabaritoComentado } from "@/components/GabaritoComentado";
+import { ReportarProblema } from "@/components/ReportarProblema";
 import { TextoDaQuestao } from "@/components/Markdown";
 import { useAcervoDoConcurso } from "@/services/hooks";
 import { pontosFracos } from "@/lib/desempenho";
@@ -1121,7 +1122,14 @@ function QuestoesPage() {
               </div>
             )}
 
-            {respondida && <AnotacaoDaQuestao questaoId={q.id} />}
+            {respondida && (
+              <>
+                <AnotacaoDaQuestao questaoId={q.id} />
+                <div className="flex justify-end">
+                  <ReportarProblema questaoId={q.id} />
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -1406,6 +1414,10 @@ function QuestaoDoResultado({
           </div>
 
           <AnotacaoDaQuestao questaoId={q.id} />
+
+          <div className="flex justify-end">
+            <ReportarProblema questaoId={q.id} />
+          </div>
         </CardContent>
       )}
     </Card>

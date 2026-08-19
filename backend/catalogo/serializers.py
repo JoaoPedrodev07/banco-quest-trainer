@@ -15,6 +15,7 @@ from .models import (
     ClassificacaoQuestao,
     Disciplina,
     Fonte,
+    ProblemaQuestao,
     Prova,
     Questao,
     Subtopico,
@@ -264,3 +265,20 @@ class ClassificacaoQuestaoSerializer(serializers.ModelSerializer):
 
     def get_impactoTopico(self, obj):
         return obj.topico.classificacoes.filter(eh_primaria=True).count()
+
+
+class ProblemaQuestaoSerializer(serializers.ModelSerializer):
+    """Fila de curadoria de problemas reportados (ADR-014)."""
+
+    questaoId = serializers.CharField(source="questao_id", read_only=True)
+    enunciado = serializers.SerializerMethodField()
+    tipoRotulo = serializers.CharField(source="get_tipo_display", read_only=True)
+    criadoEm = serializers.DateTimeField(source="criado_em", read_only=True)
+
+    class Meta:
+        model = ProblemaQuestao
+        fields = ["id", "questaoId", "enunciado", "tipo", "tipoRotulo", "descricao", "criadoEm"]
+
+    def get_enunciado(self, obj) -> str:
+        texto = obj.questao.enunciado
+        return texto[:280] + ("…" if len(texto) > 280 else "")

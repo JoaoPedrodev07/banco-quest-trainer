@@ -389,3 +389,57 @@ class AulaVersionadaTest(TestCase):
     def test_prompt_versao_fica_registrado(self):
         resposta = self._salvar("texto", prompt_versao="1")
         self.assertEqual(resposta.json()["promptVersao"], "1")
+
+
+class ProblemaQuestaoTest(TestCase):
+    """ADR-014: reportar problema é sinal para curadoria, nunca correção."""
+
+    def setUp(self):
+        fonte = Fonte.objects.create(slug="fonte-teste-prob", tipo=Fonte.Tipo.OFICIAL, titulo="T")
+        disciplina = Disciplina.objects.create(id="ti-teste-prob", nome="TI", cor="#000", fonte=fonte)
+        self.questao = Questao.objects.create(
+            id="questao-prob-1", disciplina=disciplina, ano=2023, banca="Cesgranrio",
+            enunciado="Enunciado.", correta="A", fonte=fonte,
+        )
+
+    def test_reportar_cria_e_aparece_na_fila(self):
+        resposta = self.client.post(
+            f"/api/questoes/{self.questao.id}/reportar/",
+            {"tipo": "gabarito_errado", "descricao": "o gabarito oficial diz B"},
+            content_type="application/json",
+        )
+        self.assertEqual(resposta.status_code, 201)
+        # A questão NÃO muda — report é sinal, não correção (§2.2).
+        self.questao.refresh_from_db()
+        self.assertEqual(self.questao.correta, "A")
+
+        fila = self.client.get("/api/problemas/").json()
+        itens = fila["results"] if isinstance(fila, dict) else fila
+        self.assertEqual(len(itens), 1)
+        self.assertEqual(itens[0]["tipo"], "gabarito_errado")
+
+    def test_tipo_invalido_retorna_400(self):
+        resposta = self.client.post(
+            f"/api/questoes/{self.questao.id}/reportar/",
+            {"tipo": "achei_dificil"},
+            content_type="application/json",
+        )
+        self.assertEqual(resposta.status_code, 400)
+
+    def test_questao_inexistente_retorna_404(self):
+        resposta = self.client.post(
+            "/api/questoes/nao-existe/reportar/",
+            {"tipo": "outro"},
+            content_type="application/json",
+        )
+        self.assertEqual(resposta.status_code, 404)
+
+    def test_resolver_tira_da_fila(self):
+        from catalogo.models import ProblemaQuestao
+
+        problema = ProblemaQuestao.objects.create(questao=self.questao, tipo="outro")
+        resposta = self.client.post(f"/api/problemas/{problema.id}/resolver/")
+        self.assertEqual(resposta.status_code, 200)
+        fila = self.client.get("/api/problemas/").json()
+        itens = fila["results"] if isinstance(fila, dict) else fila
+        self.assertEqual(itens, [])

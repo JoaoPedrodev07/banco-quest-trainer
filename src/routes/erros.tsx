@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, ListChecks } from "lucide-react";
 import { AnotacaoDaQuestao } from "@/components/AnotacaoDaQuestao";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { GabaritoComentado } from "@/components/GabaritoComentado";
+import { ReportarProblema } from "@/components/ReportarProblema";
 import { TextoDaQuestao } from "@/components/Markdown";
 import { useAcervoDoConcurso } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
@@ -280,6 +281,10 @@ function ItemDoCaderno({
           </div>
 
           <AnotacaoDaQuestao questaoId={questao.id} />
+
+          <div className="flex justify-end">
+            <ReportarProblema questaoId={questao.id} />
+          </div>
 
           {unidadeId && (
             <Button asChild size="sm" variant="outline" className="gap-1.5">

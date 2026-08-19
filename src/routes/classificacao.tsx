@@ -1,8 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, Sparkles } from "lucide-react";
+import { CheckCircle2, Flag, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-import { useFilaRevisao, useRevisarClassificacao } from "@/services/hooks";
+import {
+  useFilaRevisao,
+  useProblemas,
+  useResolverProblema,
+  useRevisarClassificacao,
+} from "@/services/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +45,8 @@ const LABEL_ORIGEM: Record<ClassificacaoRevisao["origemClassificacao"], string> 
 function ClassificacaoPage() {
   const { fila, carregando } = useFilaRevisao();
   const revisar = useRevisarClassificacao();
+  const { problemas } = useProblemas();
+  const resolverProblema = useResolverProblema();
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -69,6 +76,49 @@ function ClassificacaoPage() {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Problemas reportados nas questões (ADR-014): mesma tela porque a
+          curadoria do acervo é uma só. Resolver aqui NÃO altera a questão —
+          a correção, se couber, é feita no admin conferindo o PDF original. */}
+      {problemas.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="flex items-center gap-2 text-lg font-bold">
+            <Flag className="h-4 w-4" />
+            Problemas reportados ({problemas.length})
+          </h2>
+          {problemas.map((p) => (
+            <Card key={p.id}>
+              <CardContent className="space-y-2 pt-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-mono text-sm text-muted-foreground">{p.questaoId}</p>
+                  <Badge variant="destructive">{p.tipoRotulo}</Badge>
+                </div>
+                <p className="text-sm">{p.enunciado}</p>
+                {p.descricao && (
+                  <p className="text-xs italic text-muted-foreground">“{p.descricao}”</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Reportado em {p.criadoEm.slice(0, 10).split("-").reverse().join("/")}. Confira
+                  contra o PDF da fonte antes de mexer na questão (admin do Django).
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={resolverProblema.isPending}
+                  onClick={() =>
+                    resolverProblema.mutate(p.id, {
+                      onSuccess: () => toast.success("Problema marcado como resolvido."),
+                      onError: () => toast.error("Não deu para resolver. Backend fora do ar?"),
+                    })
+                  }
+                >
+                  Marcar como resolvido
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
       <div className="space-y-3">

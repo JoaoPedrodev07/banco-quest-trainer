@@ -16,7 +16,16 @@ import { CONCURSO_PADRAO } from "@/store/useStore";
 import { disciplinas as disciplinasMock } from "@/data/disciplinas";
 import { provas as provasMock } from "@/data/provas";
 import { questoes as questoesMock } from "@/data/questoes";
-import type { Acervo, Aula, ClassificacaoRevisao, Disciplina, Prova, Questao } from "@/types";
+import type {
+  Acervo,
+  Aula,
+  ClassificacaoRevisao,
+  Disciplina,
+  ProblemaQuestao,
+  Prova,
+  Questao,
+  TipoProblema,
+} from "@/types";
 
 const BASE = ((import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000/api")
   .trim()
@@ -216,6 +225,20 @@ export const api = {
 
   revisarClassificacao: (id: number) =>
     enviar<ClassificacaoRevisao>(`/classificacoes/fila-revisao/${id}/revisar/`, {}),
+
+  /**
+   * Problemas reportados (ADR-014). Sem reserva de mock, como a fila de
+   * classificação: é curadoria do acervo — sem backend não há o que reportar.
+   */
+  reportarProblema: (questaoId: string, tipo: TipoProblema, descricao: string) =>
+    enviar<ProblemaQuestao>(`/questoes/${encodeURIComponent(questaoId)}/reportar/`, {
+      tipo,
+      descricao,
+    }),
+
+  listProblemas: () => buscarTudo<ProblemaQuestao>("/problemas/"),
+
+  resolverProblema: (id: number) => enviar<ProblemaQuestao>(`/problemas/${id}/resolver/`, {}),
 };
 
 /**
@@ -229,4 +252,5 @@ export const chaves = {
   acervo: ["acervo"] as const,
   aulas: (concursoId: string) => ["aulas", concursoId] as const,
   filaRevisao: ["fila-revisao"] as const,
+  problemas: ["problemas"] as const,
 };

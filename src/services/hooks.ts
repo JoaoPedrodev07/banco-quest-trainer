@@ -16,12 +16,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, chaves } from "@/services";
 import { concursoPorId } from "@/data/concursos";
 import { disciplinasDoCargo } from "@/lib/incidencia";
-import type { Aula, ClassificacaoRevisao, Disciplina, Prova, Questao } from "@/types";
+import type {
+  Aula,
+  ClassificacaoRevisao,
+  Disciplina,
+  ProblemaQuestao,
+  Prova,
+  Questao,
+  TipoProblema,
+} from "@/types";
 
 const SEM_DISCIPLINAS: Disciplina[] = [];
 const SEM_QUESTOES: Questao[] = [];
 const SEM_PROVAS: Prova[] = [];
 const SEM_FILA_REVISAO: ClassificacaoRevisao[] = [];
+const SEM_PROBLEMAS: ProblemaQuestao[] = [];
 
 export function useDisciplinas(concursoId?: string) {
   const consulta = useQuery({
@@ -104,6 +113,40 @@ export function useRevisarClassificacao() {
   return useMutation({
     mutationFn: (id: number) => api.revisarClassificacao(id),
     onSuccess: () => cliente.invalidateQueries({ queryKey: chaves.filaRevisao }),
+  });
+}
+
+/** Fila de problemas reportados nas questões (ADR-014). */
+export function useProblemas() {
+  const consulta = useQuery({
+    queryKey: chaves.problemas,
+    queryFn: api.listProblemas,
+    retry: false,
+  });
+  return { problemas: consulta.data ?? SEM_PROBLEMAS, carregando: consulta.isPending };
+}
+
+export function useReportarProblema() {
+  const cliente = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      questaoId,
+      tipo,
+      descricao,
+    }: {
+      questaoId: string;
+      tipo: TipoProblema;
+      descricao: string;
+    }) => api.reportarProblema(questaoId, tipo, descricao),
+    onSuccess: () => cliente.invalidateQueries({ queryKey: chaves.problemas }),
+  });
+}
+
+export function useResolverProblema() {
+  const cliente = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.resolverProblema(id),
+    onSuccess: () => cliente.invalidateQueries({ queryKey: chaves.problemas }),
   });
 }
 

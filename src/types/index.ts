@@ -221,6 +221,28 @@ export interface ClassificacaoRevisao {
   impactoTopico: number;
 }
 
+/** Tipos de problema reportável numa questão (ADR-014). */
+export type TipoProblema =
+  | "gabarito_errado"
+  | "enunciado_incompleto"
+  | "alternativa_faltando"
+  | "classificacao_errada"
+  | "outro";
+
+/**
+ * Um problema reportado numa questão, na fila de curadoria (ADR-014).
+ * Report é sinal para revisão humana — nunca muda a questão sozinho.
+ */
+export interface ProblemaQuestao {
+  id: number;
+  questaoId: string;
+  enunciado: string;
+  tipo: TipoProblema;
+  tipoRotulo: string;
+  descricao: string;
+  criadoEm: string;
+}
+
 /** Status de um concurso no calendário público. */
 export type StatusConcurso =
   "inscricoes_abertas" | "inscricoes_encerradas" | "previsto" | "encerrado";

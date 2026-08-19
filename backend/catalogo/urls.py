@@ -13,9 +13,11 @@ router.register(
     views.ClassificacaoQuestaoViewSet,
     basename="classificacao-fila-revisao",
 )
+router.register("problemas", views.ProblemaQuestaoViewSet, basename="problema")
 
 urlpatterns = [
     path("meta/", views.meta, name="meta"),
     path("questoes/<str:questao_id>/comentar/", views.comentar_gabarito, name="comentar-gabarito"),
+    path("questoes/<str:questao_id>/reportar/", views.reportar_problema, name="reportar-problema"),
     path("", include(router.urls)),
 ]

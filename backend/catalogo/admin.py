@@ -15,6 +15,7 @@ from .models import (
     Edital,
     Fonte,
     ItemEdital,
+    ProblemaQuestao,
     Prova,
     Questao,
     Subtopico,
@@ -108,3 +109,10 @@ class QuestaoAdmin(admin.ModelAdmin):
     search_fields = ["id", "enunciado"]
     inlines = [AlternativaInline]
     autocomplete_fields = ["fonte"]
+
+
+@admin.register(ProblemaQuestao)
+class ProblemaQuestaoAdmin(admin.ModelAdmin):
+    list_display = ["questao", "tipo", "criado_em", "resolvido_em"]
+    list_filter = ["tipo", ("resolvido_em", admin.EmptyFieldListFilter)]
+    search_fields = ["questao__id", "descricao"]

@@ -15,11 +15,20 @@ from rest_framework import viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 
-from .models import Aula, ClassificacaoQuestao, Disciplina, Prova, Questao
+from .models import (
+    Aula,
+    ClassificacaoQuestao,
+    Disciplina,
+    ProblemaQuestao,
+    Prova,
+    Questao,
+    TipoProblema,
+)
 from .serializers import (
     AulaSerializer,
     ClassificacaoQuestaoSerializer,
     DisciplinaSerializer,
+    ProblemaQuestaoSerializer,
     ProvaSerializer,
     QuestaoSerializer,
 )
@@ -224,6 +233,53 @@ class ClassificacaoQuestaoViewSet(viewsets.ReadOnlyModelViewSet):
         questao.save(update_fields=["topico", "subtopico"])
 
         return Response(ClassificacaoQuestaoSerializer(classificacao).data)
+
+
+@api_view(["POST"])
+def reportar_problema(request, questao_id: str):
+    """Registra um problema reportado numa questão (ADR-014).
+
+    É sinal para curadoria, nunca correção automática: a questão não muda aqui.
+    Sem autenticação como todo endpoint de escrita atual — mesma ressalva
+    documentada do `AulaViewSet`.
+    """
+    questao = Questao.objects.filter(pk=questao_id).first()
+    if questao is None:
+        return Response({"erro": f"questão '{questao_id}' não existe."}, status=404)
+
+    dados = request.data or {}
+    tipo = dados.get("tipo", "")
+    if tipo not in TipoProblema.values:
+        return Response(
+            {"erro": f"tipo inválido. Use um de: {', '.join(TipoProblema.values)}."}, status=400
+        )
+
+    problema = ProblemaQuestao.objects.create(
+        questao=questao, tipo=tipo, descricao=str(dados.get("descricao", "")).strip()
+    )
+    return Response(ProblemaQuestaoSerializer(problema).data, status=201)
+
+
+class ProblemaQuestaoViewSet(viewsets.ReadOnlyModelViewSet):
+    """Fila de curadoria de problemas reportados (ADR-014).
+
+    Só os abertos — resolvido sai da lista porque fila é trabalho pendente, não
+    histórico (histórico é o admin). Mesmo desenho da fila de classificação.
+    """
+
+    serializer_class = ProblemaQuestaoSerializer
+    queryset = (
+        ProblemaQuestao.objects.filter(resolvido_em__isnull=True)
+        .select_related("questao")
+        .order_by("criado_em")
+    )
+
+    @action(detail=True, methods=["post"])
+    def resolver(self, request, pk=None):
+        problema = self.get_object()
+        problema.resolvido_em = timezone.now()
+        problema.save(update_fields=["resolvido_em"])
+        return Response(ProblemaQuestaoSerializer(problema).data)
 
 
 @api_view(["POST"])

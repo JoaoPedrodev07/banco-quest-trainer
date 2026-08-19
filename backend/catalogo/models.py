@@ -521,6 +521,45 @@ class Aula(models.Model):
         return self.subtopico_id or self.topico_id
 
 
+class TipoProblema(models.TextChoices):
+    GABARITO_ERRADO = "gabarito_errado", "Gabarito errado"
+    ENUNCIADO_INCOMPLETO = "enunciado_incompleto", "Enunciado incompleto ou truncado"
+    ALTERNATIVA_FALTANDO = "alternativa_faltando", "Alternativa faltando ou vazia"
+    CLASSIFICACAO_ERRADA = "classificacao_errada", "Assunto/classificação errada"
+    OUTRO = "outro", "Outro"
+
+
+class ProblemaQuestao(models.Model):
+    """Problema reportado pelo usuário numa questão (ADR-014).
+
+    O acervo vem de parser de PDF e defeito de importação já aconteceu (questão
+    com alternativas-figura vazias). Este registro é o **sinal para curadoria**,
+    nunca correção automática: mudar gabarito por report sem conferir o PDF
+    violaria o §2.2. A fila (resolvido_em nulo) aparece na tela de curadoria,
+    junto da fila de classificação da Fase 2.
+
+    Report duplicado da mesma questão é permitido de propósito — dois sinais
+    valem mais que um.
+    """
+
+    questao = models.ForeignKey(Questao, on_delete=models.CASCADE, related_name="problemas")
+    tipo = models.CharField(max_length=24, choices=TipoProblema.choices)
+    descricao = models.TextField(blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    resolvido_em = models.DateTimeField(
+        null=True, blank=True, help_text="Nulo = ainda na fila de curadoria."
+    )
+
+    class Meta:
+        verbose_name = "problema de questão"
+        verbose_name_plural = "problemas de questão"
+        ordering = ["-criado_em"]
+        indexes = [models.Index(fields=["resolvido_em"])]
+
+    def __str__(self) -> str:
+        return f"{self.questao_id} · {self.get_tipo_display()}"
+
+
 class OrigemClassificacao(models.TextChoices):
     HUMANA = "humana", "Humana"
     HEURISTICA = "heuristica", "Heurística (termo-âncora)"
