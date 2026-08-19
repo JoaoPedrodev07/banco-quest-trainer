@@ -103,6 +103,26 @@ export interface CadernoSalvo {
   };
 }
 
+/**
+ * O resultado de uma prova completa entregue (ADR-007).
+ *
+ * Fotografia de evento, não derivado materializado: o número registra o que a
+ * pessoa viu na tela de resultado naquele dia, e não é reconstruível depois —
+ * o histórico continua crescendo e as respostas não sabem a que sessão
+ * pertenceram. Mesmo padrão do `ItemEdital` no backend: histórico ao lado do
+ * estado, permitido pelo §2.3.
+ */
+export interface TentativaProva {
+  id: string;
+  provaId: string;
+  concursoId: string;
+  data: string; // ISO
+  acertos: number;
+  erros: number;
+  total: number;
+  tempoSegundos: number;
+}
+
 interface StoreState {
   dataProva: string; // ISO
   metaDiaria: number;
@@ -115,6 +135,7 @@ interface StoreState {
   streak: { ultimoDia: string | null; dias: number };
   simuladoAtual: SimuladoAtual | null;
   cadernos: CadernoSalvo[];
+  tentativasProva: TentativaProva[];
 
   definirConcursoAtivo: (id: string) => void;
   iniciarPomodoro: (fase: "foco" | "pausa") => void;
@@ -166,6 +187,8 @@ interface StoreState {
   encerrarSimulado: () => void;
   salvarCaderno: (c: CadernoSalvo) => void;
   removerCaderno: (id: string) => void;
+  /** Grava a fotografia de uma prova entregue. Sessão abandonada nunca chega aqui. */
+  registrarTentativaProva: (t: TentativaProva) => void;
   /**
    * Substitui o progresso pelo de um backup.
    *
@@ -220,6 +243,7 @@ export const useStore = create<StoreState>()(
       streak: { ultimoDia: null, dias: 0 },
       simuladoAtual: null,
       cadernos: [],
+      tentativasProva: [],
 
       definirConcursoAtivo: (id) => set({ concursoAtivoId: id }),
 
@@ -354,6 +378,9 @@ export const useStore = create<StoreState>()(
 
       salvarCaderno: (c) => set((s) => ({ cadernos: [...s.cadernos, c] })),
       removerCaderno: (id) => set((s) => ({ cadernos: s.cadernos.filter((c) => c.id !== id) })),
+
+      registrarTentativaProva: (t) =>
+        set((s) => ({ tentativasProva: [...s.tentativasProva, t] })),
       aplicarBackup: (progresso) => set({ ...progresso }),
 
       reset: () =>
@@ -364,6 +391,7 @@ export const useStore = create<StoreState>()(
           streak: { ultimoDia: null, dias: 0 },
           simuladoAtual: null,
           cadernos: [],
+          tentativasProva: [],
         }),
     }),
     {

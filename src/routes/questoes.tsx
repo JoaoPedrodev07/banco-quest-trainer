@@ -130,6 +130,7 @@ function QuestoesPage() {
     cadernos,
     salvarCaderno,
     removerCaderno,
+    registrarTentativaProva,
   } = useStore();
   const {
     concurso,
@@ -389,6 +390,28 @@ function QuestoesPage() {
           });
         }
       }
+    }
+    // Prova completa entregue vira tentativa registrada (ADR-007): a fotografia
+    // que a tela de Provas mostra como "última/melhor". Simulado avulso não —
+    // tentativa só faz sentido contra um caderno fixo.
+    if (sessao.provaId) {
+      const acertos = lista.filter((q) => sessao.respostas[q.id] === q.correta).length;
+      const erros = lista.filter(
+        (q) => sessao.respostas[q.id] && sessao.respostas[q.id] !== q.correta,
+      ).length;
+      registrarTentativaProva({
+        id: `tent-${Date.now()}`,
+        provaId: sessao.provaId,
+        concursoId: concursoAtivoId,
+        data: new Date().toISOString(),
+        acertos,
+        erros,
+        total: lista.length,
+        tempoSegundos: Math.max(
+          0,
+          Math.floor((Date.now() - new Date(sessao.iniciadoEm).getTime()) / 1000),
+        ),
+      });
     }
     setResultado({
       questoes: lista,

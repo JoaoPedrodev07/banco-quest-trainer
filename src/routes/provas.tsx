@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { useProvas } from "@/services/hooks";
+import { useStore } from "@/store/useStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,24 @@ function ProvasPage() {
   const [banca, setBanca] = useState("todas");
   const [ano, setAno] = useState("todos");
   const { provas, carregando } = useProvas();
+  const tentativasProva = useStore((s) => s.tentativasProva);
+
+  // Última e melhor tentativa por prova (ADR-007): a régua de evolução de quem
+  // estuda sozinho é refazer o mesmo caderno e comparar consigo mesmo.
+  const tentativasPorProva = useMemo(() => {
+    const mapa = new Map<string, { ultima: (typeof tentativasProva)[number]; melhor: number }>();
+    for (const t of tentativasProva) {
+      const atual = mapa.get(t.provaId);
+      const pct = t.total ? Math.round((t.acertos / t.total) * 100) : 0;
+      if (!atual) {
+        mapa.set(t.provaId, { ultima: t, melhor: pct });
+      } else {
+        // O array é cronológico: a mais recente sempre substitui a "última".
+        mapa.set(t.provaId, { ultima: t, melhor: Math.max(atual.melhor, pct) });
+      }
+    }
+    return mapa;
+  }, [tentativasProva]);
 
   const filtradas = useMemo(
     () =>
@@ -107,6 +126,22 @@ function ProvasPage() {
                   {p.questoesDisponiveis ?? 0} de {p.qtdQuestoes} questões no acervo
                 </span>
               </div>
+              {(() => {
+                const t = tentativasPorProva.get(p.id);
+                if (!t) return null;
+                const pctUltima = t.ultima.total
+                  ? Math.round((t.ultima.acertos / t.ultima.total) * 100)
+                  : 0;
+                const data = t.ultima.data.slice(0, 10).split("-").reverse().join("/");
+                return (
+                  // Sempre com o `n` (§8): "61%" sozinho esconde se foi de 34
+                  // questões ou de 5.
+                  <p className="text-xs text-muted-foreground">
+                    Você: última {pctUltima}% ({t.ultima.acertos}/{t.ultima.total}) em {data}
+                    {t.melhor !== pctUltima && ` · melhor ${t.melhor}%`}
+                  </p>
+                );
+              })()}
               <div className="flex gap-2 pt-2">
                 {p.urlProva ? (
                   <Button asChild size="sm" variant="outline" className="flex-1">
