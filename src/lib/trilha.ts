@@ -15,6 +15,13 @@ export type FaseId = "cobertura" | "questoes" | "reta_final";
 
 /** A reta final são os últimos 10 dias: só revisão, resumos e provas completas. */
 export const RETA_FINAL_DIAS = 10;
+/**
+ * Acima disto o ritmo de cobertura exigido é alto demais para valer a pena
+ * perseguir tudo (ADR-017): mais de 2 unidades de teoria por dia, todo dia, não
+ * se sustenta junto com questões e revisões — a saída é priorizar por
+ * incidência, não acelerar.
+ */
+export const RITMO_ALTO = 2;
 /** A fase de questões começa, no mais tardar, a 30 dias da prova. */
 export const QUESTOES_DIAS = 30;
 /** Sem data, a fase de questões é sugerida quando a cobertura passa disto. */

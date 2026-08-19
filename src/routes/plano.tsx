@@ -8,7 +8,7 @@ import { concursoPorId } from "@/data/concursos";
 import { useAcervoDoConcurso } from "@/services/hooks";
 import { useStore, CONCURSO_PADRAO } from "@/store/useStore";
 import { montarPlano } from "@/lib/planoEstudos";
-import { montarTrilha, FASES } from "@/lib/trilha";
+import { montarTrilha, FASES, RITMO_ALTO } from "@/lib/trilha";
 import { desempenhoPorUnidade } from "@/lib/desempenho";
 import { disciplinasDoCargo } from "@/lib/incidencia";
 import { linkYouTube } from "@/lib/promptEstudo";
@@ -150,6 +150,20 @@ function PlanoPage() {
                 </div>
               ))}
             </div>
+
+            {/* Ritmo alto = priorizar, não acelerar (ADR-017). O aviso vem com a
+                conta que o sustenta, como toda afirmação estatística aqui. */}
+            {trilha.faseAtual === "cobertura" &&
+              trilha.ritmoNecessario !== null &&
+              trilha.ritmoNecessario > RITMO_ALTO && (
+                <p className="rounded-md border border-atencao/40 bg-atencao-suave p-2.5 text-xs text-atencao-foreground">
+                  Fechar a cobertura inteira exigiria ~
+                  {trilha.ritmoNecessario.toLocaleString("pt-BR")} unidades de teoria por dia até a
+                  fase de questões — ritmo difícil de sustentar junto com treino e revisões.{" "}
+                  <strong>Priorize pelos assuntos que mais caem</strong> (Análise → Onde parar de
+                  estudar) em vez de tentar cobrir tudo.
+                </p>
+              )}
 
             <p className="text-xs text-muted-foreground">
               {trilha.unidadesCobertas} de {trilha.unidadesTotais} unidades do edital com teoria

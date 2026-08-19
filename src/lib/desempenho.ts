@@ -99,6 +99,47 @@ export function pontosFracos(
   );
 }
 
+/** Quantos erros seguidos declaram um assunto travado. */
+export const SEQUENCIA_TRAVADO = 3;
+
+/**
+ * Assuntos travados (ADR-017): as últimas `SEQUENCIA_TRAVADO` respostas da
+ * unidade foram TODAS erradas.
+ *
+ * É diferente de "fraco" (taxa abaixo da média): fraco pede treino; travado
+ * pede **mudar de abordagem** — reerrar pela quarta vez não é prática, é
+ * reforço do erro. A sequência olha só o fim do histórico de propósito: quem
+ * errou três no passado e acertou a última destravou.
+ */
+export function assuntosTravados(
+  historico: RespostaHistorico[],
+  questoes: Questao[],
+  concursoId?: string,
+): Set<string> {
+  const porId = new Map(questoes.map((q) => [q.id, q]));
+  const ultimas = new Map<string, boolean[]>();
+
+  for (const resposta of historico) {
+    if (concursoId && resposta.concursoId !== concursoId) continue;
+    const questao = porId.get(resposta.questaoId);
+    const unidadeId = questao?.subtopicoId ?? questao?.topicoId;
+    if (!unidadeId) continue;
+    const lista = ultimas.get(unidadeId) ?? [];
+    lista.push(resposta.correta);
+    // Só o rabo interessa; guardar tudo cresceria à toa.
+    if (lista.length > SEQUENCIA_TRAVADO) lista.shift();
+    ultimas.set(unidadeId, lista);
+  }
+
+  const travados = new Set<string>();
+  for (const [unidadeId, lista] of ultimas) {
+    if (lista.length === SEQUENCIA_TRAVADO && lista.every((correta) => !correta)) {
+      travados.add(unidadeId);
+    }
+  }
+  return travados;
+}
+
 /** Só os ids, para a tela do edital destacar as linhas sem recalcular por linha. */
 export function unidadesFracas(
   historico: RespostaHistorico[],

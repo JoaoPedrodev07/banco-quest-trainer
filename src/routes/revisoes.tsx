@@ -27,7 +27,7 @@ import {
 import { concursoPorId } from "@/data/concursos";
 import { useAcervoDoConcurso } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
-import { desempenhoPorUnidade } from "@/lib/desempenho";
+import { SEQUENCIA_TRAVADO, assuntosTravados, desempenhoPorUnidade } from "@/lib/desempenho";
 import { linkYouTube } from "@/lib/promptEstudo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,13 @@ function RevisoesPage() {
 
   const desempenho = useMemo(
     () => desempenhoPorUnidade(historico, questoes, concursoAtivoId),
+    [historico, questoes, concursoAtivoId],
+  );
+
+  // Assunto travado (ADR-017): 3 erros seguidos pedem mudar de abordagem, não
+  // mais questões — a recomendação da revisão inverte.
+  const travados = useMemo(
+    () => assuntosTravados(historico, questoes, concursoAtivoId),
     [historico, questoes, concursoAtivoId],
   );
 
@@ -106,6 +113,7 @@ function RevisoesPage() {
           // O nome do edital manda sobre o texto gravado: a revisão pode ter sido
           // criada com um rótulo antigo, e o edital é a fonte.
           const nome = (r.unidadeId && nomeDaUnidade.get(r.unidadeId)) || r.topico;
+          const travado = !!r.unidadeId && travados.has(r.unidadeId);
           const daUnidade = r.unidadeId
             ? desempenho.find((x) => x.unidadeId === r.unidadeId)
             : null;
@@ -135,6 +143,14 @@ function RevisoesPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate font-bold">{nome}</p>
                     {atrasada && <Badge variant="destructive">Atrasada</Badge>}
+                    {travado && (
+                      <Badge
+                        variant="outline"
+                        className="border-destructive/60 text-destructive"
+                      >
+                        Travado
+                      </Badge>
+                    )}
                     <Badge variant="secondary">{r.intervaloAtual}d</Badge>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -147,6 +163,13 @@ function RevisoesPage() {
 
               {expandida && (
                 <div className="space-y-3 border-t border-border p-4">
+                  {travado && (
+                    <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                      Suas últimas {SEQUENCIA_TRAVADO} respostas deste assunto foram erradas.
+                      Reerrar pela quarta vez não é treino, é reforço do erro —{" "}
+                      <strong>veja a aula ou um vídeo antes de voltar às questões</strong>.
+                    </p>
+                  )}
                   {r.unidadeId ? (
                     <p className="text-sm text-muted-foreground">
                       {questoesDaUnidade.length > 0 ? (

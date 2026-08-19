@@ -32,6 +32,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useMemo } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -61,6 +62,8 @@ function Dashboard() {
     concursoAtivoId,
     revisoes,
     simuladoAtual,
+    marcarRevisada,
+    adiarRevisao,
   } = useStore();
   const { concurso, disciplinas, questoes, vazio } = useAcervoDoConcurso(concursoAtivoId);
 
@@ -145,14 +148,18 @@ function Dashboard() {
   // O que fazer AGORA (ADR-008): a pergunta que o usuário faz ao abrir o app.
   // Tudo derivado na leitura (§2.3) — revisões vencidas, sessão pendente e o
   // primeiro bloco do plano de hoje.
-  const revisoesVencidas = useMemo(
+  const vencidas = useMemo(
     () =>
-      revisoes.filter(
-        (r) =>
-          r.concursoId === concursoAtivoId && new Date(r.proximaRevisao).getTime() < Date.now(),
-      ).length,
+      revisoes
+        .filter(
+          (r) =>
+            r.concursoId === concursoAtivoId && new Date(r.proximaRevisao).getTime() < Date.now(),
+        )
+        // A mais atrasada primeiro: é a de maior retorno.
+        .sort((a, b) => a.proximaRevisao.localeCompare(b.proximaRevisao)),
     [revisoes, concursoAtivoId],
   );
+  const revisoesVencidas = vencidas.length;
   const sessaoPendente =
     simuladoAtual && simuladoAtual.concursoId === concursoAtivoId ? simuladoAtual : null;
   const blocoDeHoje = useMemo(() => {
@@ -220,16 +227,56 @@ function Dashboard() {
         </CardHeader>
         <CardContent className="space-y-3">
           {revisoesVencidas > 0 && (
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-atencao/40 bg-atencao-suave p-3">
-              <p className="text-sm">
-                <RotateCcw className="mr-1.5 inline h-4 w-4" />
-                <strong>{revisoesVencidas}</strong>{" "}
-                {revisoesVencidas === 1 ? "revisão vencida" : "revisões vencidas"} — o estudo de
-                maior retorno do dia.
-              </p>
-              <Button asChild size="sm">
-                <Link to="/revisoes">Revisar</Link>
-              </Button>
+            <div className="space-y-2 rounded-lg border border-atencao/40 bg-atencao-suave p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm">
+                  <RotateCcw className="mr-1.5 inline h-4 w-4" />
+                  <strong>{revisoesVencidas}</strong>{" "}
+                  {revisoesVencidas === 1 ? "revisão vencida" : "revisões vencidas"} — o estudo de
+                  maior retorno do dia.
+                </p>
+                <Button asChild size="sm">
+                  <Link to="/revisoes">Ver todas</Link>
+                </Button>
+              </div>
+              {/* Ação rápida inline (ADR-017): as 3 mais atrasadas se resolvem
+                  daqui, sem navegar. "Revisado" avança a escada; "+1d" adia. */}
+              {vencidas.slice(0, 3).map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center justify-between gap-2 rounded-md bg-background/60 p-2"
+                >
+                  <p className="min-w-0 flex-1 truncate text-xs">
+                    {(r.unidadeId && nomeDaUnidade.get(r.unidadeId)) || r.topico}
+                  </p>
+                  <div className="flex shrink-0 gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => {
+                        marcarRevisada(r.id);
+                        toast.success("Revisão concluída", {
+                          description: "Reagendada para o próximo intervalo.",
+                        });
+                      }}
+                    >
+                      Revisado
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => {
+                        adiarRevisao(r.id, 1);
+                        toast.info("Adiada para amanhã.");
+                      }}
+                    >
+                      +1d
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 

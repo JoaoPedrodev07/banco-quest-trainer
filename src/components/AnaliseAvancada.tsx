@@ -9,7 +9,15 @@
  */
 
 import { useMemo } from "react";
-import { Clock, Dices, History, Microscope, Target, TrendingDown } from "lucide-react";
+import {
+  CalendarRange,
+  Clock,
+  Dices,
+  History,
+  Microscope,
+  Target,
+  TrendingDown,
+} from "lucide-react";
 
 import { concursoPorId } from "@/data/concursos";
 import { COMPOSICAO_PROVA, TOTAL_PROVA } from "@/lib/corte";
@@ -112,6 +120,42 @@ export function AnaliseAvancada({ disciplinas, questoes, historico }: Props) {
   // ------------------------------------------------------------ evolução
   const evolucao = useMemo(() => evolucaoPorJanelas(doConcurso, new Date()), [doConcurso]);
 
+  // ------------------------------------------------------------ retrospectiva
+  // Fechamento de período do IAZAN traduzido para estudo (ADR-017): o retrato
+  // dos últimos 30 dias contra os 30 anteriores, tudo derivado do histórico
+  // datado — nada é gravado.
+  const retro = useMemo(() => {
+    const agora = Date.now();
+    const corte1 = agora - 30 * 86_400_000;
+    const corte2 = agora - 60 * 86_400_000;
+
+    const janela = (de: number, ate: number) => {
+      const respostas = doConcurso.filter((h) => {
+        const t = new Date(h.data).getTime();
+        return t >= de && t < ate;
+      });
+      return {
+        respostas: respostas.length,
+        diasAtivos: new Set(respostas.map((h) => h.data.slice(0, 10))).size,
+      };
+    };
+
+    // Assunto "iniciado" = a primeira resposta dele na vida caiu nesta janela.
+    const primeiraPorUnidade = new Map<string, number>();
+    const porId = new Map(questoes.map((q) => [q.id, q]));
+    for (const h of doConcurso) {
+      const unidade = porId.get(h.questaoId)?.subtopicoId ?? porId.get(h.questaoId)?.topicoId;
+      if (!unidade) continue;
+      const t = new Date(h.data).getTime();
+      if (!primeiraPorUnidade.has(unidade) || t < primeiraPorUnidade.get(unidade)!) {
+        primeiraPorUnidade.set(unidade, t);
+      }
+    }
+    const iniciados = [...primeiraPorUnidade.values()].filter((t) => t >= corte1).length;
+
+    return { atual: janela(corte1, agora + 1), anterior: janela(corte2, corte1), iniciados };
+  }, [doConcurso, questoes]);
+
   const nomeDaDisciplina = (id: string) => disciplinas.find((d) => d.id === id)?.nome ?? id;
 
   return (
@@ -176,6 +220,35 @@ export function AnaliseAvancada({ disciplinas, questoes, historico }: Props) {
                 <p className="text-xs text-muted-foreground">{d.mensagem}</p>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* -------------------------------------------------- retrospectiva */}
+      {retro.atual.respostas + retro.anterior.respostas > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <CalendarRange className="h-4 w-4 text-muted-foreground" />
+              Retrospectiva — últimos 30 dias
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <p className="text-sm">
+              <strong>{retro.atual.respostas}</strong>{" "}
+              {retro.atual.respostas === 1 ? "questão respondida" : "questões respondidas"} em{" "}
+              <strong>{retro.atual.diasAtivos}</strong>{" "}
+              {retro.atual.diasAtivos === 1 ? "dia ativo" : "dias ativos"} ·{" "}
+              <strong>{retro.iniciados}</strong>{" "}
+              {retro.iniciados === 1 ? "assunto novo iniciado" : "assuntos novos iniciados"}.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Nos 30 dias anteriores:{" "}
+              {retro.anterior.respostas > 0
+                ? `${retro.anterior.respostas} questões em ${retro.anterior.diasAtivos} dias ativos.`
+                : "sem dados — nenhuma resposta registrada na janela."}{" "}
+              Volume não é qualidade — a evolução de acerto está no cartão abaixo, com faixa.
+            </p>
           </CardContent>
         </Card>
       )}
