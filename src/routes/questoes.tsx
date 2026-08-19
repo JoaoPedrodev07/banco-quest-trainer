@@ -32,7 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Questao } from "@/types";
+import type { Questao, RespostaHistorico } from "@/types";
 
 export const Route = createFileRoute("/questoes")({
   /**
@@ -695,30 +695,132 @@ function QuestoesPage() {
       </Card>
 
       <div className="space-y-3">
-        {lista.map((q, i) => {
-          const correta = respostas[q.id] === q.correta;
-          return (
-            <Card key={q.id}>
-              <CardContent className="p-4 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge variant={correta ? "default" : "destructive"}>{i + 1}</Badge>
-                  <p className="text-xs text-muted-foreground">
-                    Sua: {respostas[q.id] || "—"} · Correta: {q.correta}
-                    {temposPorQuestao[q.id] !== undefined &&
-                      ` · ${formatarDuracao(temposPorQuestao[q.id])}`}
-                  </p>
-                </div>
-                <TextoDaQuestao className="block text-sm">{q.enunciado}</TextoDaQuestao>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {lista.map((q, i) => (
+          <QuestaoDoResultado
+            key={q.id}
+            questao={q}
+            numero={i + 1}
+            escolhida={respostas[q.id]}
+            segundos={temposPorQuestao[q.id]}
+            disciplinaNome={disciplinas.find((d) => d.id === q.disciplinaId)?.nome ?? q.disciplinaId}
+            historico={historico}
+            concursoId={concursoAtivoId}
+            // Erro aberto por padrão só em simulado curto: numa prova de 70, abrir
+            // tudo vira um paredão de texto que ninguém revisa.
+            abertaPorPadrao={respostas[q.id] !== q.correta && lista.length <= 10}
+          />
+        ))}
       </div>
 
       <Button className="w-full" onClick={() => setEtapa("config")}>
         Novo simulado
       </Button>
     </div>
+  );
+}
+
+/**
+ * Uma questão na tela de resultado (ADR-002).
+ *
+ * Expansível porque o momento de maior abertura para aprender é logo depois de
+ * errar — e a tela mostrava só "Sua: B · Correta: D", obrigando a reencontrar a
+ * questão em outro simulado para rever a explicação. Aberta, mostra as
+ * alternativas, o raciocínio escrito na hora e o gabarito comentado (que também
+ * pode ser gerado dali mesmo, pelo fluxo de prompt).
+ */
+function QuestaoDoResultado({
+  questao: q,
+  numero,
+  escolhida,
+  segundos,
+  disciplinaNome,
+  historico,
+  concursoId,
+  abertaPorPadrao,
+}: {
+  questao: Questao;
+  numero: number;
+  escolhida: string | undefined;
+  segundos: number | undefined;
+  disciplinaNome: string;
+  historico: RespostaHistorico[];
+  concursoId: string;
+  abertaPorPadrao: boolean;
+}) {
+  const [aberta, setAberta] = useState(abertaPorPadrao);
+  const correta = escolhida === q.correta;
+
+  // A resposta gravada, para reexibir o raciocínio e a autoavaliação: é o
+  // material que transforma "errei" em "errei porque pensei X".
+  let registro: RespostaHistorico | undefined;
+  for (let i = historico.length - 1; i >= 0; i--) {
+    if (historico[i].questaoId === q.id && historico[i].concursoId === concursoId) {
+      registro = historico[i];
+      break;
+    }
+  }
+
+  return (
+    <Card className={cn(aberta && "ring-1 ring-primary/20")}>
+      <button
+        onClick={() => setAberta(!aberta)}
+        className="w-full p-4 text-left transition-colors hover:bg-muted/40"
+      >
+        <div className="flex items-center gap-2">
+          <Badge variant={correta ? "default" : "destructive"}>{numero}</Badge>
+          <p className="text-xs text-muted-foreground">
+            Sua: {escolhida || "—"} · Correta: {q.correta}
+            {segundos !== undefined && ` · ${formatarDuracao(segundos)}`}
+          </p>
+          <span className="ml-auto text-xs text-muted-foreground">
+            {aberta ? "fechar" : "ver gabarito"}
+          </span>
+        </div>
+        <TextoDaQuestao className={cn("mt-2 block text-sm", !aberta && "line-clamp-2")}>
+          {q.enunciado}
+        </TextoDaQuestao>
+      </button>
+
+      {aberta && (
+        <CardContent className="space-y-4 border-t border-border p-4">
+          {q.tipo !== "certo_errado" && q.alternativas.length > 0 && (
+            <div className="space-y-1.5">
+              {q.alternativas.map((a) => (
+                <div
+                  key={a.letra}
+                  className={cn(
+                    "flex items-start gap-2 rounded-md border p-2 text-sm",
+                    a.letra === q.correta && "border-sucesso bg-sucesso-suave",
+                    a.letra === escolhida &&
+                      a.letra !== q.correta &&
+                      "border-destructive bg-destructive/10",
+                    a.letra !== q.correta && a.letra !== escolhida && "border-transparent opacity-70",
+                  )}
+                >
+                  <span className="font-black text-primary">{a.letra}</span>
+                  <TextoDaQuestao className="flex-1 text-sm">{a.texto}</TextoDaQuestao>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {registro?.raciocinio && (
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-muted-foreground">
+                O que você pensou na hora:
+              </p>
+              <p className="rounded bg-muted/60 p-2 text-xs italic text-muted-foreground">
+                “{registro.raciocinio}”
+              </p>
+            </div>
+          )}
+
+          <div className="rounded-lg bg-muted p-4">
+            <GabaritoComentado questao={q} disciplinaNome={disciplinaNome} />
+          </div>
+        </CardContent>
+      )}
+    </Card>
   );
 }
 
