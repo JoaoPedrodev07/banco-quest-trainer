@@ -1,5 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  adiarRevisao as adiarNaLista,
+  agendarOuRegredir,
+  avancarRevisao,
+  semRevisoesDeDemonstracao,
+} from "@/lib/revisao";
 import type { RespostaHistorico, RevisaoItem, StatusTopico } from "@/types";
 
 type EditalStatus = Record<string, StatusTopico>; // subtopicoId -> status
@@ -76,12 +82,13 @@ interface StoreState {
   ) => void;
   addRevisao: (r: RevisaoItem) => void;
   /**
-   * Agenda revisão de uma unidade do edital por causa de um erro.
+   * Agenda revisão de uma unidade do edital por causa de um erro — ou, se a
+   * agenda já existe, **regride o intervalo para 1 dia** (ADR-003).
    *
    * É o gatilho que faltava: a agenda existia mas só era preenchida à mão, e
    * revisão que depende de o usuário lembrar de cadastrar é revisão que não
    * acontece. Erro é o sinal mais barato e mais confiável de que o assunto não
-   * está fixado.
+   * está fixado — inclusive quando a agenda diz que ele estaria a 30 dias.
    */
   agendarRevisaoPorErro: (dados: {
     unidadeId: string;
@@ -90,6 +97,10 @@ interface StoreState {
     concursoId: string;
   }) => void;
   marcarRevisada: (id: string) => void;
+  /** Empurra a revisão para daqui a `dias`, sem mexer na escada de intervalos. */
+  adiarRevisao: (id: string, dias: number) => void;
+  /** Remove a revisão. Ela volta sozinha no próximo erro do assunto. */
+  removerRevisao: (id: string) => void;
   /**
    * Substitui o progresso pelo de um backup.
    *
@@ -108,47 +119,6 @@ interface StoreState {
   }) => void;
   reset: () => void;
 }
-
-const proximoIntervalo = (atual: 1 | 7 | 15 | 30): 1 | 7 | 15 | 30 => {
-  if (atual === 1) return 7;
-  if (atual === 7) return 15;
-  return 30;
-};
-
-const initialRevisoes: RevisaoItem[] = [
-  {
-    id: "r1",
-    topico: "APIs REST",
-    disciplinaId: "ti",
-    concursoId: CONCURSO_PADRAO,
-    proximaRevisao: new Date(Date.now() - 86400000).toISOString(),
-    intervaloAtual: 7,
-  },
-  {
-    id: "r2",
-    topico: "Pix e Open Finance",
-    disciplinaId: "bancarios",
-    concursoId: CONCURSO_PADRAO,
-    proximaRevisao: new Date(Date.now() + 2 * 86400000).toISOString(),
-    intervaloAtual: 7,
-  },
-  {
-    id: "r3",
-    topico: "SQL avançado",
-    disciplinaId: "ti",
-    concursoId: CONCURSO_PADRAO,
-    proximaRevisao: new Date(Date.now() + 5 * 86400000).toISOString(),
-    intervaloAtual: 15,
-  },
-  {
-    id: "r4",
-    topico: "Concordância verbal",
-    disciplinaId: "portugues",
-    concursoId: CONCURSO_PADRAO,
-    proximaRevisao: new Date(Date.now() - 2 * 86400000).toISOString(),
-    intervaloAtual: 1,
-  },
-];
 
 /**
  * Estado gravado por uma versão anterior do app: tudo que a migração precisa
@@ -179,7 +149,9 @@ export const useStore = create<StoreState>()(
       },
       editalStatus: {},
       historico: [],
-      revisoes: initialRevisoes,
+      // Nasce vazia (ADR-003): as revisões de demonstração do protótipo faziam
+      // todo usuário novo ver agenda que ele nunca criou.
+      revisoes: [],
       streak: { ultimoDia: null, dias: 0 },
 
       definirConcursoAtivo: (id) => set({ concursoAtivoId: id }),
@@ -293,51 +265,23 @@ export const useStore = create<StoreState>()(
 
       addRevisao: (r) => set((s) => ({ revisoes: [...s.revisoes, r] })),
 
-      agendarRevisaoPorErro: ({ unidadeId, topico, disciplinaId, concursoId }) =>
-        set((s) => {
-          const jaExiste = s.revisoes.some(
-            (r) => r.unidadeId === unidadeId && r.concursoId === concursoId,
-          );
-          // Errar de novo o mesmo assunto NÃO reinicia o intervalo nem duplica a
-          // agenda: a revisão já marcada continua valendo. Reagendar a cada erro
-          // encheria a tela do mesmo tópico e faria a agenda perder o sentido.
-          if (jaExiste) return s;
-
-          return {
-            revisoes: [
-              ...s.revisoes,
-              {
-                id: `rev-${unidadeId}-${concursoId}`,
-                topico,
-                disciplinaId,
-                concursoId,
-                unidadeId,
-                // Primeiro intervalo do 1-7-15-30: rever amanhã o que se errou hoje.
-                proximaRevisao: new Date(Date.now() + 86400000).toISOString(),
-                intervaloAtual: 1,
-              },
-            ],
-          };
-        }),
+      // A regra mora em `lib/revisao.ts` (funções puras, com teste); aqui só se
+      // aplica o resultado. Errar assunto já agendado REGRIDE para 1 dia.
+      agendarRevisaoPorErro: (dados) =>
+        set((s) => ({ revisoes: agendarOuRegredir(s.revisoes, dados, new Date()) })),
       marcarRevisada: (id) =>
-        set((s) => ({
-          revisoes: s.revisoes.map((r) => {
-            if (r.id !== id) return r;
-            const novo = proximoIntervalo(r.intervaloAtual);
-            return {
-              ...r,
-              intervaloAtual: novo,
-              proximaRevisao: new Date(Date.now() + novo * 86400000).toISOString(),
-            };
-          }),
-        })),
+        set((s) => ({ revisoes: avancarRevisao(s.revisoes, id, new Date()) })),
+      adiarRevisao: (id, dias) =>
+        set((s) => ({ revisoes: adiarNaLista(s.revisoes, id, dias, new Date()) })),
+      removerRevisao: (id) =>
+        set((s) => ({ revisoes: s.revisoes.filter((r) => r.id !== id) })),
       aplicarBackup: (progresso) => set({ ...progresso }),
 
       reset: () =>
         set({
           editalStatus: {},
           historico: [],
-          revisoes: initialRevisoes,
+          revisoes: [],
           streak: { ultimoDia: null, dias: 0 },
         }),
     }),
@@ -347,7 +291,10 @@ export const useStore = create<StoreState>()(
       // revisões sem `concursoId`; sem esta migração esses registros ficariam
       // fora de qualquer filtro por concurso e o progresso sumiria da tela —
       // presente no localStorage, invisível no app, que é o pior dos dois mundos.
-      version: 1,
+      // v2: remoção das revisões de demonstração do protótipo (ADR-003). A
+      // remoção em si roda no `merge` (ver abaixo o porquê); o bump documenta a
+      // mudança de conteúdo do que está no disco.
+      version: 2,
       // A normalização mora no `merge`, e não no `migrate`, por um detalhe do
       // zustand que só aparece em quem já usava o app: ele só chama `migrate`
       // quando o valor gravado tem `version` NUMÉRICO —
@@ -376,7 +323,14 @@ export const useStore = create<StoreState>()(
           // tempo restante viraria NaN e o timer mostraria "NaN:NaN".
           pomodoro: { ...atual.pomodoro, ...(p.pomodoro ?? {}) },
           historico: comConcurso(p.historico ?? []),
-          revisoes: comConcurso(p.revisoes ?? atual.revisoes),
+          // As demos saem aqui, e não no `migrate`, pelo mesmo motivo do
+          // concursoId acima: registro gravado sem `version` numérico nunca
+          // passa pelo migrate, e é justamente o registro mais antigo — o que
+          // certamente tem as demos. A remoção é idempotente (id + tópico
+          // exatos), então rodar em toda hidratação não custa nada.
+          revisoes: semRevisoesDeDemonstracao(
+            comConcurso(p.revisoes ?? atual.revisoes) as RevisaoItem[],
+          ),
         } as StoreState;
       },
       // Mantido para as próximas mudanças de formato: a partir da v1 o `version`

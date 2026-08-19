@@ -1,7 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Layers, ListChecks, Sparkles, Youtube } from "lucide-react";
+import {
+  CalendarClock,
+  ChevronDown,
+  ChevronRight,
+  Layers,
+  ListChecks,
+  Sparkles,
+  Trash2,
+  Youtube,
+} from "lucide-react";
 import { toast } from "sonner";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 import { concursoPorId } from "@/data/concursos";
 import { useAcervoDoConcurso } from "@/services/hooks";
@@ -26,7 +47,8 @@ export const Route = createFileRoute("/revisoes")({
 });
 
 function RevisoesPage() {
-  const { revisoes, marcarRevisada, concursoAtivoId, historico } = useStore();
+  const { revisoes, marcarRevisada, adiarRevisao, removerRevisao, concursoAtivoId, historico } =
+    useStore();
   const { disciplinas, questoes } = useAcervoDoConcurso(concursoAtivoId);
   const concurso = concursoPorId(concursoAtivoId);
   const [aberta, setAberta] = useState<string | null>(null);
@@ -60,7 +82,8 @@ function RevisoesPage() {
       <div>
         <h1 className="text-2xl font-black md:text-3xl">Revisões</h1>
         <p className="text-sm text-muted-foreground">
-          Intervalos de 1, 7, 15 e 30 dias. Clique numa revisão para ver o que estudar.
+          Intervalos de 1, 7, 15 e 30 dias. Revisar avança o intervalo; errar o assunto de novo
+          volta para 1 — a agenda ouve o erro. Clique numa revisão para ver o que estudar.
         </p>
       </div>
 
@@ -183,18 +206,70 @@ function RevisoesPage() {
                     </Button>
                   </div>
 
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      marcarRevisada(r.id);
-                      setAberta(null);
-                      toast.success("Revisão concluída", {
-                        description: "Reagendada para o próximo intervalo.",
-                      });
-                    }}
-                  >
-                    Revisado hoje
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        marcarRevisada(r.id);
+                        setAberta(null);
+                        toast.success("Revisão concluída", {
+                          description: "Reagendada para o próximo intervalo.",
+                        });
+                      }}
+                    >
+                      Revisado hoje
+                    </Button>
+                    {/* Adiar não é revisar: empurra a data sem mexer na escada.
+                        A partir de HOJE — adiar uma atrasada em +1 dá amanhã. */}
+                    {[1, 7].map((dias) => (
+                      <Button
+                        key={dias}
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={() => {
+                          adiarRevisao(r.id, dias);
+                          setAberta(null);
+                          toast.info(`Adiada para daqui a ${dias} ${dias === 1 ? "dia" : "dias"}.`);
+                        }}
+                      >
+                        <CalendarClock className="h-3.5 w-3.5" />+{dias}d
+                      </Button>
+                    ))}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Excluir
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir esta revisão?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            “{nome}” sai da agenda. Se você errar uma questão deste assunto de
+                            novo, a revisão volta sozinha, do intervalo inicial.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => {
+                              removerRevisao(r.id);
+                              setAberta(null);
+                              toast.success("Revisão excluída.");
+                            }}
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               )}
             </Card>
