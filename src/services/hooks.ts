@@ -16,11 +16,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, chaves } from "@/services";
 import { concursoPorId } from "@/data/concursos";
 import { disciplinasDoCargo } from "@/lib/incidencia";
-import type { Aula, Disciplina, Prova, Questao } from "@/types";
+import type { Aula, ClassificacaoRevisao, Disciplina, Prova, Questao } from "@/types";
 
 const SEM_DISCIPLINAS: Disciplina[] = [];
 const SEM_QUESTOES: Questao[] = [];
 const SEM_PROVAS: Prova[] = [];
+const SEM_FILA_REVISAO: ClassificacaoRevisao[] = [];
 
 export function useDisciplinas(concursoId?: string) {
   const consulta = useQuery({
@@ -85,6 +86,24 @@ export function useComentarGabarito() {
     mutationFn: ({ questaoId, explicacao }: { questaoId: string; explicacao: string }) =>
       api.comentarGabarito(questaoId, explicacao),
     onSuccess: () => cliente.invalidateQueries({ queryKey: chaves.questoes }),
+  });
+}
+
+/** Fila de revisão de classificação (Fase 2, `CLAUDE.md` §8). */
+export function useFilaRevisao() {
+  const consulta = useQuery({
+    queryKey: chaves.filaRevisao,
+    queryFn: api.listFilaRevisao,
+    retry: false,
+  });
+  return { fila: consulta.data ?? SEM_FILA_REVISAO, carregando: consulta.isPending };
+}
+
+export function useRevisarClassificacao() {
+  const cliente = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.revisarClassificacao(id),
+    onSuccess: () => cliente.invalidateQueries({ queryKey: chaves.filaRevisao }),
   });
 }
 

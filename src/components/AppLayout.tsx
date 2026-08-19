@@ -10,6 +10,7 @@ import {
   BarChart3,
   Layers,
   CalendarDays,
+  ClipboardCheck,
 } from "lucide-react";
 import { useEffect } from "react";
 import { useStore } from "@/store/useStore";
@@ -26,6 +27,7 @@ const navItems = [
   { to: "/provas", label: "Provas", icon: FileText },
   { to: "/analise", label: "Análise", icon: BarChart3 },
   { to: "/revisoes", label: "Revisões", icon: RotateCcw },
+  { to: "/classificacao", label: "Classificação", icon: ClipboardCheck },
   { to: "/concursos", label: "Concursos", icon: Trophy },
 ];
 

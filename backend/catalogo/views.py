@@ -8,14 +8,46 @@ paginar aqui e ajustar `src/services/` junto — não deixar a lista inteira cre
 sem limite.
 """
 
-from django.db.models import Count, Q
+from django.db.models import Count, OuterRef, Q, Subquery
+from django.utils import timezone
 from django_filters import rest_framework as filters
 from rest_framework import viewsets
-from rest_framework.decorators import api_view
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 
-from .models import Aula, Disciplina, Prova, Questao
-from .serializers import AulaSerializer, DisciplinaSerializer, ProvaSerializer, QuestaoSerializer
+from .models import Aula, ClassificacaoQuestao, Disciplina, Prova, Questao
+from .serializers import (
+    AulaSerializer,
+    ClassificacaoQuestaoSerializer,
+    DisciplinaSerializer,
+    ProvaSerializer,
+    QuestaoSerializer,
+)
+
+
+class AvisoRecorteSemConcursoMixin:
+    """Fase 3 (`CLAUDE.md` §8): os endpoints de conteúdo ganharam `?concurso=`,
+    mas continuam devolvendo tudo sem o parâmetro — trocar o comportamento
+    padrão quebraria o frontend atual, que ainda faz esse recorte sozinho em
+    `useAcervoDoConcurso`. O header é o aviso de que isso é transitório; a troca
+    do frontend para depender do filtro do backend é um passo à parte (o
+    brief pede commit separado), não decisão para tomar aqui.
+    """
+
+    query_param_concurso = "concurso"
+
+    def list(self, request, *args, **kwargs):
+        resposta = super().list(request, *args, **kwargs)
+        if not request.query_params.get(self.query_param_concurso):
+            # Header HTTP precisa ser ASCII — sem acento, sem travessão, para não
+            # sair codificado em RFC 2047 (=?utf-8?q?...=) e virar ilegível pra
+            # quem ler o header cru em vez de decodificar.
+            resposta["X-Deprecation-Warning"] = (
+                f"Response not scoped by concurso. Pass ?{self.query_param_concurso}=<slug> "
+                "- unscoped behavior will be removed once the frontend migrates to this "
+                "filter (CLAUDE.md doc, Fase 3 secao 8)."
+            )
+        return resposta
 
 
 class DisciplinaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -38,6 +70,9 @@ class DisciplinaViewSet(viewsets.ReadOnlyModelViewSet):
 class QuestaoFilter(filters.FilterSet):
     disciplina = filters.CharFilter(field_name="disciplina_id")
     prova = filters.CharFilter(field_name="prova_id")
+    # Fase 3 (`CLAUDE.md` §8): recorte por concurso direto no backend, via
+    # `Prova.concurso` — a questão não tem concurso próprio, ela herda da prova.
+    concurso = filters.CharFilter(field_name="prova__concurso_id")
     ano = filters.NumberFilter()
     ano_min = filters.NumberFilter(field_name="ano", lookup_expr="gte")
     banca = filters.CharFilter(field_name="banca", lookup_expr="iexact")
@@ -51,10 +86,10 @@ class QuestaoFilter(filters.FilterSet):
 
     class Meta:
         model = Questao
-        fields = ["disciplina", "prova", "ano", "banca"]
+        fields = ["disciplina", "prova", "concurso", "ano", "banca"]
 
 
-class QuestaoViewSet(viewsets.ReadOnlyModelViewSet):
+class QuestaoViewSet(AvisoRecorteSemConcursoMixin, viewsets.ReadOnlyModelViewSet):
     serializer_class = QuestaoSerializer
     filterset_class = QuestaoFilter
     queryset = (
@@ -64,10 +99,10 @@ class QuestaoViewSet(viewsets.ReadOnlyModelViewSet):
     )
 
 
-class ProvaViewSet(viewsets.ReadOnlyModelViewSet):
+class ProvaViewSet(AvisoRecorteSemConcursoMixin, viewsets.ReadOnlyModelViewSet):
     serializer_class = ProvaSerializer
     queryset = Prova.objects.select_related("fonte").all()
-    filterset_fields = ["ano", "banca", "orgao"]
+    filterset_fields = ["ano", "banca", "orgao", "concurso"]
 
 
 @api_view(["GET"])
@@ -130,6 +165,59 @@ class AulaViewSet(viewsets.ModelViewSet):
     # `unidade_id` é propriedade, não coluna: a rota por id usaria o pk inteiro, e
     # a tela não conhece esse número. Buscar é por lista filtrada.
     http_method_names = ["get", "post", "delete", "head", "options"]
+
+
+class ClassificacaoQuestaoViewSet(viewsets.ReadOnlyModelViewSet):
+    """Fila de revisão da Fase 2 (`CLAUDE.md` §8).
+
+    Só lista o que precisa de olho humano: classificação primária que ainda não
+    foi revisada — confiança baixa ou vinda de heurística/IA externa. O que já
+    passou pela revisão (`revisada_por_humano=True`) sai da lista porque a fila
+    é trabalho pendente, não histórico; histórico é o admin do Django.
+
+    Escrita é só a ação `revisar` — não há endpoint pra criar classificação por
+    aqui, isso é dos comandos de management (`classificar_questoes`,
+    `classificar_heuristica`, `importar_classificacao_llm`), que são os únicos
+    lugares que também sincronizam `Questao.topico`/`subtopico`.
+    """
+
+    serializer_class = ClassificacaoQuestaoSerializer
+
+    def get_queryset(self):
+        # Subquery, não annotate direto: `topico__classificacoes` volta pra
+        # mesma tabela, e um Count anotado por JOIN nesse caminho multiplicaria
+        # linha por causa do fan-out — a Subquery isola a contagem por tópico
+        # sem mexer na cardinalidade da queryset principal.
+        impacto = (
+            ClassificacaoQuestao.objects.filter(topico_id=OuterRef("topico_id"), eh_primaria=True)
+            .values("topico_id")
+            .annotate(n=Count("id"))
+            .values("n")
+        )
+        return (
+            ClassificacaoQuestao.objects.filter(eh_primaria=True, revisada_por_humano=False)
+            .filter(Q(confianca__lt=0.8) | ~Q(origem_classificacao="humana"))
+            .select_related("questao", "topico", "subtopico")
+            .annotate(impacto_topico=Subquery(impacto))
+            .order_by("-impacto_topico")
+        )
+
+    @action(detail=True, methods=["post"])
+    def revisar(self, request, pk=None):
+        classificacao = self.get_object()
+        classificacao.revisada_por_humano = True
+        classificacao.revisada_em = timezone.now()
+        classificacao.save(update_fields=["revisada_por_humano", "revisada_em"])
+
+        # A revisão confirma a classificação primária corrente — reflete em
+        # Questao.topico/subtopico pela mesma disciplina de escrita única que os
+        # comandos de management seguem (ver docstring de ClassificacaoQuestao).
+        questao = classificacao.questao
+        questao.topico = classificacao.topico
+        questao.subtopico = classificacao.subtopico
+        questao.save(update_fields=["topico", "subtopico"])
+
+        return Response(ClassificacaoQuestaoSerializer(classificacao).data)
 
 
 @api_view(["POST"])

@@ -7,7 +7,19 @@ a parte do pipeline que mais precisa de olho humano.
 
 from django.contrib import admin
 
-from .models import Alternativa, Disciplina, Fonte, Prova, Questao, Subtopico, Topico
+from .models import (
+    Alternativa,
+    Banca,
+    Concurso,
+    Disciplina,
+    Edital,
+    Fonte,
+    ItemEdital,
+    Prova,
+    Questao,
+    Subtopico,
+    Topico,
+)
 
 
 class SubtopicoInline(admin.TabularInline):
@@ -19,6 +31,38 @@ class TopicoInline(admin.TabularInline):
     model = Topico
     extra = 0
     show_change_link = True
+
+
+class ProvaInline(admin.TabularInline):
+    model = Prova
+    extra = 0
+    show_change_link = True
+    fields = ["id", "ano", "cargo", "qtd_questoes"]
+
+
+class ItemEditalInline(admin.TabularInline):
+    model = ItemEdital
+    extra = 0
+    fields = ["numeracao_original", "topico", "redacao_literal"]
+
+
+@admin.register(Banca)
+class BancaAdmin(admin.ModelAdmin):
+    list_display = ["nome", "slug"]
+
+
+@admin.register(Concurso)
+class ConcursoAdmin(admin.ModelAdmin):
+    list_display = ["nome", "orgao", "cargo", "banca", "status", "data_prova"]
+    list_filter = ["status", "banca"]
+    inlines = [ProvaInline]
+
+
+@admin.register(Edital)
+class EditalAdmin(admin.ModelAdmin):
+    list_display = ["__str__", "concurso", "versao", "eh_vigente"]
+    list_filter = ["eh_vigente"]
+    inlines = [ItemEditalInline]
 
 
 class AlternativaInline(admin.TabularInline):
@@ -42,15 +86,15 @@ class DisciplinaAdmin(admin.ModelAdmin):
 
 @admin.register(Topico)
 class TopicoAdmin(admin.ModelAdmin):
-    list_display = ["nome", "disciplina", "ordem"]
-    list_filter = ["disciplina"]
+    list_display = ["nome", "disciplina", "concurso_id", "edital_ref", "ativo_edital_vigente"]
+    list_filter = ["disciplina", "concurso_id", "ativo_edital_vigente"]
     inlines = [SubtopicoInline]
 
 
 @admin.register(Prova)
 class ProvaAdmin(admin.ModelAdmin):
-    list_display = ["__str__", "ano", "banca", "qtd_questoes", "questoes_disponiveis"]
-    list_filter = ["banca", "ano", "orgao"]
+    list_display = ["__str__", "concurso", "ano", "banca", "qtd_questoes", "questoes_disponiveis"]
+    list_filter = ["concurso", "banca", "ano", "orgao"]
 
     @admin.display(description="importadas")
     def questoes_disponiveis(self, obj):

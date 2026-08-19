@@ -1,0 +1,78 @@
+Distribuição do último caractere do enunciado (todas as 590 questões):
+  ':': 124
+  'a': 73
+  'e': 69
+  'o': 69
+  '.': 54
+  '?': 48
+  's': 27
+  ')': 26
+  'é': 17
+  ',': 17
+  'r': 13
+  'm': 11
+  'l': 5
+  'u': 4
+  '2': 4
+  'f': 4
+  'y': 3
+  'n': 3
+  '*': 3
+  'i': 2
+  'á': 2
+  '-': 2
+  'h': 1
+  '9': 1
+  'à': 1
+  '0': 1
+  'L': 1
+  'p': 1
+  'd': 1
+  't': 1
+
+--- Amostra de 15 questões marcadas 'parece truncado' (200 últimos chars) ---
+
+[bb-2021-a-q03]
+...O trecho em que a palavra destacada expressa uma opinião do autor é
+
+[bb-2021-a-q04]
+...ações, cabe o desafio de orientar seus clientes, **já que** , na maioria das vezes, eles não sabem quais são os limites da privacidade digital” (parágrafo 8), a expressão destacada expressa a noção de
+
+[bb-2021-a-q06]
+...No trecho “Esse limite **poderia** ser dado pelo próprio consumidor, se ele assim quiser?” (parágrafo 6), a forma verbal destacada expressa a noção de
+
+[bb-2021-a-q08]
+...O grupo de palavras que atende às exigências relativas ao emprego ou não do hífen, segundo o Vocabulário Ortográfico da Língua Portuguesa, é
+
+[bb-2021-a-q11]
+...According to the second paragraph, the concept of robotic soccer players emerged
+
+[bb-2021-a-q13]
+...gment of the sixth paragraph “RoboCup Soccer Federation, the “FIFA” of robots, which supports five leagues, imposes restrictions on players’ design and rules of the game”, the word **which** refers to
+
+[bb-2021-a-q14]
+...7, the word **However** in the fragment “In the humanoid league, the players are human-like robots with human-like senses. However, they are rather slow” can be replaced, without change in meaning, by
+
+[bb-2021-a-q15]
+...In paragraph 9, there is the information that in RoboCup competitions the game referee and the team coaches are
+
+[bb-2021-a-q17]
+...o, pode-se obter um termo qualquer conhecendo-se os dois termos anteriores. Considerando o exposto acima, determine o termo T 2021 da sequência de Fibonacci, sabendo que T = m e 2018 T = p. 2020 p  m
+
+[bb-2021-a-q21]
+...enhadas pela moeda é a de reserva de valor, no entanto, a moeda não é o único ativo que desempenha tal função. O motivo que faz com que os cidadãos retenham moeda como reserva de valor é o fato de ela
+
+[bb-2021-a-q22]
+...O Registrato é um sistema criado em 2014 e administrado pelo Banco Central, que permite aos cidadãos terem acesso pela internet a relatórios contendo informações sobre
+
+[bb-2021-a-q23]
+...clientes, de modo que pudessem ser afixados a um chaveiro. Mais recentemente, nos últimos 10 anos, esses dispositivos foram sendo gradativamente substituídos para a grande maioria dos clientes, por um
+
+[bb-2021-a-q24]
+...ro aberto) no Brasil. As instituições financeiras participantes devem obedecer a regras definidas pelo Banco Central e pelo Conselho Monetário Nacional. O open banking tem, entre outros, o objetivo de
+
+[bb-2021-a-q25]
+...Uma investidora está querendo saber a relação entre a blockchain e o bitcoin . Em sua pesquisa, ela esclareceu sua dúvida, ao descobrir que
+
+[bb-2021-a-q26]
+...egociação inicial. O negociador resolve aplicar uma nova taxa sobre C , mas sem ultrapassar a taxa anu2 al máxima que está autorizado a oferecer. Qual o valor máximo da taxa a ser aplicada sobre C ? 2

@@ -38,7 +38,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from catalogo.models import Disciplina, Fonte, Subtopico, Topico
+from catalogo.models import Concurso, Disciplina, Edital, Fonte, ItemEdital, Subtopico, Topico
 from ingest.pdf import ErroDeIngestao, extrair_texto, obter
 
 # Cabeçalho da disciplina no edital -> id no catálogo.
@@ -163,6 +163,7 @@ class Command(BaseCommand):
                 },
             )
             resumo = self._gravar(blocos, fonte, op["concurso"])
+            self._sincronizar_edital(fonte, op["concurso"])
             if op["dry_run"]:
                 transaction.set_rollback(True)
 
@@ -304,44 +305,113 @@ class Command(BaseCommand):
     def _gravar(
         self, blocos: dict[str, str], fonte: Fonte, concurso_id: str
     ) -> dict[str, tuple[int, int]]:
+        """Grava a árvore por *upsert*, nunca por delete-e-recria.
+
+        Reimportar costumava apagar todo `Topico`/`Subtopico` do concurso antes de
+        recriar — e como `Questao.topico`/`Questao.subtopico` são `SET_NULL`, isso
+        zerava silenciosamente a classificação de toda questão já revisada, no
+        instante em que a tabela ficava vazia entre o delete e o recreate. Um
+        tópico que sai do edital agora vira `ativo_edital_vigente=False` e
+        continua no banco — é a política de deprecação de `docs/taxonomia.md`.
+        """
         resumo: dict[str, tuple[int, int]] = {}
-        # O concurso padrao mantem os ids historicos (`ti-t01`), senao as 233
+        # O concurso padrao mantem os ids historicos (`ti-t01`), senao as
         # classificacoes ja gravadas apontariam para topicos inexistentes.
         prefixo = "" if concurso_id == "bb-ti-2026" else f"{concurso_id}--"
 
         for id_disciplina, corpo in blocos.items():
             disciplina = Disciplina.objects.get(id=id_disciplina)
-            # Reimportar substitui, mas SÓ dentro do concurso: o edital vigente de
-            # um concurso é um só, e tópico órfão de uma leitura anterior apareceria
-            # na tela como conteúdo a estudar. Sem o filtro por concurso, importar o
-            # edital do BNB apagaria a árvore do BB junto — e com ela a
-            # classificação de centenas de questões, que aponta para esses tópicos.
-            Topico.objects.filter(disciplina=disciplina, concurso_id=concurso_id).delete()
 
+            ids_topico_vigentes: set[str] = set()
+            ids_subtopico_vigentes: set[str] = set()
             total_sub = 0
             itens = self._itens(corpo)
             for ordem, item in enumerate(itens, start=1):
                 nome, subtopicos = self._dividir_item(item)
-                topico = Topico.objects.create(
-                    id=f"{prefixo}{id_disciplina}-t{ordem:02d}",
-                    disciplina=disciplina,
-                    concurso_id=concurso_id,
-                    nome=nome,
-                    ordem=ordem,
-                )
-                Subtopico.objects.bulk_create(
-                    Subtopico(
-                        id=f"{topico.id}-s{sub_ordem:02d}",
-                        topico=topico,
-                        nome=nome_sub,
-                        ordem=sub_ordem,
+                topico_id = f"{prefixo}{id_disciplina}-t{ordem:02d}"
+                ids_topico_vigentes.add(topico_id)
+
+                anterior = Topico.objects.filter(id=topico_id).first()
+                if anterior and anterior.nome != nome:
+                    # O id é posicional (ordem dentro da disciplina). Se a banca
+                    # renumerar os itens entre uma publicação e outra, o mesmo id
+                    # passa a apontar para outro conteúdo — o upsert não inventa
+                    # um id novo (quebraria localStorage do usuário, ver
+                    # docs/taxonomia.md), só avisa pra checar manualmente.
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"  [atenção] {topico_id} mudou de conteúdo: "
+                            f"{anterior.nome!r} -> {nome!r}. Se for renumeração do "
+                            f"edital (não edição de texto), revise a classificação "
+                            f"das questões que apontam pra esse tópico."
+                        )
                     )
-                    for sub_ordem, nome_sub in enumerate(subtopicos, start=1)
+
+                topico, _ = Topico.objects.update_or_create(
+                    id=topico_id,
+                    defaults={
+                        "disciplina": disciplina,
+                        "concurso_id": concurso_id,
+                        "nome": nome,
+                        "ordem": ordem,
+                        "edital_ref": str(ordem),
+                        "ativo_edital_vigente": True,
+                    },
                 )
+
+                for sub_ordem, nome_sub in enumerate(subtopicos, start=1):
+                    sub_id = f"{topico.id}-s{sub_ordem:02d}"
+                    ids_subtopico_vigentes.add(sub_id)
+                    Subtopico.objects.update_or_create(
+                        id=sub_id,
+                        defaults={
+                            "topico": topico,
+                            "nome": nome_sub,
+                            "ordem": sub_ordem,
+                            "edital_ref": f"{ordem}.{sub_ordem}",
+                            "ativo_edital_vigente": True,
+                        },
+                    )
                 total_sub += len(subtopicos)
+
+            # Tópico/subtópico que existia para este concurso e não veio nesta
+            # leitura saiu do edital — deprecia, não apaga.
+            Topico.objects.filter(disciplina=disciplina, concurso_id=concurso_id).exclude(
+                id__in=ids_topico_vigentes
+            ).update(ativo_edital_vigente=False)
+            Subtopico.objects.filter(
+                topico__disciplina=disciplina, topico__concurso_id=concurso_id
+            ).exclude(id__in=ids_subtopico_vigentes).update(ativo_edital_vigente=False)
 
             disciplina.fonte = fonte
             disciplina.save(update_fields=["fonte"])
             resumo[id_disciplina] = (len(itens), total_sub)
 
         return resumo
+
+    def _sincronizar_edital(self, fonte: Fonte, concurso_id: str) -> None:
+        """Espelha a importação em `Edital`/`ItemEdital` (Fase 3, `CLAUDE.md` §8).
+
+        Só roda quando `concurso_id` já é um `Concurso` cadastrado — hoje é só
+        `bb-ti-2026`. Sem `Concurso`, não há em quem pendurar o `Edital`, e criar
+        um concurso a partir do que o edital diz seria inventar dado que não veio
+        do PDF (o `--concurso` é só um slug, o resto da linha de `Concurso` —
+        nome, órgão, banca — está fora do que este comando lê).
+        """
+        concurso = Concurso.objects.filter(pk=concurso_id).first()
+        if concurso is None:
+            return
+
+        edital, _ = Edital.objects.update_or_create(
+            concurso=concurso, versao=1, defaults={"fonte": fonte, "eh_vigente": True}
+        )
+        for topico in Topico.objects.filter(concurso_id=concurso_id):
+            ItemEdital.objects.update_or_create(
+                edital=edital,
+                topico=topico,
+                defaults={
+                    "numeracao_original": topico.edital_ref,
+                    "redacao_literal": topico.nome,
+                    "ordem": topico.ordem,
+                },
+            )

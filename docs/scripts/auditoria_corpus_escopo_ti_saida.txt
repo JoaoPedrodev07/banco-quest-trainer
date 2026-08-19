@@ -1,0 +1,25 @@
+Questões de disciplina='ti', por prova (id / órgão / cargo / ano / banca):
+  cebraspe-bnb-ti-2022: 60 questões — Banco do Nordeste / Especialista Técnico — Analista de Sistemas / 2022 / Cebraspe
+  fgv-banestes-ti-2021: 37 questões — Banestes / Analista em Tecnologia da Informação - Desenvolvimento de Sistemas / 2021 / FGV
+  bb-ti-2023: 34 questões — Banco do Brasil / Escriturário — Agente de Tecnologia / 2023 / Cesgranrio
+
+Total disciplina='ti': 131
+
+Dentre essas, com tópico atribuído, por prova:
+  bb-ti-2023: 31
+  cebraspe-bnb-ti-2022: 4
+Total 'ti' com tópico: 35
+
+--- Recorte estrito: só prova bb-ti-2023 (cargo Agente de Tecnologia) ---
+Total de questões em bb-ti-2023 (todas disciplinas, é prova completa com CB): 69
+Por disciplina:
+  ti: 34
+  portugues: 10
+  ingles: 5
+  matematica: 5
+  atualidades: 5
+  estatistica: 5
+  bancarios: 5
+
+Só disciplina 'ti' dentro de bb-ti-2023: 34
+  com tópico: 31

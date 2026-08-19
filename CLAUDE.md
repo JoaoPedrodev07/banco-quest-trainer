@@ -11,9 +11,13 @@ Cesgranrio)**. Organiza o edital, treina questões em simulados, agenda revisõe
 progresso até a data da prova.
 
 **Estado atual: frontend + backend Django.** O conteúdo (edital, provas, questões) vem de uma API em
-`backend/` — **271 questões de caderno oficial da Cesgranrio**, importadas dos PDFs da banca. O estado
-do **usuário** continua no localStorage (Zustand `persist`, chave `foco-bb-store`): não há login nem
-sincronia entre dispositivos.
+`backend/` — **590 questões**, importadas dos PDFs de 9 provas oficiais (todas com sha256 registrado).
+O acervo não é só Cesgranrio/BB: cobre 3 concursos — Banco do Brasil (Cesgranrio, 473 questões, cargos
+Agente de Tecnologia e Agente Comercial), Banco do Nordeste (Cebraspe, 60) e Banestes (FGV, 57). Da
+prova exata deste projeto — BB, Agente de Tecnologia (`bb-ti-2023`) — só 69 questões são dela; as
+outras 6 provas Cesgranrio são de Agente Comercial (§7.4) e as de Cebraspe/FGV são de outro órgão
+(§7.7). O estado do **usuário** continua no localStorage (Zustand `persist`, chave `foco-bb-store`):
+não há login nem sincronia entre dispositivos.
 
 Os mocks de `src/data/` ainda existem, mas só como **reserva**: quando o backend não responde, a tela
 cai neles e o `AvisoAcervo` avisa que aquilo é conteúdo de exemplo.
@@ -99,7 +103,7 @@ quebra o app.
 
 ```bash
 npm install        # bun.lock veio do Lovable; npm funciona (bun não está instalado nesta máquina)
-npm run dev        # http://localhost:5173
+npm run dev        # http://localhost:8080 (porta do preset do Lovable, não a 5173 padrão do Vite)
 npm run build      # build de produção (nitro)
 npm run lint       # ESLint
 npm run format     # Prettier
@@ -142,9 +146,15 @@ Não saia consertando por conta própria; é o mapa do que está pendente por de
    responder e sem nada avisando. O que ainda não tem cobertura e merece: `proximoIntervalo` e a
    contagem de `streak` (`useStore.ts`), ambas com regra de data que erra em silêncio. O frontend
    não tem runner de teste configurado.
-2. **Classificação incompleta**: só 32 das 271 questões têm tópico do edital, todas de TI. Sem isso não
-   existe análise de incidência, e o prompt de estudo (`src/lib/promptEstudo.ts`) sai sem exemplo da
-   banca. É o gargalo de quase tudo.
+2. **Classificação incompleta, mas não do jeito que parece à primeira vista**: 232 das 590 questões
+   têm tópico do edital (39%). Olhando só o recorte que importa para o cargo de Agente de Tecnologia
+   — a prova `bb-ti-2023`, 34 questões de TI — a classificação já está em 31/34 (91%): não é mais o
+   gargalo. O gargalo real está em `informatica`/`vendas` (180 questões, 0% classificado), mas essas
+   disciplinas são do cargo Agente Comercial, **fora do edital de TI** (§7.4) — classificá-las contra
+   a árvore de TI seria o mesmo erro do §7.7. Sem exemplo real de TI classificado o prompt de estudo
+   (`src/lib/promptEstudo.ts`) ainda sofre, mas o motivo não é falta de dado bruto, é a Fase 2 da
+   linha de trabalho do §8 ainda não ter fechado a fila de revisão. Detalhe completo em
+   `docs/auditoria-corpus.md`.
 3. **O backend não conhece concursos.** O `concursoId` é carimbado no `services/`, e o recorte por
    concurso e por cargo mora em `useAcervoDoConcurso` — um lugar só, porque escapou três vezes
    quando estava espalhado pelas telas.
@@ -166,3 +176,86 @@ Não saia consertando por conta própria; é o mapa do que está pendente por de
    O conserto é `Disciplina` passar a pertencer a um concurso, com uma árvore por edital. Até lá,
    prova de outro órgão entra como **treino de formato**: serve para sentir o estilo da banca, não
    para alimentar a análise de incidência.
+
+## 8. Linha de trabalho ativa: Motor de Incidência e Raio-X de Banca
+
+Expansão em execução por fases (0→6), uma fase por sessão, cada uma com critério de aceite
+verificável. Não avance para a fase seguinte com a anterior vermelha — em especial, **não faça a
+Fase 4 (motor de incidência) antes da Fase 2 (classificação) estar ≥95%**: análise sobre corpus
+pouco classificado produz número bonito e falso, que é o problema que esta linha existe para
+resolver.
+
+**Escopo**: foco exclusivo BB / Agente de TI. O suporte multi-concurso (BNB, §7.7) permanece
+funcional mas não é alvo de investimento nesta sequência.
+
+**Fase 0 já rodou** (`docs/auditoria-corpus.md`, `docs/scripts/`). Achado que muda o plano da Fase 4:
+existe **uma única prova oficial** do cargo-alvo (`bb-ti-2023`, 34 questões de TI) — o componente
+`dispersao` do score de incidência (nº de provas distintas) não tem o que medir ainda nesse escopo.
+Ler a seção 5 do relatório ("o que este corpus não permite afirmar") antes de desenhar a Fase 4.
+
+**Fase 1 já rodou** (`docs/taxonomia.md`). Não nasceu um app novo: a árvore Disciplina > Tópico >
+Subtópico já existia em `catalogo.models` (populada do PDF do edital por `manage.py
+importar_edital`), então a Fase 1 estendeu esse modelo em vez de duplicá-lo — `Topico`/`Subtopico`
+ganharam `edital_ref` e `ativo_edital_vigente`. **Os ids dos tópicos não foram renomeados para o
+esquema `ti.bd.sql.joins` que o brief sugeria** — eles já são chave primária usada no localStorage
+do usuário (`EditalStatus` em `useStore.ts`); trocar o esquema invalidaria progresso de estudo já
+salvo, sem forma de migrar. Motivo completo em `docs/taxonomia.md`. Também corrigido um bug real
+encontrado no caminho: `importar_edital` apagava e recriava a árvore a cada reimportação, o que
+zerava (via `SET_NULL`) a classificação de toda `Questao` já revisada — agora é upsert, e tópico
+que sai do edital vira `ativo_edital_vigente=False`, nunca é deletado.
+
+**Fase 2 já rodou.** Novo model `ClassificacaoQuestao` (`catalogo/models.py`) guarda proveniência
+(confiança, origem, justificativa, revisão humana) por classificação — `Questao.topico`/`subtopico`
+continuam existindo como cache da classificação primária corrente, escritos só pelos comandos de
+classificação (`classificar_questoes`, `classificar_heuristica`, `importar_classificacao_llm`), que
+são o único caminho de escrita dos dois lados (ver docstring do model — é disciplina de escrita
+única, não sincronização por sinal). Camada heurística (`catalogo/classificacao.py`) cobre termo-
+âncora específico o bastante pra não ser ambíguo, restrita à disciplina `ti` do concurso alvo.
+Exportação/importação de classificação por IA externa em `exportar_classificacao_llm` /
+`importar_classificacao_llm` — a segunda rejeita slug inexistente, disciplina incompatível, schema
+inválido e chave duplicada no arquivo, e sempre grava `origem=llm_externa`,
+`revisada_por_humano=False`. Fila de revisão em `GET /api/classificacoes/fila-revisao/` (+ ação
+`revisar`) e na tela `/classificacao`. `manage.py cobertura_classificacao` reporta o recorte
+`bb-ti-2023`/`ti` em **100%** (34/34) — bateu o critério de aceite (≥95%) nesse escopo; o corpus
+inteiro segue em 39% porque a maior parte fora do escopo (`informatica`/`vendas` do Agente Comercial,
+TI de outros concursos) não deveria mesmo ser forçada contra esta árvore (§7.4, §7.7).
+
+**Fase 3 já rodou.** Novos models `Banca`, `Concurso`, `Edital`, `ItemEdital` + `Prova.concurso`
+(FK, `SET_NULL`). Escopo deliberadamente estreito: só existe `Concurso` para os 3 que já têm prova
+real no backend (`bb-ti-2026`, `fgv-banestes-ti-2021`, `cebraspe-bnb-ti-2022`) — os outros 3 do
+catálogo do frontend (`src/data/concursos.ts`: TCE-SP, TCE-RJ, ATI-PE) não têm prova nenhuma
+importada, são card de calendário com dado de imprensa, e migrar isso pro backend é escopo maior
+que "eliminar o recorte de prova" (o problema real do §7.3). `Prova.banca`/`Questao.banca`
+continuam `CharField` — não virou FK pra `Banca` nesta fase (590 linhas em uso por filtro/admin/tipo
+do frontend, sem necessidade imediata). `ItemEdital` é fotografia congelada de `Topico` por versão
+de edital (mesmo padrão de `ClassificacaoQuestao`: não é duplicação proibida pelo §2.3, é histórico
+ao lado do estado atual) — hoje só existe 1 versão (`docs/auditoria-corpus.md` já avisava disso).
+API: `?concurso=<slug>` em `/api/questoes/` e `/api/provas/`; sem o parâmetro devolve tudo (igual
+antes) com header `X-Deprecation-Warning`. **O frontend não foi tocado nesta fase** — `useAcervoDoConcurso`
+continua fazendo o recorte sozinho; migrar o frontend pro filtro do backend é o "commit separado"
+que o próprio brief pede, fica para quando for a vez. Migration testada em cópia do banco antes de
+aplicar na real (0 provas órfãs, 590 questões preservadas, 111 tópicos = 111 `ItemEdital`).
+
+**Fases**: 0 auditoria de corpus (só leitura, gera `docs/auditoria-corpus.md`) → 1 taxonomia
+canônica do edital (`slug` estável e imutável por tópico, 3 níveis) → 2 classificação de 100% do
+corpus (heurística + exportação para IA externa + fila de revisão humana) → 3 modelar `Concurso`
+e `Edital` nativamente no backend (dívida do §7.3) → 4 motor de incidência (score por subtópico,
+zerado se fora do edital vigente) → 5 diff de editais + perfil histórico da banca → 6 UI (mapa de
+incidência, "onde estudar agora", raio-X da banca, diff de edital) + Vitest no frontend (dívida do
+§7.1).
+
+**Restrições adicionais desta linha** (somam-se às regras de ouro do §2):
+- Não preencher lacuna de dado (questão, edital, prova) com conhecimento geral do modelo. Se a
+  informação não está no PDF ingerido, o campo fica nulo e é sinalizado.
+- Todo score/derivado desta linha (incidência, classificação automática) segue o §2.3: calculado
+  na leitura, nunca materializado sem cache explícito e invalidável.
+- Toda afirmação estatística exibida ao usuário carrega o `n` que a sustenta — sem exceção, e sem
+  exibir probabilidade de "cair" em porcentagem (o corpus não sustenta essa precisão).
+- Classificação com `origem=llm_externa` e `revisada_por_humano=False` nunca alimenta o motor de
+  incidência com peso cheio.
+- Importador de classificação/taxonomia rejeita slug que não exista na árvore — nunca cria tópico
+  na marra durante import.
+- `n < 3` num subtópico é faixa `sem_dados`, não "baixa incidência" — ausência de evidência é
+  diferente de evidência de baixa incidência, e a UI precisa dizer isso com essas palavras.
+- Trabalho em branch, PR pequeno, um por fase (mais estrito que o §4.3, que permite commit direto
+  na `main` para o resto do projeto).

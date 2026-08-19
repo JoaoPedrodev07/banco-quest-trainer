@@ -1,0 +1,138 @@
+
+=== 1. INVENTARIO DE PROVAS ===
+{"id": "bb-comercial-a-2023", "concurso_orgao": "Banco do Brasil", "ano": 2023, "banca": "Cesgranrio", "cargo": "Escriturário — Agente Comercial", "qtd_questoes_edital": 70, "questoes_extraidas": 67, "divergencia": 3, "pontuacao_liquida": false, "fonte_slug": "bb-comercial-a-2023", "fonte_tipo": "oficial", "fonte_sha256": "81c163b1d25d38bf7e11f5273b90a156efebee2e1390944fc6dc0fc5697afcec", "fonte_titulo": "Banco do Brasil 2023 — Escriturário — Agente Comercial (caderno tipo 1)"}
+{"id": "bb-comercial-b-2023", "concurso_orgao": "Banco do Brasil", "ano": 2023, "banca": "Cesgranrio", "cargo": "Escriturário — Agente Comercial", "qtd_questoes_edital": 70, "questoes_extraidas": 67, "divergencia": 3, "pontuacao_liquida": false, "fonte_slug": "bb-comercial-b-2023", "fonte_tipo": "oficial", "fonte_sha256": "15058613557e35ef83c4507b32906b2ec13c2ad0c0af8d1274a2b6afd1ac1812", "fonte_titulo": "Banco do Brasil 2023 — Escriturário — Agente Comercial (caderno tipo 1)"}
+{"id": "bb-comercial-c-2023", "concurso_orgao": "Banco do Brasil", "ano": 2023, "banca": "Cesgranrio", "cargo": "Escriturário — Agente Comercial", "qtd_questoes_edital": 70, "questoes_extraidas": 67, "divergencia": 3, "pontuacao_liquida": false, "fonte_slug": "bb-comercial-c-2023", "fonte_tipo": "oficial", "fonte_sha256": "11ec22e814fbe7a599b2ed6e69af0549e8d89a4a4d8621eee21af2e48c6a67a2", "fonte_titulo": "Banco do Brasil 2023 — Escriturário — Agente Comercial (caderno tipo 1)"}
+{"id": "bb-ti-2023", "concurso_orgao": "Banco do Brasil", "ano": 2023, "banca": "Cesgranrio", "cargo": "Escriturário — Agente de Tecnologia", "qtd_questoes_edital": 70, "questoes_extraidas": 69, "divergencia": 1, "pontuacao_liquida": false, "fonte_slug": "bb-ti-2023", "fonte_tipo": "oficial", "fonte_sha256": "9f7d363b66a8cb66f7f3bd67c75411a0671e4e3dd67366b1338c98d188fa6097", "fonte_titulo": "Banco do Brasil 2023 — Escriturário — Agente de Tecnologia (caderno tipo 1)"}
+{"id": "cebraspe-bnb-ti-2022", "concurso_orgao": "Banco do Nordeste", "ano": 2022, "banca": "Cebraspe", "cargo": "Especialista Técnico — Analista de Sistemas", "qtd_questoes_edital": 60, "questoes_extraidas": 60, "divergencia": 0, "pontuacao_liquida": true, "fonte_slug": "cebraspe-bnb-ti-2022", "fonte_tipo": "oficial", "fonte_sha256": "7f9a5b763a2a78fe1c2a167083b246e637c941accbe050253d394ff307face1e", "fonte_titulo": "Banco do Nordeste 2022 — Especialista Técnico — Analista de Sistemas (certo/errado)"}
+{"id": "bb-2021-a", "concurso_orgao": "Banco do Brasil", "ano": 2021, "banca": "Cesgranrio", "cargo": "Escriturário — Agente Comercial", "qtd_questoes_edital": 70, "questoes_extraidas": 68, "divergencia": 2, "pontuacao_liquida": false, "fonte_slug": "bb-2021-a", "fonte_tipo": "oficial", "fonte_sha256": "209eb37df001f0b73cd85d1a6dbff7b9193a9ba045302b3bb8478264f5c0fe92", "fonte_titulo": "Banco do Brasil 2021 — Escriturário — Agente Comercial (caderno tipo 1)"}
+{"id": "bb-2021-b", "concurso_orgao": "Banco do Brasil", "ano": 2021, "banca": "Cesgranrio", "cargo": "Escriturário — Agente Comercial", "qtd_questoes_edital": 70, "questoes_extraidas": 68, "divergencia": 2, "pontuacao_liquida": false, "fonte_slug": "bb-2021-b", "fonte_tipo": "oficial", "fonte_sha256": "524d5ab9fdb0bdf34df99cb8f505e2ece1d7767c7053914beb95dc4007623be8", "fonte_titulo": "Banco do Brasil 2021 — Escriturário — Agente Comercial (caderno tipo 1)"}
+{"id": "bb-2021-c", "concurso_orgao": "Banco do Brasil", "ano": 2021, "banca": "Cesgranrio", "cargo": "Escriturário — Agente Comercial", "qtd_questoes_edital": 70, "questoes_extraidas": 67, "divergencia": 3, "pontuacao_liquida": false, "fonte_slug": "bb-2021-c", "fonte_tipo": "oficial", "fonte_sha256": "120216a86e22ea76a387b2c6cbd9629c88766c448009eb4594cab41833ed6ade", "fonte_titulo": "Banco do Brasil 2021 — Escriturário — Agente Comercial (caderno tipo 1)"}
+{"id": "fgv-banestes-ti-2021", "concurso_orgao": "Banestes", "ano": 2021, "banca": "FGV", "cargo": "Analista em Tecnologia da Informação - Desenvolvimento de Sistemas", "qtd_questoes_edital": 60, "questoes_extraidas": 57, "divergencia": 3, "pontuacao_liquida": false, "fonte_slug": "fgv-banestes-ti-2021", "fonte_tipo": "oficial", "fonte_sha256": "84b679c65baf15d43ef2b6f963114babc81bd13f3f631fde5b4f17ddf9fc5711", "fonte_titulo": "Banestes 2021 — Analista em Tecnologia da Informação - Desenvolvimento de Sistemas (caderno tipo 1)"}
+
+Total de provas cadastradas: 9
+Total de questões avulsas (sem prova, prova_id nulo): 0
+
+Fontes cadastradas, por tipo:
+  oficial: 10
+  derivada: 1
+
+=== 2. INVENTARIO DE QUESTOES ===
+Total de questões: 590
+Com enunciado não-vazio: 590
+Com enunciado VAZIO: 0
+
+Questões tipo 'multipla': 530
+  com as 5 alternativas presentes: 530
+  com alternativas incompletas (1-4 presentes): 0
+  sem nenhuma alternativa: 0
+  com as 5 alternativas presentes mas TODAS com texto vazio (bug de figura): 0
+
+Questões tipo 'certo_errado': 60
+
+Com gabarito (campo `correta` preenchido): 586
+Sem gabarito: 4
+  das quais anuladas (esperado ficar sem gabarito): 4
+  das quais SEM gabarito e NÃO anuladas (inesperado, investigar): 0
+
+Com tópico atribuído: 232
+Com subtópico atribuído: 56
+SEM tópico atribuído: 358
+
+Com texto_base preenchido (texto de apoio): 89
+Enunciados que citam um texto-base mas têm texto_base vazio (heurística por regex): 1
+
+=== 3. BURACOS DE PARSING ===
+Descartes registrados em `Ingestao.descartes` (log real da importação):
+  Total de questões descartadas nas ingestões registradas: 55
+    32x — alternativas ausentes: A, B, C, D, E
+    18x — gabarito tem, caderno não
+    2x — alternativas ausentes: B
+    1x — alternativas sem texto (A, B, C, D): a questão depende de figura, que a extração de PDF não captura
+    1x — alternativas sem texto (A, B, C, D, E): a questão depende de figura, que a extração de PDF não captura
+    1x — alternativas sem texto (A, B, D): a questão depende de figura, que a extração de PDF não captura
+
+  Ingestões registradas: 28
+    prova=fgv-banestes-ti-2021 status=parcial detectadas=60 importadas=57 descartadas=3 em=2026-07-29
+    prova=bb-ti-2023 status=parcial detectadas=70 importadas=69 descartadas=1 em=2026-07-29
+    prova=bb-comercial-c-2023 status=parcial detectadas=69 importadas=67 descartadas=3 em=2026-07-29
+    prova=bb-2021-c status=parcial detectadas=69 importadas=67 descartadas=3 em=2026-07-29
+    prova=bb-comercial-b-2023 status=parcial detectadas=69 importadas=67 descartadas=3 em=2026-07-29
+    prova=bb-2021-b status=parcial detectadas=69 importadas=68 descartadas=2 em=2026-07-29
+    prova=bb-comercial-a-2023 status=parcial detectadas=69 importadas=67 descartadas=3 em=2026-07-29
+    prova=bb-2021-a status=parcial detectadas=69 importadas=68 descartadas=2 em=2026-07-29
+    prova=(nenhuma) status=erro detectadas=0 importadas=0 descartadas=0 em=2026-07-28
+    prova=(nenhuma) status=erro detectadas=0 importadas=0 descartadas=0 em=2026-07-28
+    prova=cebraspe-bnb-ti-2022 status=sucesso detectadas=60 importadas=60 descartadas=0 em=2026-07-28
+    prova=fgv-banestes-ti-2021 status=parcial detectadas=60 importadas=59 descartadas=1 em=2026-07-28
+    prova=bb-2021-c status=parcial detectadas=69 importadas=67 descartadas=3 em=2026-07-28
+    prova=bb-2021-b status=parcial detectadas=69 importadas=68 descartadas=2 em=2026-07-28
+    prova=bb-2021-a status=parcial detectadas=69 importadas=68 descartadas=2 em=2026-07-28
+    prova=bb-ti-2023 status=sucesso detectadas=70 importadas=70 descartadas=0 em=2026-07-28
+    prova=bb-comercial-c-2023 status=parcial detectadas=69 importadas=67 descartadas=3 em=2026-07-28
+    prova=bb-comercial-b-2023 status=parcial detectadas=69 importadas=67 descartadas=3 em=2026-07-28
+    prova=bb-comercial-a-2023 status=parcial detectadas=69 importadas=67 descartadas=3 em=2026-07-28
+    prova=bb-ti-2023 status=sucesso detectadas=70 importadas=70 descartadas=0 em=2026-07-28
+    prova=bb-comercial-c-2023 status=parcial detectadas=69 importadas=67 descartadas=3 em=2026-07-28
+    prova=bb-comercial-b-2023 status=parcial detectadas=69 importadas=67 descartadas=3 em=2026-07-28
+    prova=bb-comercial-a-2023 status=parcial detectadas=69 importadas=67 descartadas=3 em=2026-07-28
+    prova=bb-comercial-c-2023 status=parcial detectadas=69 importadas=67 descartadas=3 em=2026-07-28
+    prova=bb-comercial-b-2023 status=parcial detectadas=69 importadas=67 descartadas=3 em=2026-07-28
+    prova=bb-comercial-a-2023 status=parcial detectadas=69 importadas=67 descartadas=3 em=2026-07-28
+    prova=(nenhuma) status=erro detectadas=0 importadas=0 descartadas=0 em=2026-07-28
+    prova=bb-ti-2023 status=sucesso detectadas=70 importadas=70 descartadas=0 em=2026-07-27
+
+Sinais heurísticos no texto persistido (regex sobre enunciado/texto_base):
+  enunciado_parece_truncado: 338 questões (ex.: bb-comercial-a-2023-q04, bb-comercial-a-2023-q07, bb-comercial-a-2023-q11, bb-comercial-a-2023-q12, bb-comercial-a-2023-q13)
+
+'Alternativas fora de ordem': NÃO verificável — `Alternativa.Meta.ordering` reordena por letra em toda consulta, então a ordem de gravação não é recuperável dos dados atuais.
+'Blocos de código destruídos': NÃO verificável de forma confiável por regex sem amostragem manual — nenhum número é reportado para não estimar.
+
+=== 4. DISTRIBUICAO POR PROVA / ANO / DISCIPLINA ===
+Questões por ano:
+  2021: 260
+  2022: 60
+  2023: 270
+
+Questões por disciplina:
+  ti: 131
+  informatica: 90
+  vendas: 90
+  bancarios: 70
+  portugues: 64
+  ingles: 40
+  matematica: 35
+  atualidades: 35
+  matfinanceira: 30
+  estatistica: 5
+
+Questões por prova:
+  bb-ti-2023: 69
+  bb-2021-a: 68
+  bb-2021-b: 68
+  bb-comercial-a-2023: 67
+  bb-comercial-b-2023: 67
+  bb-comercial-c-2023: 67
+  bb-2021-c: 67
+  cebraspe-bnb-ti-2022: 60
+  fgv-banestes-ti-2021: 57
+
+Questões por banca:
+  Cesgranrio: 473
+  Cebraspe: 60
+  FGV: 57
+
+Questões classificadas (tópico não-nulo) por disciplina:
+  bancarios: 55
+  portugues: 45
+  ingles: 35
+  ti: 35
+  atualidades: 30
+  matematica: 28
+  estatistica: 4
+
+Tópicos cadastrados: 111
+Subtópicos cadastrados: 63
+Disciplinas cadastradas: 10
+
+--- FIM ---

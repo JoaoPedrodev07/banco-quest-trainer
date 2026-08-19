@@ -8,6 +8,11 @@ router.register("disciplinas", views.DisciplinaViewSet, basename="disciplina")
 router.register("questoes", views.QuestaoViewSet, basename="questao")
 router.register("provas", views.ProvaViewSet, basename="prova")
 router.register("aulas", views.AulaViewSet, basename="aula")
+router.register(
+    "classificacoes/fila-revisao",
+    views.ClassificacaoQuestaoViewSet,
+    basename="classificacao-fila-revisao",
+)
 
 urlpatterns = [
     path("meta/", views.meta, name="meta"),

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnaliseRouteImport } from './routes/analise'
+import { Route as ClassificacaoRouteImport } from './routes/classificacao'
 import { Route as ConfigRouteImport } from './routes/config'
 import { Route as EditalRouteImport } from './routes/edital'
 import { Route as FlashcardsRouteImport } from './routes/flashcards'
@@ -29,6 +30,11 @@ const IndexRoute = IndexRouteImport.update({
 const AnaliseRoute = AnaliseRouteImport.update({
   id: '/analise',
   path: '/analise',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClassificacaoRoute = ClassificacaoRouteImport.update({
+  id: '/classificacao',
+  path: '/classificacao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfigRoute = ConfigRouteImport.update({
@@ -80,6 +86,7 @@ const ConcursosConcursoIdRoute = ConcursosConcursoIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analise': typeof AnaliseRoute
+  '/classificacao': typeof ClassificacaoRoute
   '/config': typeof ConfigRoute
   '/edital': typeof EditalRoute
   '/flashcards': typeof FlashcardsRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analise': typeof AnaliseRoute
+  '/classificacao': typeof ClassificacaoRoute
   '/config': typeof ConfigRoute
   '/edital': typeof EditalRoute
   '/flashcards': typeof FlashcardsRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analise': typeof AnaliseRoute
+  '/classificacao': typeof ClassificacaoRoute
   '/config': typeof ConfigRoute
   '/edital': typeof EditalRoute
   '/flashcards': typeof FlashcardsRoute
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/analise'
+    | '/classificacao'
     | '/config'
     | '/edital'
     | '/flashcards'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/analise'
+    | '/classificacao'
     | '/config'
     | '/edital'
     | '/flashcards'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/analise'
+    | '/classificacao'
     | '/config'
     | '/edital'
     | '/flashcards'
@@ -162,6 +174,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnaliseRoute: typeof AnaliseRoute
+  ClassificacaoRoute: typeof ClassificacaoRoute
   ConfigRoute: typeof ConfigRoute
   EditalRoute: typeof EditalRoute
   FlashcardsRoute: typeof FlashcardsRoute
@@ -187,6 +200,13 @@ declare module '@tanstack/react-router' {
       path: '/analise'
       fullPath: '/analise'
       preLoaderRoute: typeof AnaliseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/classificacao': {
+      id: '/classificacao'
+      path: '/classificacao'
+      fullPath: '/classificacao'
+      preLoaderRoute: typeof ClassificacaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/config': {
@@ -258,6 +278,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnaliseRoute: AnaliseRoute,
+  ClassificacaoRoute: ClassificacaoRoute,
   ConfigRoute: ConfigRoute,
   EditalRoute: EditalRoute,
   FlashcardsRoute: FlashcardsRoute,

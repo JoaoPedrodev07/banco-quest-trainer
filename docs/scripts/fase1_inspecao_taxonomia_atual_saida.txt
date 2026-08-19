@@ -1,0 +1,215 @@
+Concursos distintos em Topico.concurso_id:
+  bb-ti-2026: 111 tópicos
+
+Disciplinas cadastradas (id, nome, fonte):
+  portugues        Língua Portuguesa                             fonte=edital-bb-2022-001
+  ingles           Língua Inglesa                                fonte=edital-bb-2022-001
+  matematica       Matemática                                    fonte=edital-bb-2022-001
+  estatistica      Probabilidade e Estatística                   fonte=edital-bb-2022-001
+  atualidades      Atualidades do Mercado Financeiro             fonte=edital-bb-2022-001
+  bancarios        Conhecimentos Bancários                       fonte=edital-bb-2022-001
+  ti               Tecnologia da Informação                      fonte=edital-bb-2022-001
+  informatica      Conhecimentos de Informática                  fonte=edital-bb-2022-001
+  vendas           Vendas e Negociação                           fonte=edital-bb-2022-001
+  matfinanceira    Matemática Financeira                         fonte=edital-bb-2022-001
+
+Árvore completa para concurso_id='bb-ti-2026':
+
+[portugues] Língua Portuguesa
+  portugues-t01        (n_questoes=13) Compreensão de textos
+  portugues-t02        (n_questoes=1) Ortografia oficial
+  portugues-t03        (n_questoes=2) Classe e emprego de palavras
+  portugues-t04        (n_questoes=6) Emprego do acento indicativo de crase
+  portugues-t05        (n_questoes=2) Sintaxe da oração e do período
+  portugues-t06        (n_questoes=5) Emprego dos sinais de pontuação
+  portugues-t07        (n_questoes=7) Concordância verbal e nominal
+  portugues-t08        (n_questoes=2) Regência verbal e nominal
+  portugues-t09        (n_questoes=7) Colocação dos pronomes oblíquos átonos (próclise, mesóclise e ênclise)
+
+[ingles] Língua Inglesa
+  ingles-t01           (n_questoes=35) Conhecimento de um vocabulário fundamental e dos aspectos gramaticais básicos para a compreensão de textos
+
+[matematica] Matemática
+  matematica-t01       (n_questoes=5) Números inteiros, racionais e reais; problemas de contagem
+  matematica-t02       (n_questoes=0) Sistema legal de medidas
+  matematica-t03       (n_questoes=6) Razões e proporções; divisão proporcional; regras de três simples e compostas; porcentagens
+  matematica-t04       (n_questoes=2) Lógica proposicional
+  matematica-t05       (n_questoes=1) Noções de conjuntos
+  matematica-t06       (n_questoes=4) Relações e funções; Funções polinomiais; Funções exponenciais e logarítmicas
+  matematica-t07       (n_questoes=2) Matrizes
+  matematica-t08       (n_questoes=0) Determinantes
+  matematica-t09       (n_questoes=3) Sistemas lineares
+  matematica-t10       (n_questoes=2) Sequências
+  matematica-t11       (n_questoes=3) Progressões aritméticas e progressões geométricas
+
+[estatistica] Probabilidade e Estatística
+  estatistica-t01      (n_questoes=0) Representação tabular e gráfica
+  estatistica-t02      (n_questoes=1) Medidas de tendência central (média, mediana, moda, medidas de posição, mínimo e máximo) e de dispersão (amplitude, amplitude interquartil, variância, desvio padrão e coeficiente de variação)
+  estatistica-t03      (n_questoes=1) Variáveis aleatórias e distribuição de probabilidade
+  estatistica-t04      (n_questoes=0) Teorema de Bayes
+  estatistica-t05      (n_questoes=0) Probabilidade condicional
+  estatistica-t06      (n_questoes=0) População e amostra
+  estatistica-t07      (n_questoes=0) Variância e covariância
+  estatistica-t08      (n_questoes=0) Correlação linear simples
+  estatistica-t09      (n_questoes=1) Distribuição binomial e distribuição normal
+  estatistica-t10      (n_questoes=1) Noções de amostragem e inferência estatística
+
+[atualidades] Atualidades do Mercado Financeiro
+  atualidades-t01      (n_questoes=5) Os bancos na Era Digital
+    atualidades-t01-s01      (n_questoes=0) Atualidade, tendências e desafios
+  atualidades-t02      (n_questoes=2) Internet banking
+  atualidades-t03      (n_questoes=0) Mobile banking
+  atualidades-t04      (n_questoes=2) Open banking
+  atualidades-t05      (n_questoes=0) Novos modelos de negócios
+  atualidades-t06      (n_questoes=3) Fintechs, startups e big techs
+  atualidades-t07      (n_questoes=3) Sistema de bancos-sombra (Shadow banking)
+  atualidades-t08      (n_questoes=6) Funções da moeda
+  atualidades-t09      (n_questoes=5) O dinheiro na era digital
+    atualidades-t09-s01      (n_questoes=0) blockchain, bitcoin e demais criptomoedas
+  atualidades-t10      (n_questoes=1) Marketplace
+  atualidades-t11      (n_questoes=1) Correspondentes bancários
+  atualidades-t12      (n_questoes=1) Arranjos de pagamentos
+  atualidades-t13      (n_questoes=0) Sistema de pagamentos instantâneos (PIX)
+  atualidades-t14      (n_questoes=0) Segmentação e interações digitais
+  atualidades-t15      (n_questoes=1) Transformação digital no Sistema Financeiro
+
+[bancarios] Conhecimentos Bancários
+  bancarios-t01        (n_questoes=4) Sistema Financeiro Nacional
+    bancarios-t01-s01        (n_questoes=0) Estrutura do Sistema Financeiro Nacional
+    bancarios-t01-s02        (n_questoes=4) Órgãos normativos e instituições supervisoras, executoras e operadoras
+  bancarios-t02        (n_questoes=1) Mercado financeiro e seus desdobramentos (mercados monetário, de crédito, de capitais e cambial)
+  bancarios-t03        (n_questoes=4) Moeda e política monetária
+    bancarios-t03-s01        (n_questoes=1) Políticas monetárias convencionais e não-convencionais (Quantitative Easing)
+    bancarios-t03-s02        (n_questoes=1) Taxa SELIC e operações compromissadas
+    bancarios-t03-s03        (n_questoes=0) O debate sobre os depósitos remunerados dos bancos comerciais no Banco Central do Brasil
+  bancarios-t04        (n_questoes=2) Orçamento público, títulos do Tesouro Nacional e dívida pública
+  bancarios-t05        (n_questoes=6) Produtos Bancários
+    bancarios-t05-s01        (n_questoes=4) Noções de cartões de crédito e débito, crédito direto ao consumidor, crédito rural, poupança, capitalização, previdência, consórcio, investimentos e seguros
+  bancarios-t06        (n_questoes=4) Noções de Mercado de capitais
+  bancarios-t07        (n_questoes=4) Noções de Mercado de Câmbio
+    bancarios-t07-s01        (n_questoes=1) Instituições autorizadas a operar e operações básicas
+  bancarios-t08        (n_questoes=2) Regimes de taxas de câmbio fixas, flutuantes e regimes intermediários
+  bancarios-t09        (n_questoes=5) Taxas de câmbio nominais e reais
+  bancarios-t10        (n_questoes=1) Impactos das taxas de câmbio sobre as exportações e importações
+  bancarios-t11        (n_questoes=5) Diferencial de juros interno e externo, prêmios de risco, fluxo de capitais e seus impactos sobre as taxas de câmbio
+  bancarios-t12        (n_questoes=0) Dinâmica do Mercado
+    bancarios-t12-s01        (n_questoes=0) Operações no mercado interbancário
+  bancarios-t13        (n_questoes=2) Mercado bancário
+    bancarios-t13-s01        (n_questoes=2) Operações de tesouraria, varejo bancário e recuperação de crédito
+  bancarios-t14        (n_questoes=3) Taxas de juros de curto prazo e a curva de juros; taxas de juros nominais e reais
+  bancarios-t15        (n_questoes=2) Garantias do Sistema Financeiro Nacional
+    bancarios-t15-s01        (n_questoes=0) aval
+    bancarios-t15-s02        (n_questoes=0) fiança
+    bancarios-t15-s03        (n_questoes=0) penhor mercantil
+    bancarios-t15-s04        (n_questoes=1) alienação fiduciária
+    bancarios-t15-s05        (n_questoes=0) hipoteca
+    bancarios-t15-s06        (n_questoes=0) fianças bancárias
+  bancarios-t16        (n_questoes=1) Crime de lavagem de dinheiro
+    bancarios-t16-s01        (n_questoes=0) conceito e etapas
+    bancarios-t16-s02        (n_questoes=0) Prevenção e combate ao crime de lavagem de dinheiro: Lei nº 9.613/98 e suas alterações
+    bancarios-t16-s03        (n_questoes=0) Circular nº 3.978, de 23 de janeiro de 2020 e Carta Circular nº 4.001, de 29 de janeiro de 2020 e suas alterações
+  bancarios-t17        (n_questoes=0) Autorregulação bancária e Normativos SARB
+  bancarios-t18        (n_questoes=0) Sigilo Bancário
+    bancarios-t18-s01        (n_questoes=0) Lei Complementar nº 105/2001 e suas alterações
+  bancarios-t19        (n_questoes=2) Lei Geral de Proteção de Dados (LGPD)
+    bancarios-t19-s01        (n_questoes=2) Lei nº 13.709, de 14 de agosto de 2018 e suas alterações
+  bancarios-t20        (n_questoes=0) Legislação anticorrupção
+    bancarios-t20-s01        (n_questoes=0) Lei nº 12.846/2013 e Decreto nº 11.129 de 11/07/2022
+  bancarios-t21        (n_questoes=1) Segurança cibernética
+    bancarios-t21-s01        (n_questoes=1) Resolução CMN nº 4.893, de 26/02/2021
+  bancarios-t22        (n_questoes=5) Ética aplicada
+    bancarios-t22-s01        (n_questoes=0) ética, moral, valores e virtudes
+    bancarios-t22-s02        (n_questoes=5) noções de ética empresarial e profissional. A gestão da ética nas empresas públicas e privadas. Código de Ética do Banco do Brasil (disponível no sítio do BB na internet)
+  bancarios-t23        (n_questoes=0) Política de Responsabilidade Socioambiental do Banco do Brasil (disponível no sítio do BB na internet)
+  bancarios-t24        (n_questoes=1) ASG (Ambiental, Social e Governança)
+    bancarios-t24-s01        (n_questoes=0) Economia Sustentável
+    bancarios-t24-s02        (n_questoes=0) Financiamentos
+    bancarios-t24-s03        (n_questoes=0) Mercado PJ
+
+[ti] Tecnologia da Informação
+  ti-t01               (n_questoes=2) Aprendizagem de máquina
+    ti-t01-s01               (n_questoes=1) Fundamentos básicos
+    ti-t01-s02               (n_questoes=0) Noções de algoritmos de aprendizado supervisionados e não supervisionados
+    ti-t01-s03               (n_questoes=1) Noções de processamento de linguagem natural
+  ti-t02               (n_questoes=8) Banco de Dados
+    ti-t02-s01               (n_questoes=2) Banco de dados NoSQL (conceitos básicos, bancos orientados a grafos, colunas, chave/valor e documentos)
+    ti-t02-s02               (n_questoes=0) MongoDB
+    ti-t02-s03               (n_questoes=1) linguagem SQL2008
+    ti-t02-s04               (n_questoes=2) Conceitos de banco de dados e sistemas gerenciadores de bancos de dados (SGBD)
+    ti-t02-s05               (n_questoes=0) Data Warehouse (modelagem conceitual para data warehouses, dados multidimensionais)
+    ti-t02-s06               (n_questoes=2) Modelagem conceitual de dados (a abordagem entidade-relacionamento)
+    ti-t02-s07               (n_questoes=1) Modelo relacional de dados (conceitos básicos, normalização)
+    ti-t02-s08               (n_questoes=0) Postgre-SQL
+  ti-t03               (n_questoes=4) Big data
+    ti-t03-s01               (n_questoes=1) Fundamentos
+    ti-t03-s02               (n_questoes=3) Técnicas de preparação e apresentação de dados
+  ti-t04               (n_questoes=5) Desenvolvimento Mobile
+    ti-t04-s01               (n_questoes=3) linguagens/frameworks: Java/Kotlin e Swift. React Native 0.59
+    ti-t04-s02               (n_questoes=2) Sistemas Android api 30 e iOS xCode 10
+  ti-t05               (n_questoes=6) Estrutura de dados e algoritmos
+    ti-t05-s01               (n_questoes=1) Busca sequencial e busca binária sobre arrays
+    ti-t05-s02               (n_questoes=4) Ordenação (métodos da bolha, ordenação por seleção, ordenação por inserção), lista encadeada, pilha, fila e noções sobre árvore binária
+  ti-t06               (n_questoes=10) Ferramentas e Linguagens de Programação para manipulação de dados
+    ti-t06-s01               (n_questoes=1) Ansible
+    ti-t06-s02               (n_questoes=4) Java (SE 11 e EE 8)
+    ti-t06-s03               (n_questoes=2) TypeScript 4.0
+    ti-t06-s04               (n_questoes=3) Python 3.9.X aplicada para IA/ML e Analytics (bibliotecas Pandas, NumPy, SciPy, Matplotlib e Scikit-learn)
+
+[informatica] Conhecimentos de Informática
+  informatica-t01      (n_questoes=0) Noções de sistemas operacionais – Windows 10 (32-64 bits) e ambiente Linux (SUSE SLES 15 SP2)
+  informatica-t02      (n_questoes=0) Edição de textos, planilhas e apresentações (ambientes Microsoft Office - Word, Excel e PowerPoint - versão O365)
+  informatica-t03      (n_questoes=0) Segurança da informação
+    informatica-t03-s01      (n_questoes=0) fundamentos, conceitos e mecanismos de segurança
+  informatica-t04      (n_questoes=0) Proteção de estações de trabalho
+    informatica-t04-s01      (n_questoes=0) Controle de dispostivos USB, hardening, antimalware e firewall pessoal
+  informatica-t05      (n_questoes=0) Conceitos de organização e de gerenciamento de informações, arquivos, pastas e programas
+  informatica-t06      (n_questoes=0) Redes de computadores
+    informatica-t06-s01      (n_questoes=0) Conceitos básicos, ferramentas, aplicativos e procedimentos de Internet e intranet
+  informatica-t07      (n_questoes=0) Navegador Web (Microsoft Edge versão 91 e Mozilla Firefox versão 78 ESR), busca e pesquisa na Web
+  informatica-t08      (n_questoes=0) Correio eletrônico, grupos de discussão, fóruns e wikis
+  informatica-t09      (n_questoes=0) Redes Sociais (Twitter, Facebook, Linkedin, WhatsApp, YouTube, Instagram e Telegram)
+  informatica-t10      (n_questoes=0) Visão geral sobre sistemas de suporte à decisão e inteligência de negócio
+  informatica-t11      (n_questoes=0) Fundamentos sobre análise de dados
+  informatica-t12      (n_questoes=0) Conceitos de educação a distância
+  informatica-t13      (n_questoes=0) Conceitos de tecnologias e ferramentas multimídia, de reprodução de áudio e vídeo
+  informatica-t14      (n_questoes=0) Ferramentas de produtividade e trabalho a distância (Microsoft Teams, Cisco Webex, Google Hangout, Google Drive e Skype)
+
+[vendas] Vendas e Negociação
+  vendas-t01           (n_questoes=0) Noções de estratégia empresarial
+    vendas-t01-s01           (n_questoes=0) análise de mercado, forças competitivas, imagem institucional, identidade e posicionamento
+  vendas-t02           (n_questoes=0) Segmentação de mercado
+  vendas-t03           (n_questoes=0) Ações para aumentar o valor percebido pelo cliente
+  vendas-t04           (n_questoes=0) Gestão da experiência do cliente
+  vendas-t05           (n_questoes=0) Aprendizagem e sustentabilidade organizacional
+  vendas-t06           (n_questoes=0) Características dos serviços
+    vendas-t06-s01           (n_questoes=0) intangibilidade, inseparabilidade, variabilidade e perecibilidade
+  vendas-t07           (n_questoes=0) Gestão da qualidade em serviços
+  vendas-t08           (n_questoes=0) Técnicas de vendas
+    vendas-t08-s01           (n_questoes=0) da pré-abordagem ao pós-vendas
+  vendas-t09           (n_questoes=0) Noções de marketing digital
+    vendas-t09-s01           (n_questoes=0) geração de leads
+    vendas-t09-s02           (n_questoes=0) técnica de copywriting
+    vendas-t09-s03           (n_questoes=0) gatilhos mentais
+    vendas-t09-s04           (n_questoes=0) Inbound marketing
+  vendas-t10           (n_questoes=0) Ética e conduta profissional em vendas
+  vendas-t11           (n_questoes=0) Padrões de qualidade no atendimento aos clientes
+  vendas-t12           (n_questoes=0) Utilização de canais remotos para vendas
+  vendas-t13           (n_questoes=0) Comportamento do consumidor e sua relação com vendas e negociação
+  vendas-t14           (n_questoes=0) Política de Relacionamento com o Cliente
+    vendas-t14-s01           (n_questoes=0) Resolução nº 4.949, de 30 de setembro de 2021
+  vendas-t15           (n_questoes=0) Resolução CMN nº 4.860, de 23 de outubro de 2020 que dispõe sobre a constituição e o funcionamento de componente organizacional de ouvidoria pelas instituições financeiras e demais instituições autorizadas a funcionar pelo Banco Central do Brasil
+  vendas-t16           (n_questoes=0) Lei Brasileira de Inclusão da Pessoa com Deficiência (Estatuto da Pessoa com Deficiência)
+    vendas-t16-s01           (n_questoes=0) Lei nº 13.146, de 06 de julho de 2015
+  vendas-t17           (n_questoes=0) Código de Proteção e Defesa do Consumidor
+    vendas-t17-s01           (n_questoes=0) Lei nº 8.078/1990 (versão atualizada). ANEXO IV - CRONOGAMA EVENTOS BÁSICOS DATAS Inscrições. 23/12/2022 a 24/02/2023 Solicitação de inscrição com isenção do valor da mesma. 23/12/2022 a 03/01/2023 Resultado preliminar dos pedidos de isenção do valor de inscrição. 12/01/2023 Prazo para recurso dos(a
+
+[matfinanceira] Matemática Financeira
+  matfinanceira-t01    (n_questoes=0) Conceitos gerais - O conceito do valor do dinheiro no tempo; Capital, juros, taxas de juros; Capitalização, regimes de capitalização; Fluxos de caixa e diagramas de fluxo de caixa; Equivalência financeira
+  matfinanceira-t02    (n_questoes=0) Juros simples -Cálculo do montante, dos juros, da taxa de juros, do principal e do prazo da operação financeira
+  matfinanceira-t03    (n_questoes=0) Juros compostos - Cálculo do montante, dos juros, da taxa de juros, do principal e do prazo da operação financeira
+  matfinanceira-t04    (n_questoes=0) Sistemas de amortização - Sistema price; Sistema SAC
+
+Total Topico (todos concursos): 111
+Total Subtopico: 63
+
+Tamanho de Topico.nome: min=8 max=246 media=46

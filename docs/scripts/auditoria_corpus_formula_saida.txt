@@ -1,0 +1,26 @@
+Questões com padrão letra-dígito-letra sem espaço no enunciado: 18
+Por disciplina:
+  ti: 7
+  matematica: 6
+  matfinanceira: 4
+  estatistica: 1
+
+Lista completa (id, disciplina, trechos casados):
+  bb-comercial-a-2023-q20 [matematica]: ['no 1o', 'no 2o', 'no 3o', 'no 1o']
+  bb-comercial-b-2023-q18 [matematica]: ['em 1o', 'em 2o', 'em 2o', 'em 3o', 'em 2o', 'e 3o']
+  bb-comercial-b-2023-q19 [matematica]: ['G4 e', 'C4 e']
+  bb-comercial-b-2023-q20 [matematica]: ['A2 e', 'A1 Uma', 'A1 e']
+  bb-comercial-b-2023-q27 [matfinanceira]: ['da 4a']
+  bb-comercial-c-2023-q29 [matfinanceira]: ['do 4o']
+  bb-ti-2023-q29 [estatistica]: ['de 8m']
+  bb-ti-2023-q66 [ti]: ['P2 e', 'A1 e', 'P1 e', 'P2 e', 'P1 e', 'P3 e', 'A1 e', 'A2 e', 'P2 e']
+  bb-ti-2023-q68 [ti]: ['T1 e', 'T1 e', 'T1 e']
+  cebraspe-bnb-ti-2022-q089 [ti]: ['L5 e']
+  bb-2021-a-q19 [matematica]: ['n2 b', 'm4 b']
+  bb-2021-a-q26 [matfinanceira]: ['s1 so', 'u2 al']
+  bb-2021-b-q16 [matematica]: ['a4 res']
+  bb-2021-c-q28 [matfinanceira]: ['na 7a']
+  fgv-banestes-ti-2021-q47 [ti]: ['T2 e']
+  fgv-banestes-ti-2021-q48 [ti]: ['T2 e']
+  fgv-banestes-ti-2021-q50 [ti]: ['T1 e', 'T3 t', 'T3 a']
+  fgv-banestes-ti-2021-q60 [ti]: ['ea5d', 'e2c', 'f2dd', 'd1b', 'c9e', 'd5b']

@@ -12,7 +12,7 @@ Duas escolhas que valem explicar:
    §2.2 do CLAUDE.md proíbe apresentar amostra como se fosse edital real.
 """
 
-from django.core.validators import RegexValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 
 slug_validator = RegexValidator(
@@ -75,6 +75,81 @@ class Fonte(models.Model):
         return self.tipo == self.Tipo.OFICIAL
 
 
+class Banca(models.Model):
+    """Banca organizadora. Tabela pequena de propósito — hoje só existe pra
+    `Concurso.banca` apontar pra algo tipado em vez de repetir a string livre
+    que `Prova.banca`/`Questao.banca` já usam.
+
+    **Deliberadamente não normalizei `Prova.banca`/`Questao.banca` pra FK aqui**
+    (Fase 3 do `CLAUDE.md` §8): são 590 linhas em uso por filtro de API, admin e
+    o contrato de tipos do frontend (`Questao.banca: string`), e nada nesta fase
+    precisa que sejam FK — o valor livre já é vocabulário controlado na prática
+    (Cesgranrio/Cebraspe/FGV, sempre grafado igual). Normalizar sem necessidade
+    imediata é o tipo de troca que este projeto evita (`CLAUDE.md` regra geral
+    de não adicionar abstração além do que a tarefa pede).
+    """
+
+    slug = models.SlugField(primary_key=True, max_length=60, validators=[slug_validator])
+    nome = models.CharField(max_length=120)
+
+    class Meta:
+        verbose_name = "banca"
+        verbose_name_plural = "bancas"
+        ordering = ["nome"]
+
+    def __str__(self) -> str:
+        return self.nome
+
+
+class StatusConcurso(models.TextChoices):
+    """Espelha `StatusConcurso` de `src/types/index.ts` — não são valores
+    inventados aqui, são os que a tela já usa."""
+
+    INSCRICOES_ABERTAS = "inscricoes_abertas", "Inscrições abertas"
+    INSCRICOES_ENCERRADAS = "inscricoes_encerradas", "Inscrições encerradas"
+    PREVISTO = "previsto", "Previsto"
+    ENCERRADO = "encerrado", "Encerrado"
+
+
+class Concurso(models.Model):
+    """Fase 3 do `CLAUDE.md` §8 — o backend passa a saber o que é um concurso,
+    em vez de `concurso_id` ser só uma string carimbada em `Topico`/`Aula` e o
+    recorte por concurso morar inteiro em `useAcervoDoConcurso` no frontend.
+
+    **Escopo deliberadamente estreito**: só existe linha aqui para os concursos
+    que já têm prova de verdade no backend (`bb-ti-2026`, `fgv-banestes-ti-2021`,
+    `cebraspe-bnb-ti-2022`). Os outros três do catálogo do frontend
+    (`src/data/concursos.ts`) — TCE-SP, TCE-RJ, ATI-PE — não têm nenhuma prova
+    importada, são só um card de calendário com dado de imprensa; migrar esse
+    calendário pro backend é escopo maior do que "eliminar o recorte de prova"
+    (o problema real do §7.3), fica pra quando o backend precisar servir
+    conteúdo desses concursos de verdade.
+
+    `banca` e `data_prova` são anuláveis de propósito: o BB 2026 está sem
+    contrato de banca definido, e cravar um valor aqui seria o mesmo erro que
+    o §2.2 já proíbe na tela — afirmar como fato o que ainda é "a confirmar".
+    """
+
+    slug = models.SlugField(primary_key=True, max_length=80, validators=[slug_validator])
+    nome = models.CharField(max_length=200)
+    orgao = models.CharField(max_length=200)
+    cargo = models.CharField(max_length=200)
+    banca = models.ForeignKey(
+        Banca, on_delete=models.PROTECT, related_name="concursos", null=True, blank=True
+    )
+    data_prova = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=24, choices=StatusConcurso.choices)
+    fonte = models.ForeignKey(Fonte, on_delete=models.PROTECT, related_name="concursos")
+
+    class Meta:
+        verbose_name = "concurso"
+        verbose_name_plural = "concursos"
+        ordering = ["-data_prova", "nome"]
+
+    def __str__(self) -> str:
+        return self.nome
+
+
 class Disciplina(models.Model):
     id = models.SlugField(primary_key=True, max_length=60, validators=[slug_validator])
     nome = models.CharField(max_length=160)
@@ -110,8 +185,17 @@ class Topico(models.Model):
     # Slug do concurso no catálogo do frontend (`src/data/concursos.ts`), como em
     # `Aula.concurso_id`. O backend ainda não modela concurso como tabela.
     concurso_id = models.SlugField(max_length=80, validators=[slug_validator], default="bb-ti-2026")
+    # Redação literal do edital para este item — é o "titulo_edital" que a análise
+    # de incidência cita, guardado aqui em vez de campo duplicado (ver docs/taxonomia.md).
     nome = models.CharField(max_length=300)
     ordem = models.PositiveSmallIntegerField(default=0)
+    # Referência de numeração do edital (ex.: "6" para o 6º item de TI). Não é chave
+    # de nada — é só o que a UI mostra pra achar o item no PDF original.
+    edital_ref = models.CharField(max_length=20, blank=True)
+    # Falso quando o item saiu do edital vigente numa reimportação. O tópico continua
+    # no banco (nunca é deletado) porque `Questao.topico` aponta pra ele — apagar
+    # anularia classificação já feita. Ver docs/taxonomia.md, "política de deprecação".
+    ativo_edital_vigente = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = "tópico"
@@ -128,6 +212,9 @@ class Subtopico(models.Model):
     topico = models.ForeignKey(Topico, on_delete=models.CASCADE, related_name="subtopicos")
     nome = models.CharField(max_length=300)
     ordem = models.PositiveSmallIntegerField(default=0)
+    # Mesmo par de campos do Topico, e pela mesma razão — ver acima.
+    edital_ref = models.CharField(max_length=20, blank=True)
+    ativo_edital_vigente = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = "subtópico"
@@ -138,8 +225,82 @@ class Subtopico(models.Model):
         return self.nome
 
 
+class Edital(models.Model):
+    """Uma versão publicada do conteúdo programático de um concurso.
+
+    Existe separado de `Fonte` só pelo que `Fonte` não tem: a quem pertence
+    (`concurso`) e se é a versão vigente. sha256/URL/data de publicação
+    continuam só em `Fonte` — repetir esses três campos aqui seria o mesmo dado
+    guardado duas vezes (`CLAUDE.md` §2.3), e `Fonte` já é o lugar certo.
+
+    `versao` fica em 1 pra todo edital importado até hoje porque só existe uma
+    versão de cada um no acervo (`docs/auditoria-corpus.md`, seção 5) — bump de
+    versão é problema da Fase 5 (diff de editais), que compara duas versões
+    reais. Não simule uma segunda aqui.
+    """
+
+    concurso = models.ForeignKey(Concurso, on_delete=models.CASCADE, related_name="editais")
+    versao = models.PositiveSmallIntegerField(default=1)
+    fonte = models.ForeignKey(Fonte, on_delete=models.PROTECT, related_name="editais")
+    eh_vigente = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "edital"
+        verbose_name_plural = "editais"
+        ordering = ["-versao"]
+        constraints = [
+            # Um vigente por concurso — é o que a tela usa pra saber qual
+            # conteúdo programático mostrar sem ambiguidade.
+            models.UniqueConstraint(
+                fields=["concurso"],
+                condition=models.Q(eh_vigente=True),
+                name="um_edital_vigente_por_concurso",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.concurso_id} v{self.versao}"
+
+
+class ItemEdital(models.Model):
+    """Fotografia de um `Topico` no momento em que este `Edital` foi importado.
+
+    **Por que isto duplica `numeracao_original`/`redacao_literal` de
+    `Topico.edital_ref`/`Topico.nome`, de propósito.** `Topico` guarda o estado
+    *atual* — `importar_edital` sobrescreve `nome` a cada reimportação. Este
+    registro é histórico e não muda depois de criado: é o que permite à Fase 5
+    (diff de editais) comparar a redação de uma versão contra a seguinte mesmo
+    depois que `Topico.nome` já foi atualizado pela versão nova. Sem o
+    congelamento, a versão antiga do texto já teria sido perdida quando a
+    segunda versão existir. Mesmo padrão de `ClassificacaoQuestao` guardando
+    proveniência ao lado de `Questao.topico` (Fase 2).
+    """
+
+    edital = models.ForeignKey(Edital, on_delete=models.CASCADE, related_name="itens")
+    topico = models.ForeignKey(Topico, on_delete=models.PROTECT, related_name="itens_edital")
+    numeracao_original = models.CharField(max_length=20)
+    redacao_literal = models.TextField()
+    ordem = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "item do edital"
+        verbose_name_plural = "itens do edital"
+        ordering = ["ordem"]
+        constraints = [
+            models.UniqueConstraint(fields=["edital", "topico"], name="item_edital_unico_por_topico")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.edital_id} · {self.numeracao_original} {self.topico.nome[:40]}"
+
+
 class Prova(models.Model):
     id = models.SlugField(primary_key=True, max_length=80, validators=[slug_validator])
+    # Nulo enquanto uma prova nova ainda não foi ligada a um concurso — ver
+    # docstring de `Concurso` sobre o recorte deliberadamente estreito da Fase 3.
+    concurso = models.ForeignKey(
+        Concurso, on_delete=models.SET_NULL, related_name="provas", null=True, blank=True
+    )
     ano = models.PositiveSmallIntegerField()
     banca = models.CharField(max_length=80)
     cargo = models.CharField(max_length=200)
@@ -342,3 +503,94 @@ class Aula(models.Model):
     def unidade_id(self) -> str:
         """O id que a tela usa para casar aula com linha do edital."""
         return self.subtopico_id or self.topico_id
+
+
+class OrigemClassificacao(models.TextChoices):
+    HUMANA = "humana", "Humana"
+    HEURISTICA = "heuristica", "Heurística (termo-âncora)"
+    LLM_EXTERNA = "llm_externa", "IA externa (não embutida no app)"
+
+
+class NivelCognitivo(models.TextChoices):
+    MEMORIZACAO = "memorizacao", "Memorização"
+    COMPREENSAO = "compreensao", "Compreensão"
+    APLICACAO = "aplicacao", "Aplicação"
+    ANALISE = "analise", "Análise"
+
+
+class FormatoItem(models.TextChoices):
+    CONCEITUAL = "conceitual", "Conceitual"
+    LEITURA_DE_CODIGO = "leitura_de_codigo", "Leitura de código"
+    CALCULO = "calculo", "Cálculo"
+    INTERPRETACAO_DE_CASO = "interpretacao_de_caso", "Interpretação de caso"
+    COMANDO_SINTAXE = "comando_sintaxe", "Comando/sintaxe"
+
+
+class ClassificacaoQuestao(models.Model):
+    """Registro de classificação de uma questão contra a árvore do edital.
+
+    **Por que isto não substitui `Questao.topico`/`Questao.subtopico`.** Aquele
+    par é a classificação primária *corrente* — é o que toda tela, filtro e
+    comando já existentes leem hoje, e reescrevê-los para juntar com esta tabela
+    era troca grande demais para uma fase só. Esta tabela é o histórico completo
+    com proveniência: uma questão pode ter mais de uma linha aqui (até 2-3
+    tópicos tocados), mas só uma com `eh_primaria=True`, e é essa que os
+    comandos de classificação (`classificar_questoes`, `classificar_heuristica`,
+    `importar_classificacao_llm`) espelham em `Questao.topico`/`subtopico` no
+    mesmo `save()`. Só esses comandos escrevem dos dois lados — não é
+    sincronização automática por sinal, é disciplina de um único caminho de
+    escrita, porque `CLAUDE.md` §2.3 proíbe dois lugares guardando a mesma
+    conclusão sem um jeito claro de saber qual manda.
+    """
+
+    questao = models.ForeignKey(Questao, on_delete=models.CASCADE, related_name="classificacoes")
+    topico = models.ForeignKey(Topico, on_delete=models.PROTECT, related_name="classificacoes")
+    subtopico = models.ForeignKey(
+        Subtopico, on_delete=models.PROTECT, related_name="classificacoes", null=True, blank=True
+    )
+    eh_primaria = models.BooleanField(default=True)
+    nivel_cognitivo = models.CharField(max_length=20, choices=NivelCognitivo.choices, blank=True)
+    formato_item = models.CharField(max_length=25, choices=FormatoItem.choices, blank=True)
+    confianca = models.FloatField(
+        default=1.0,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
+        help_text="0.0–1.0. Só é 1.0 de verdade quando origem=humana.",
+    )
+    origem_classificacao = models.CharField(max_length=12, choices=OrigemClassificacao.choices)
+    # Obrigatório quando origem != humana — ver clean(). Classificação automática
+    # sem justificativa é opaca demais pra entrar na fila de revisão com sentido.
+    justificativa = models.TextField(blank=True)
+    revisada_por_humano = models.BooleanField(default=False)
+    revisada_em = models.DateTimeField(null=True, blank=True)
+    criada_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "classificação de questão"
+        verbose_name_plural = "classificações de questão"
+        ordering = ["-criada_em"]
+        constraints = [
+            # No máximo uma classificação primária por questão — é o que
+            # `Questao.topico` espelha; duas primárias tornariam ambíguo qual
+            # delas o resto do app deveria refletir.
+            models.UniqueConstraint(
+                fields=["questao"],
+                condition=models.Q(eh_primaria=True),
+                name="uma_classificacao_primaria_por_questao",
+            ),
+        ]
+        indexes = [models.Index(fields=["origem_classificacao", "revisada_por_humano"])]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        erros: dict[str, str] = {}
+        if self.origem_classificacao != OrigemClassificacao.HUMANA and not self.justificativa.strip():
+            erros["justificativa"] = "obrigatória quando a origem não é humana."
+        if self.subtopico_id and self.subtopico.topico_id != self.topico_id:
+            erros["subtopico"] = "não pertence ao tópico informado."
+        if erros:
+            raise ValidationError(erros)
+
+    def __str__(self) -> str:
+        marca = "primária" if self.eh_primaria else "secundária"
+        return f"{self.questao_id} → {self.subtopico_id or self.topico_id} ({marca}, {self.origem_classificacao})"

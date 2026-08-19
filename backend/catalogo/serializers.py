@@ -9,7 +9,17 @@ frontend antigo os ignora, o novo os usa para não mentir sobre a procedência.
 
 from rest_framework import serializers
 
-from .models import Alternativa, Aula, Disciplina, Fonte, Prova, Questao, Subtopico, Topico
+from .models import (
+    Alternativa,
+    Aula,
+    ClassificacaoQuestao,
+    Disciplina,
+    Fonte,
+    Prova,
+    Questao,
+    Subtopico,
+    Topico,
+)
 
 
 class FonteSerializer(serializers.ModelSerializer):
@@ -111,11 +121,15 @@ class ProvaSerializer(serializers.ModelSerializer):
     urlProva = serializers.CharField(source="url_prova", read_only=True)
     urlGabarito = serializers.CharField(source="url_gabarito", read_only=True)
     fonte = FonteSerializer(read_only=True)
+    # Fase 3 (`CLAUDE.md` §8): campo aditivo — nulo enquanto uma prova nova não
+    # foi ligada a um concurso. Front antigo ignora; é o que `?concurso=` filtra.
+    concursoId = serializers.CharField(source="concurso_id", read_only=True, allow_null=True)
 
     class Meta:
         model = Prova
         fields = [
             "id",
+            "concursoId",
             "ano",
             "banca",
             "cargo",
@@ -178,3 +192,50 @@ class AulaSerializer(serializers.ModelSerializer):
             },
         )
         return aula
+
+
+class ClassificacaoQuestaoSerializer(serializers.ModelSerializer):
+    """Fila de revisão da Fase 2 (`CLAUDE.md` §8): classificação automática
+    (heurística ou IA externa) que ainda não foi confirmada por um humano."""
+
+    questaoId = serializers.CharField(source="questao_id", read_only=True)
+    enunciado = serializers.SerializerMethodField()
+    disciplinaId = serializers.CharField(source="topico.disciplina_id", read_only=True)
+    topicoId = serializers.CharField(source="topico_id", read_only=True)
+    topicoNome = serializers.CharField(source="topico.nome", read_only=True)
+    subtopicoId = serializers.CharField(source="subtopico_id", read_only=True, allow_null=True)
+    subtopicoNome = serializers.CharField(source="subtopico.nome", read_only=True, allow_null=True, default=None)
+    origemClassificacao = serializers.CharField(source="origem_classificacao", read_only=True)
+    revisadaPorHumano = serializers.BooleanField(source="revisada_por_humano", read_only=True)
+    revisadaEm = serializers.DateTimeField(source="revisada_em", read_only=True)
+    # Quantas questões o tópico já tem — é o critério de "impacto" que decide a
+    # ordem da fila (CLAUDE.md §8: tópico com mais questões entra primeiro,
+    # porque uma classificação errada ali distorce mais estatística).
+    impactoTopico = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ClassificacaoQuestao
+        fields = [
+            "id",
+            "questaoId",
+            "enunciado",
+            "disciplinaId",
+            "topicoId",
+            "topicoNome",
+            "subtopicoId",
+            "subtopicoNome",
+            "confianca",
+            "origemClassificacao",
+            "justificativa",
+            "revisadaPorHumano",
+            "revisadaEm",
+            "impactoTopico",
+        ]
+
+    def get_enunciado(self, obj):
+        import textwrap
+
+        return textwrap.shorten(obj.questao.enunciado, 240, placeholder="…")
+
+    def get_impactoTopico(self, obj):
+        return obj.topico.classificacoes.filter(eh_primaria=True).count()

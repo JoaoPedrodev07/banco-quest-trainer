@@ -1,0 +1,18 @@
+Bancas: [('cebraspe', 'Cebraspe'), ('cesgranrio', 'Cesgranrio'), ('fgv', 'FGV')]
+
+Concursos:
+  cebraspe-bnb-ti-2022: banca=cebraspe status=encerrado data_prova=2022-12-04 provas=1
+  fgv-banestes-ti-2021: banca=fgv status=encerrado data_prova=2021-12-19 provas=1
+  bb-ti-2026: banca=None status=previsto data_prova=None provas=7
+
+Provas SEM concurso (deveria ser 0, todas as 9 têm concurso no catálogo): 0
+
+Total provas: 9
+Total questões: 590 (deve continuar 590)
+
+Edital: concurso=bb-ti-2026 versao=1 vigente=True
+Itens do edital: 111
+Tópicos de bb-ti-2026: 111 (deve bater)
+  amostra: [1] Aprendizagem de máquina (topico=ti-t01)
+  amostra: [1] Compreensão de textos (topico=portugues-t01)
+  amostra: [1] Conceitos gerais - O conceito do valor do dinheiro no tempo; (topico=matfinanceira-t01)

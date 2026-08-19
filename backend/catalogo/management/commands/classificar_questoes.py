@@ -25,8 +25,9 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.utils import timezone
 
-from catalogo.models import Questao, Subtopico, Topico
+from catalogo.models import ClassificacaoQuestao, OrigemClassificacao, Questao, Subtopico, Topico
 
 
 class Command(BaseCommand):
@@ -98,6 +99,23 @@ class Command(BaseCommand):
 
         with transaction.atomic():
             Questao.objects.bulk_update(aplicar, ["topico", "subtopico"])
+            # Este comando é o caminho "humana": alguém curou o arquivo antes de
+            # rodar. Espelha em ClassificacaoQuestao (a tabela com proveniência)
+            # pra não deixar essa origem sem registro — ver docstring do model.
+            agora = timezone.now()
+            for questao in aplicar:
+                ClassificacaoQuestao.objects.update_or_create(
+                    questao=questao,
+                    eh_primaria=True,
+                    defaults={
+                        "topico": questao.topico,
+                        "subtopico": questao.subtopico,
+                        "confianca": 1.0,
+                        "origem_classificacao": OrigemClassificacao.HUMANA,
+                        "revisada_por_humano": True,
+                        "revisada_em": agora,
+                    },
+                )
 
         self.stdout.write(self.style.SUCCESS(f"{len(aplicar)} questões classificadas."))
         self._resumo()

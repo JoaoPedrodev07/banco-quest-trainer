@@ -22,7 +22,7 @@ Organiza o edital, monta simulados, agenda revisões espaçadas e acompanha o pr
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # http://localhost:8080
 ```
 
 Outros comandos: `npm run build` (produção) · `npm run preview` · `npm run lint` · `npm run format`.

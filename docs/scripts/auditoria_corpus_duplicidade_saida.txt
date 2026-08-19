@@ -1,0 +1,35 @@
+Comparação enunciado por número de questão, entre as 3 provas 'caderno tipo 1':
+Números de questão presentes nas 3: 67
+Enunciado idêntico A vs B (mesmo número): 0 / 67
+Enunciado idêntico A vs C (mesmo número): 1 / 67
+
+Amostra (número, primeiros 80 chars de cada versão):
+
+  #4
+    bb-comercial-a-2023: '**AGENTE COMERCIAL - PROVA A** **3** Considere a expressão em destaque da seguin'
+    bb-comercial-b-2023: '**AGENTE COMERCIAL - PROVA B** **3** No trecho “alimentar a inteligência artific'
+    bb-comercial-c-2023: '**AGENTE COMERCIAL - PROVA C** **3** No parágrafo 2, o trecho “Essa é uma pergun'
+
+  #5
+    bb-comercial-a-2023: 'Em “No ano seguinte, foi apresentado ao mundo, na Exposição Internacional de Par'
+    bb-comercial-b-2023: 'De acordo com as regras de concordância verbal da norma-padrão da língua portugu'
+    bb-comercial-c-2023: 'O uso do acento grave indicativo da crase atende às exigências da norma-padrão d'
+
+  #6
+    bb-comercial-a-2023: 'No trecho do parágrafo 2, “conheceu um método inventado pouco antes por Charles '
+    bb-comercial-b-2023: 'De acordo com as regras de concordância nominal da norma-padrão da língua portug'
+    bb-comercial-c-2023: 'No trecho “O fato é que o avanço das transações financeiras eletrônicas, em detr'
+
+  #7
+    bb-comercial-a-2023: 'Em “Mas, **como a ideia não pegou na tropa** , Barbier adaptou o método para a l'
+    bb-comercial-b-2023: 'No texto, o referente da palavra em destaque está corretamente explicitado, entr'
+    bb-comercial-c-2023: 'O verbo **implicar** assume diferentes sentidos, dependendo de sua regência. No '
+
+  #8
+    bb-comercial-a-2023: 'De acordo com a norma-padrão da língua portuguesa, o sinal indicativo de crase e'
+    bb-comercial-b-2023: 'De acordo com a norma-padrão da língua portuguesa, o uso do acento grave indicat'
+    bb-comercial-c-2023: 'O emprego da vírgula está plenamente observado, de acordo com as exigências da n'
+
+
+[bb-2021-a/b/c] Números em comum: 67
+Enunciado idêntico A vs B (mesmo número): 0 / 67
