@@ -14,6 +14,7 @@ import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as ClassificacaoRouteImport } from './routes/classificacao'
 import { Route as ConfigRouteImport } from './routes/config'
 import { Route as EditalRouteImport } from './routes/edital'
+import { Route as ErrosRouteImport } from './routes/erros'
 import { Route as FlashcardsRouteImport } from './routes/flashcards'
 import { Route as PlanoRouteImport } from './routes/plano'
 import { Route as ProvasRouteImport } from './routes/provas'
@@ -45,6 +46,11 @@ const ConfigRoute = ConfigRouteImport.update({
 const EditalRoute = EditalRouteImport.update({
   id: '/edital',
   path: '/edital',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ErrosRoute = ErrosRouteImport.update({
+  id: '/erros',
+  path: '/erros',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FlashcardsRoute = FlashcardsRouteImport.update({
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/classificacao': typeof ClassificacaoRoute
   '/config': typeof ConfigRoute
   '/edital': typeof EditalRoute
+  '/erros': typeof ErrosRoute
   '/flashcards': typeof FlashcardsRoute
   '/plano': typeof PlanoRoute
   '/provas': typeof ProvasRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/classificacao': typeof ClassificacaoRoute
   '/config': typeof ConfigRoute
   '/edital': typeof EditalRoute
+  '/erros': typeof ErrosRoute
   '/flashcards': typeof FlashcardsRoute
   '/plano': typeof PlanoRoute
   '/provas': typeof ProvasRoute
@@ -118,6 +126,7 @@ export interface FileRoutesById {
   '/classificacao': typeof ClassificacaoRoute
   '/config': typeof ConfigRoute
   '/edital': typeof EditalRoute
+  '/erros': typeof ErrosRoute
   '/flashcards': typeof FlashcardsRoute
   '/plano': typeof PlanoRoute
   '/provas': typeof ProvasRoute
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/classificacao'
     | '/config'
     | '/edital'
+    | '/erros'
     | '/flashcards'
     | '/plano'
     | '/provas'
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/classificacao'
     | '/config'
     | '/edital'
+    | '/erros'
     | '/flashcards'
     | '/plano'
     | '/provas'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/classificacao'
     | '/config'
     | '/edital'
+    | '/erros'
     | '/flashcards'
     | '/plano'
     | '/provas'
@@ -177,6 +189,7 @@ export interface RootRouteChildren {
   ClassificacaoRoute: typeof ClassificacaoRoute
   ConfigRoute: typeof ConfigRoute
   EditalRoute: typeof EditalRoute
+  ErrosRoute: typeof ErrosRoute
   FlashcardsRoute: typeof FlashcardsRoute
   PlanoRoute: typeof PlanoRoute
   ProvasRoute: typeof ProvasRoute
@@ -221,6 +234,13 @@ declare module '@tanstack/react-router' {
       path: '/edital'
       fullPath: '/edital'
       preLoaderRoute: typeof EditalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/erros': {
+      id: '/erros'
+      path: '/erros'
+      fullPath: '/erros'
+      preLoaderRoute: typeof ErrosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/flashcards': {
@@ -281,6 +301,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClassificacaoRoute: ClassificacaoRoute,
   ConfigRoute: ConfigRoute,
   EditalRoute: EditalRoute,
+  ErrosRoute: ErrosRoute,
   FlashcardsRoute: FlashcardsRoute,
   PlanoRoute: PlanoRoute,
   ProvasRoute: ProvasRoute,
