@@ -29,7 +29,7 @@ export const Route = createFileRoute("/plano")({
 });
 
 function PlanoPage() {
-  const { concursoAtivoId, historico } = useStore();
+  const { concursoAtivoId, historico, revisoes } = useStore();
   const concurso = concursoPorId(concursoAtivoId);
   const { disciplinas, questoes, provas, vazio, carregando } = useAcervoDoConcurso(concursoAtivoId);
 
@@ -52,6 +52,17 @@ function PlanoPage() {
   );
 
   const hoje = new Date().getDay();
+
+  // Revisões vencidas entram na TELA do dia, não em `montarPlano` (ADR-008):
+  // são dado volátil — mudam ao longo do dia — e dentro da montagem estática o
+  // plano mentiria à tarde.
+  const revisoesVencidas = useMemo(
+    () =>
+      revisoes.filter(
+        (r) => r.concursoId === concursoAtivoId && new Date(r.proximaRevisao).getTime() < Date.now(),
+      ).length,
+    [revisoes, concursoAtivoId],
+  );
 
   return (
     <div className="space-y-6">
@@ -93,6 +104,18 @@ function PlanoPage() {
                 </p>
                 {dia.indice === hoje && <Badge>hoje</Badge>}
               </div>
+
+              {/* O dia começa pelas revisões: erro de ontem rende mais que
+                  assunto novo, e as duas agendas precisam se ver (ADR-008). */}
+              {dia.indice === hoje && revisoesVencidas > 0 && (
+                <Link
+                  to="/revisoes"
+                  className="block rounded-lg border border-atencao/40 bg-atencao-suave p-2.5 text-xs text-atencao-foreground transition-colors hover:border-atencao"
+                >
+                  Revisar primeiro: <strong>{revisoesVencidas}</strong>{" "}
+                  {revisoesVencidas === 1 ? "assunto vencido" : "assuntos vencidos"} →
+                </Link>
+              )}
 
               {dia.descanso ? (
                 <p className="text-sm text-muted-foreground">

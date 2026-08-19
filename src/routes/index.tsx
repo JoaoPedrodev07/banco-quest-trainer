@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/store/useStore";
 import { MINIMO_PARA_JULGAR, pontosFracos } from "@/lib/desempenho";
 import { incentivoPorMeta, incentivoPorStreak, incentivoPorTaxa } from "@/lib/incentivo";
+import { montarPlano } from "@/lib/planoEstudos";
 import { CONCURSO_PADRAO } from "@/store/useStore";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { useAcervoDoConcurso } from "@/services/hooks";
@@ -20,7 +21,16 @@ import {
   Line,
   CartesianGrid,
 } from "recharts";
-import { Flame, Target, CheckCircle2, TrendingUp, Calendar } from "lucide-react";
+import {
+  Flame,
+  Target,
+  CheckCircle2,
+  TrendingUp,
+  Calendar,
+  RotateCcw,
+  PlayCircle,
+  BookOpen,
+} from "lucide-react";
 import { useMemo } from "react";
 
 export const Route = createFileRoute("/")({
@@ -42,7 +52,16 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
-  const { dataProva, historico, editalStatus, streak, metaDiaria, concursoAtivoId } = useStore();
+  const {
+    dataProva,
+    historico,
+    editalStatus,
+    streak,
+    metaDiaria,
+    concursoAtivoId,
+    revisoes,
+    simuladoAtual,
+  } = useStore();
   const { concurso, disciplinas, questoes, vazio } = useAcervoDoConcurso(concursoAtivoId);
 
   // A data vem do concurso; `dataProva` do store é a sobrescrita do usuário,
@@ -123,6 +142,25 @@ function Dashboard() {
     return mapa;
   }, [disciplinas]);
 
+  // O que fazer AGORA (ADR-008): a pergunta que o usuário faz ao abrir o app.
+  // Tudo derivado na leitura (§2.3) — revisões vencidas, sessão pendente e o
+  // primeiro bloco do plano de hoje.
+  const revisoesVencidas = useMemo(
+    () =>
+      revisoes.filter(
+        (r) => r.concursoId === concursoAtivoId && new Date(r.proximaRevisao).getTime() < Date.now(),
+      ).length,
+    [revisoes, concursoAtivoId],
+  );
+  const sessaoPendente =
+    simuladoAtual && simuladoAtual.concursoId === concursoAtivoId ? simuladoAtual : null;
+  const blocoDeHoje = useMemo(() => {
+    const dia = montarPlano(disciplinas, questoes, historico, concursoAtivoId).find(
+      (d) => d.indice === new Date().getDay(),
+    );
+    return dia && !dia.descanso ? (dia.blocos[0] ?? null) : null;
+  }, [disciplinas, questoes, historico, concursoAtivoId]);
+
   // Mesma regra da tela do edital: tópico sem subtópico conta como uma unidade.
   // No edital real, disciplinas inteiras (Português, Matemática) não têm
   // subdivisão, e contar só subtópico deixaria o denominador errado nas duas telas.
@@ -170,6 +208,68 @@ function Dashboard() {
               </>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* "O que eu faço agora?" — em ordem de retorno: revisão vencida rende
+          mais que conteúdo novo, e sessão aberta é trabalho já começado (ADR-008). */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Hoje</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {revisoesVencidas > 0 && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-atencao/40 bg-atencao-suave p-3">
+              <p className="text-sm">
+                <RotateCcw className="mr-1.5 inline h-4 w-4" />
+                <strong>{revisoesVencidas}</strong>{" "}
+                {revisoesVencidas === 1 ? "revisão vencida" : "revisões vencidas"} — o estudo de
+                maior retorno do dia.
+              </p>
+              <Button asChild size="sm">
+                <Link to="/revisoes">Revisar</Link>
+              </Button>
+            </div>
+          )}
+
+          {sessaoPendente && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
+              <p className="text-sm">
+                <PlayCircle className="mr-1.5 inline h-4 w-4" />
+                Simulado em andamento: {Object.keys(sessaoPendente.respostas).length} de{" "}
+                {sessaoPendente.questaoIds.length} respondidas.
+              </p>
+              <Button asChild size="sm">
+                <Link to="/questoes">Continuar</Link>
+              </Button>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-sm">
+              <span>Meta diária</span>
+              <span className="tabular-nums text-muted-foreground">
+                {respondidasHoje}/{metaDiaria} questões
+              </span>
+            </div>
+            <Progress value={Math.min(100, (respondidasHoje / Math.max(1, metaDiaria)) * 100)} />
+          </div>
+
+          {blocoDeHoje && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold" style={{ color: blocoDeHoje.disciplina.cor }}>
+                  <BookOpen className="mr-1.5 inline h-4 w-4" />
+                  {blocoDeHoje.disciplina.nome}
+                  {blocoDeHoje.topicoNome ? ` — ${blocoDeHoje.topicoNome}` : ""}
+                </p>
+                <p className="text-xs text-muted-foreground">{blocoDeHoje.motivo}</p>
+              </div>
+              <Button asChild size="sm" variant="outline">
+                <Link to="/plano">Ver plano</Link>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
