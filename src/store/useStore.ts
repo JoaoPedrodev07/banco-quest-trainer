@@ -81,6 +81,28 @@ export interface SimuladoAtual {
   concursoId: string;
 }
 
+/**
+ * Um conjunto de filtros de simulado com nome (ADR-006).
+ *
+ * Guarda **filtros**, não ids de questão: questão nova importada que casa com o
+ * filtro entra sozinha — um caderno de ids congelaria o acervo do dia em que
+ * foi criado. É fato (criação explícita do usuário), não derivado.
+ */
+export interface CadernoSalvo {
+  id: string;
+  nome: string;
+  concursoId: string;
+  filtros: {
+    disciplinas: string[];
+    ano: string;
+    assunto: string | null;
+    somenteErrei: boolean;
+    somenteIneditas: boolean;
+    modoFracos: boolean;
+    qtd: number;
+  };
+}
+
 interface StoreState {
   dataProva: string; // ISO
   metaDiaria: number;
@@ -92,6 +114,7 @@ interface StoreState {
   revisoes: RevisaoItem[];
   streak: { ultimoDia: string | null; dias: number };
   simuladoAtual: SimuladoAtual | null;
+  cadernos: CadernoSalvo[];
 
   definirConcursoAtivo: (id: string) => void;
   iniciarPomodoro: (fase: "foco" | "pausa") => void;
@@ -141,6 +164,8 @@ interface StoreState {
   /** Patch raso da sessão. A tela compõe o patch; o store só aplica. */
   atualizarSimulado: (patch: Partial<SimuladoAtual>) => void;
   encerrarSimulado: () => void;
+  salvarCaderno: (c: CadernoSalvo) => void;
+  removerCaderno: (id: string) => void;
   /**
    * Substitui o progresso pelo de um backup.
    *
@@ -194,6 +219,7 @@ export const useStore = create<StoreState>()(
       revisoes: [],
       streak: { ultimoDia: null, dias: 0 },
       simuladoAtual: null,
+      cadernos: [],
 
       definirConcursoAtivo: (id) => set({ concursoAtivoId: id }),
 
@@ -325,6 +351,9 @@ export const useStore = create<StoreState>()(
           s.simuladoAtual ? { simuladoAtual: { ...s.simuladoAtual, ...patch } } : s,
         ),
       encerrarSimulado: () => set({ simuladoAtual: null }),
+
+      salvarCaderno: (c) => set((s) => ({ cadernos: [...s.cadernos, c] })),
+      removerCaderno: (id) => set((s) => ({ cadernos: s.cadernos.filter((c) => c.id !== id) })),
       aplicarBackup: (progresso) => set({ ...progresso }),
 
       reset: () =>
@@ -333,6 +362,8 @@ export const useStore = create<StoreState>()(
           historico: [],
           revisoes: [],
           streak: { ultimoDia: null, dias: 0 },
+          simuladoAtual: null,
+          cadernos: [],
         }),
     }),
     {

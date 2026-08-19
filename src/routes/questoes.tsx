@@ -15,7 +15,8 @@ import {
 } from "@/lib/ritmo";
 import { SemAcervo } from "@/components/SemAcervo";
 import { ehTreinoDeFormato } from "@/data/concursos";
-import { useStore, type SimuladoAtual } from "@/store/useStore";
+import { useStore, type CadernoSalvo, type SimuladoAtual } from "@/store/useStore";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,7 +42,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Bookmark, CheckCircle2, XCircle } from "lucide-react";
+import { Bookmark, CheckCircle2, FolderOpen, Save, Trash2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Questao, RespostaHistorico } from "@/types";
 
@@ -98,8 +99,11 @@ function QuestoesPage() {
   const [qtd, setQtd] = useState(10);
   const [ano, setAno] = useState<string>("todos");
   const [somenteErrei, setSomenteErrei] = useState(false);
+  const [somenteIneditas, setSomenteIneditas] = useState(false);
   const [modoFracos, setModoFracos] = useState(false);
+  const [assunto, setAssunto] = useState("todos");
   const [modoCorrecao, setModoCorrecao] = useState<SimuladoAtual["correcao"]>("imediata");
+  const [nomeCaderno, setNomeCaderno] = useState("");
   // Instante em que a questão atual apareceu, para medir o tempo dela. É o dado
   // que falta a quem sabe a matéria e mesmo assim não termina a prova.
   const [inicioQuestao, setInicioQuestao] = useState(0);
@@ -123,6 +127,9 @@ function QuestoesPage() {
     iniciarSimulado,
     atualizarSimulado,
     encerrarSimulado,
+    cadernos,
+    salvarCaderno,
+    removerCaderno,
   } = useStore();
   const {
     concurso,
@@ -295,20 +302,55 @@ function QuestoesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, etapa]);
 
+  // Assuntos oferecidos no filtro: só unidades com questão classificada dentro
+  // das disciplinas marcadas — oferecer o edital inteiro encheria o select de
+  // opções que devolvem simulado vazio.
+  const assuntosDisponiveis = useMemo(() => {
+    const contagem = new Map<string, number>();
+    for (const q of allQuestoes) {
+      if (q.anulada || !selecionadas.includes(q.disciplinaId)) continue;
+      const unidadeId = q.subtopicoId ?? q.topicoId;
+      if (unidadeId) contagem.set(unidadeId, (contagem.get(unidadeId) ?? 0) + 1);
+    }
+    return [...contagem.entries()]
+      .map(([id, n]) => ({ id, n, nome: nomeDaUnidade.get(id) ?? id }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [allQuestoes, selecionadas, nomeDaUnidade]);
+
   const iniciar = () => {
     const errouIds = new Set(historico.filter((h) => !h.correta).map((h) => h.questaoId));
+    const respondidasIds = new Set(historico.map((h) => h.questaoId));
     let filtradas = allQuestoes.filter(
       (q) =>
         selecionadas.includes(q.disciplinaId) &&
         (ano === "todos" || q.ano === Number(ano)) &&
+        (assunto === "todos" || q.subtopicoId === assunto || q.topicoId === assunto) &&
         (!somenteErrei || errouIds.has(q.id)) &&
+        (!somenteIneditas || !respondidasIds.has(q.id)) &&
         (!modoFracos || unidadesFracas.has(q.subtopicoId ?? q.topicoId ?? "")) &&
         // Anulada não tem gabarito: entraria no simulado como erro garantido.
         !q.anulada,
     );
     filtradas = filtradas.sort(() => Math.random() - 0.5).slice(0, qtd);
-    if (filtradas.length === 0) return;
+    if (filtradas.length === 0) {
+      toast.info("Nenhuma questão casa com esses filtros.", {
+        description: "Afrouxe algum filtro — ou você já respondeu tudo que ele alcança.",
+      });
+      return;
+    }
     comecarSessao(filtradas, null, modoCorrecao);
+  };
+
+  /** Preenche a config com os filtros de um caderno salvo (ADR-006). */
+  const aplicarCaderno = (c: CadernoSalvo) => {
+    setSelecionadas(c.filtros.disciplinas);
+    setAno(c.filtros.ano);
+    setAssunto(c.filtros.assunto ?? "todos");
+    setSomenteErrei(c.filtros.somenteErrei);
+    setSomenteIneditas(c.filtros.somenteIneditas);
+    setModoFracos(c.filtros.modoFracos);
+    setQtd(c.filtros.qtd);
+    toast.success(`Caderno “${c.nome}” aplicado.`);
   };
 
   /**
@@ -378,6 +420,7 @@ function QuestoesPage() {
   if (etapa === "config") {
     const respondidasNaSessao = sessao ? Object.keys(sessao.respostas).length : 0;
     const provaDaSessao = sessao?.provaId ? provaPorId.get(sessao.provaId) : null;
+    const cadernosDoConcurso = cadernos.filter((c) => c.concursoId === concursoAtivoId);
 
     return (
       <div className="space-y-6">
@@ -515,9 +558,52 @@ function QuestoesPage() {
         </div>
 
         <div className="space-y-2">
+          <Label>Assunto do edital (opcional)</Label>
+          <Select value={assunto} onValueChange={setAssunto}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os assuntos</SelectItem>
+              {assuntosDisponiveis.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.nome} ({a.n})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Só aparecem assuntos com questão classificada nas disciplinas marcadas.
+          </p>
+        </div>
+
+        <div className="space-y-2">
           <label className="flex items-center gap-2 cursor-pointer">
-            <Checkbox checked={somenteErrei} onCheckedChange={(v) => setSomenteErrei(!!v)} />
+            <Checkbox
+              checked={somenteErrei}
+              onCheckedChange={(v) => {
+                setSomenteErrei(!!v);
+                // Mutuamente exclusivos por definição: errar exige ter respondido.
+                if (v) setSomenteIneditas(false);
+              }}
+            />
             <span className="text-sm">Somente questões que errei</span>
+          </label>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox
+              checked={somenteIneditas}
+              onCheckedChange={(v) => {
+                setSomenteIneditas(!!v);
+                if (v) setSomenteErrei(false);
+              }}
+            />
+            <span className="text-sm">
+              Somente questões que nunca respondi
+              <span className="block text-xs text-muted-foreground">
+                Prioriza o inédito — refazer questão treina a memória da resposta, não o assunto.
+              </span>
+            </span>
           </label>
 
           <label className="flex cursor-pointer items-start gap-2">
@@ -536,6 +622,94 @@ function QuestoesPage() {
             </span>
           </label>
         </div>
+
+        {/* Cadernos salvos (ADR-006): um conjunto de filtros com nome. Guarda
+            filtros, não ids — questão nova que casa com o filtro entra sozinha. */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Cadernos salvos</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {cadernosDoConcurso.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Salve os filtros de cima com um nome (“SQL da Cesgranrio”, “Português que erro”) e
+                monte o mesmo treino em um clique.
+              </p>
+            )}
+            {cadernosDoConcurso.map((c) => (
+              <div
+                key={c.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{c.nome}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {c.filtros.disciplinas.length}{" "}
+                    {c.filtros.disciplinas.length === 1 ? "disciplina" : "disciplinas"} ·{" "}
+                    {c.filtros.assunto
+                      ? (nomeDaUnidade.get(c.filtros.assunto) ?? "assunto específico")
+                      : "todos os assuntos"}{" "}
+                    · {c.filtros.qtd} questões
+                    {c.filtros.somenteErrei && " · só as que errei"}
+                    {c.filtros.somenteIneditas && " · só inéditas"}
+                    {c.filtros.modoFracos && " · pontos fracos"}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => aplicarCaderno(c)}>
+                    <FolderOpen className="h-3.5 w-3.5" />
+                    Aplicar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="gap-1 text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      removerCaderno(c.id);
+                      toast.success(`Caderno “${c.nome}” excluído.`);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            <div className="flex gap-2">
+              <Input
+                value={nomeCaderno}
+                onChange={(e) => setNomeCaderno(e.target.value)}
+                placeholder="Nome para os filtros atuais…"
+                className="max-w-xs"
+              />
+              <Button
+                variant="outline"
+                className="gap-1.5"
+                disabled={!nomeCaderno.trim()}
+                onClick={() => {
+                  salvarCaderno({
+                    id: `cad-${Date.now()}`,
+                    nome: nomeCaderno.trim(),
+                    concursoId: concursoAtivoId,
+                    filtros: {
+                      disciplinas: selecionadas,
+                      ano,
+                      assunto: assunto === "todos" ? null : assunto,
+                      somenteErrei,
+                      somenteIneditas,
+                      modoFracos,
+                      qtd,
+                    },
+                  });
+                  setNomeCaderno("");
+                  toast.success("Caderno salvo.");
+                }}
+              >
+                <Save className="h-4 w-4" />
+                Salvar caderno
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <Button size="lg" className="w-full" onClick={iniciar} disabled={carregando}>
           {carregando ? "Carregando questões…" : "Iniciar simulado"}
