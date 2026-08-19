@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { concursoPorId } from "@/data/concursos";
 import { useQuestoes, useSalvarAula } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
-import { linkYouTube, montarPromptEstudo } from "@/lib/promptEstudo";
+import { PROMPT_AULA_VERSAO, linkYouTube, montarPromptEstudo } from "@/lib/promptEstudo";
 import { Markdown, AvisoGerado } from "@/components/Markdown";
 import { Button } from "@/components/ui/button";
 import {
@@ -132,7 +132,13 @@ export function AulaSubtopico({
     const texto = rascunho.trim();
     if (!texto) return;
     salvar.mutate(
-      { unidadeId, concursoId: concursoAtivoId, conteudoMarkdown: texto, modelo: "" },
+      {
+        unidadeId,
+        concursoId: concursoAtivoId,
+        conteudoMarkdown: texto,
+        modelo: "",
+        promptVersao: PROMPT_AULA_VERSAO,
+      },
       {
         onSuccess: () => {
           setRascunho("");
@@ -201,8 +207,9 @@ export function AulaSubtopico({
                 </Button>
               )}
               <p className="border-t border-border pt-3 text-xs text-muted-foreground">
-                Salva em {new Date(aula.geradoEm).toLocaleString("pt-BR")}. Para trocar, cole uma
-                nova versão abaixo — ela substitui esta.
+                {aula.versao ? `Versão ${aula.versao} · salva` : "Salva"} em{" "}
+                {new Date(aula.geradoEm).toLocaleString("pt-BR")}. Para trocar, cole uma nova versão
+                abaixo — esta fica guardada como histórico, nada se perde.
               </p>
             </>
           ) : (

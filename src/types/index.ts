@@ -190,6 +190,10 @@ export interface Aula {
   conteudoMarkdown: string;
   geradoEm: string; // ISO
   modelo?: string;
+  /** Versão desta aula (ADR-016): regravar cria a seguinte, nunca apaga a anterior. */
+  versao?: number;
+  /** Versão do prompt que a gerou (`PROMPT_AULA_VERSAO`) — diz quais aulas são de geração antiga. */
+  promptVersao?: string;
 }
 
 /**

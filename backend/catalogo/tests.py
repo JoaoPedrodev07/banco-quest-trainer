@@ -337,3 +337,55 @@ class FiltroConcursoNaApiTest(TestCase):
     def test_com_filtro_nao_tem_o_header_de_aviso(self):
         resposta = self.client.get("/api/questoes/?concurso=concurso-a")
         self.assertNotIn("X-Deprecation-Warning", resposta.headers)
+
+
+class AulaVersionadaTest(TestCase):
+    """ADR-016: regravar aula cria versão nova em vez de apagar a anterior."""
+
+    def setUp(self):
+        from catalogo.models import Aula  # noqa: F401 — usado nos testes abaixo
+
+        fonte = Fonte.objects.create(slug="fonte-teste-aula", tipo=Fonte.Tipo.OFICIAL, titulo="T")
+        disciplina = Disciplina.objects.create(id="ti-teste-aula", nome="TI", cor="#000", fonte=fonte)
+        self.topico = Topico.objects.create(
+            id="ti-teste-aula-1", disciplina=disciplina, nome="Bancos de dados"
+        )
+
+    def _salvar(self, texto, prompt_versao=""):
+        return self.client.post(
+            "/api/aulas/",
+            {
+                "unidadeId": self.topico.id,
+                "concursoId": "bb-ti-2026",
+                "conteudoMarkdown": texto,
+                "modelo": "",
+                "promptVersao": prompt_versao,
+            },
+            content_type="application/json",
+        )
+
+    def test_regravar_cria_v2_e_preserva_a_v1_como_historico(self):
+        from catalogo.models import Aula
+
+        self.assertEqual(self._salvar("versão um", "1").status_code, 201)
+        self.assertEqual(self._salvar("versão dois", "1").status_code, 201)
+
+        self.assertEqual(Aula.objects.count(), 2)
+        corrente = Aula.objects.get(substituida_em__isnull=True)
+        self.assertEqual(corrente.versao, 2)
+        self.assertEqual(corrente.conteudo_markdown, "versão dois")
+        antiga = Aula.objects.get(substituida_em__isnull=False)
+        self.assertEqual(antiga.versao, 1)
+        self.assertEqual(antiga.conteudo_markdown, "versão um")
+
+    def test_listagem_devolve_so_a_corrente(self):
+        self._salvar("versão um")
+        self._salvar("versão dois")
+        resposta = self.client.get("/api/aulas/?concurso_id=bb-ti-2026").json()
+        aulas = resposta["results"] if isinstance(resposta, dict) else resposta
+        self.assertEqual(len(aulas), 1)
+        self.assertEqual(aulas[0]["versao"], 2)
+
+    def test_prompt_versao_fica_registrado(self):
+        resposta = self._salvar("texto", prompt_versao="1")
+        self.assertEqual(resposta.json()["promptVersao"], "1")

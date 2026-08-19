@@ -198,6 +198,7 @@ export const api = {
       concursoId: aula.concursoId,
       conteudoMarkdown: aula.conteudoMarkdown,
       modelo: aula.modelo ?? "",
+      promptVersao: aula.promptVersao ?? "",
     }),
 
   comentarGabarito: (questaoId: string, explicacao: string) =>

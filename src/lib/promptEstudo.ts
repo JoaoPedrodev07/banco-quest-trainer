@@ -19,6 +19,13 @@ import type { Concurso, Disciplina, Questao } from "@/types";
 /** Quantas questões de exemplo entram no prompt. Mais que isso deixa o texto longo demais para colar. */
 const MAX_QUESTOES_EXEMPLO = 3;
 
+/**
+ * Versão do prompt de aula (ADR-016). **Suba este número sempre que mudar o
+ * texto de `montarPromptEstudo`** — é gravado junto da aula salva, e é o que
+ * permite saber quais aulas são de uma geração antiga quando o prompt melhorar.
+ */
+export const PROMPT_AULA_VERSAO = "1";
+
 export interface ContextoPrompt {
   disciplina: Disciplina;
   topicoNome: string;

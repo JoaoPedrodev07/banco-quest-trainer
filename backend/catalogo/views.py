@@ -160,7 +160,13 @@ class AulaViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = AulaSerializer
-    queryset = Aula.objects.select_related("topico", "subtopico").all()
+    # Só as correntes: o histórico de versões (ADR-016) fica no admin. Devolver
+    # todas faria a tela ter de escolher entre versões sem critério.
+    queryset = (
+        Aula.objects.select_related("topico", "subtopico")
+        .filter(substituida_em__isnull=True)
+        .all()
+    )
     filterset_fields = ["concurso_id"]
     # `unidade_id` é propriedade, não coluna: a rota por id usaria o pk inteiro, e
     # a tela não conhece esse número. Buscar é por lista filtrada.

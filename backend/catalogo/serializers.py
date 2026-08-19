@@ -156,10 +156,22 @@ class AulaSerializer(serializers.ModelSerializer):
     concursoId = serializers.CharField(source="concurso_id")
     conteudoMarkdown = serializers.CharField(source="conteudo_markdown")
     geradoEm = serializers.DateTimeField(source="gerado_em", read_only=True)
+    versao = serializers.IntegerField(read_only=True)
+    promptVersao = serializers.CharField(
+        source="prompt_versao", required=False, allow_blank=True, default=""
+    )
 
     class Meta:
         model = Aula
-        fields = ["unidadeId", "concursoId", "conteudoMarkdown", "geradoEm", "modelo"]
+        fields = [
+            "unidadeId",
+            "concursoId",
+            "conteudoMarkdown",
+            "geradoEm",
+            "modelo",
+            "versao",
+            "promptVersao",
+        ]
 
     def to_representation(self, instance):
         dados = super().to_representation(instance)
@@ -175,23 +187,36 @@ class AulaSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
+        from django.utils import timezone
+
         unidade_id = validated_data.pop("unidadeId")
         subtopico = Subtopico.objects.filter(pk=unidade_id).select_related("topico").first()
         topico = subtopico.topico if subtopico else Topico.objects.get(pk=unidade_id)
 
-        # `update_or_create` e não `create`: a unicidade por (unidade, concurso) é
-        # garantida no banco, e regravar precisa substituir a aula anterior em vez
-        # de estourar erro de constraint na cara do usuário.
-        aula, _ = Aula.objects.update_or_create(
+        # Versionamento (ADR-016): regravar NÃO sobrescreve — a corrente vira
+        # histórico (substituida_em) e nasce a versão seguinte. Antes era
+        # update_or_create, e "Substituir aula" apagava o texto anterior sem volta.
+        corrente = Aula.objects.filter(
             topico=topico,
             subtopico=subtopico,
             concurso_id=validated_data["concurso_id"],
-            defaults={
-                "conteudo_markdown": validated_data["conteudo_markdown"],
-                "modelo": validated_data.get("modelo", ""),
-            },
+            substituida_em__isnull=True,
+        ).first()
+        proxima_versao = 1
+        if corrente:
+            proxima_versao = corrente.versao + 1
+            corrente.substituida_em = timezone.now()
+            corrente.save(update_fields=["substituida_em"])
+
+        return Aula.objects.create(
+            topico=topico,
+            subtopico=subtopico,
+            concurso_id=validated_data["concurso_id"],
+            conteudo_markdown=validated_data["conteudo_markdown"],
+            modelo=validated_data.get("modelo", ""),
+            prompt_versao=validated_data.get("prompt_versao", ""),
+            versao=proxima_versao,
         )
-        return aula
 
 
 class ClassificacaoQuestaoSerializer(serializers.ModelSerializer):

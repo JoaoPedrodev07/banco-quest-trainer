@@ -470,29 +470,45 @@ class Aula(models.Model):
     # concurso certo sem inventar uma tabela que ninguém mais usa hoje.
     concurso_id = models.SlugField(max_length=80, validators=[slug_validator])
     conteudo_markdown = models.TextField()
-    gerado_em = models.DateTimeField(auto_now=True)
+    # auto_now_add, não auto_now: a partir do versionamento (ADR-016) cada linha
+    # é histórico, e histórico não pode ter timestamp que muda a cada save.
+    gerado_em = models.DateTimeField(auto_now_add=True)
     modelo = models.CharField(
         max_length=120,
         blank=True,
         help_text="Qual IA gerou, para dar o que invalidar se o modelo mudar.",
     )
+    # Versionamento (ADR-016): salvar de novo NÃO sobrescreve — marca a corrente
+    # como substituída e cria a versão seguinte. "Substituir aula" apagava o
+    # texto anterior sem volta.
+    versao = models.PositiveSmallIntegerField(default=1)
+    prompt_versao = models.CharField(
+        max_length=40,
+        blank=True,
+        help_text="Versão do prompt que gerou (PROMPT_AULA_VERSAO no frontend). "
+        "É o que permite saber quais aulas são de uma geração antiga do prompt.",
+    )
+    substituida_em = models.DateTimeField(
+        null=True, blank=True, help_text="Nulo = esta é a versão corrente."
+    )
 
     class Meta:
         verbose_name = "aula"
         verbose_name_plural = "aulas"
-        ordering = ["topico_id", "subtopico_id"]
+        ordering = ["topico_id", "subtopico_id", "-versao"]
         constraints = [
-            # Uma aula por unidade do edital por concurso. Sem isto, "gerar de novo"
-            # empilharia versões e a tela teria de escolher uma sem critério.
+            # Uma aula CORRENTE por unidade do edital por concurso (as demais são
+            # histórico). Sem isto, a tela teria de escolher entre versões sem
+            # critério.
             models.UniqueConstraint(
                 fields=["topico", "subtopico", "concurso_id"],
-                name="aula_unica_por_unidade_com_subtopico",
-                condition=models.Q(subtopico__isnull=False),
+                name="aula_corrente_unica_com_subtopico",
+                condition=models.Q(subtopico__isnull=False, substituida_em__isnull=True),
             ),
             models.UniqueConstraint(
                 fields=["topico", "concurso_id"],
-                name="aula_unica_por_unidade_sem_subtopico",
-                condition=models.Q(subtopico__isnull=True),
+                name="aula_corrente_unica_sem_subtopico",
+                condition=models.Q(subtopico__isnull=True, substituida_em__isnull=True),
             ),
         ]
 
