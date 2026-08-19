@@ -6,8 +6,10 @@ import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { SemAcervo } from "@/components/SemAcervo";
 import { concursoPorId } from "@/data/concursos";
 import { useAcervoDoConcurso } from "@/services/hooks";
-import { useStore } from "@/store/useStore";
+import { useStore, CONCURSO_PADRAO } from "@/store/useStore";
 import { montarPlano } from "@/lib/planoEstudos";
+import { montarTrilha, FASES } from "@/lib/trilha";
+import { desempenhoPorUnidade } from "@/lib/desempenho";
 import { disciplinasDoCargo } from "@/lib/incidencia";
 import { linkYouTube } from "@/lib/promptEstudo";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +31,7 @@ export const Route = createFileRoute("/plano")({
 });
 
 function PlanoPage() {
-  const { concursoAtivoId, historico, revisoes } = useStore();
+  const { concursoAtivoId, historico, revisoes, editalStatus, dataProva } = useStore();
   const concurso = concursoPorId(concursoAtivoId);
   const { disciplinas, questoes, provas, vazio, carregando } = useAcervoDoConcurso(concursoAtivoId);
 
@@ -52,6 +54,41 @@ function PlanoPage() {
   );
 
   const hoje = new Date().getDay();
+
+  // Trilha até a prova (ADR-009). A data segue a mesma regra do dashboard: a do
+  // concurso quando publicada; a estimativa do usuário só no concurso padrão; e
+  // sem nenhuma das duas, a trilha não conta dias.
+  const dataEfetiva =
+    concurso?.dataProva ?? (concurso?.id === CONCURSO_PADRAO ? dataProva : null);
+  const dataEstimada = !!dataEfetiva && !concurso?.dataProva;
+  const trilha = useMemo(() => {
+    const unidadesTotais = doCargo.reduce(
+      (acc, d) => acc + d.topicos.reduce((a, t) => a + Math.max(1, t.subtopicos.length), 0),
+      0,
+    );
+    // "Coberta" = checkbox de teoria marcado; "treinada" = ≥3 respostas na
+    // unidade. Réguas deliberadamente simples — são as que o app já usa.
+    const unidadesDoCargo = new Set<string>();
+    for (const d of doCargo) {
+      for (const t of d.topicos) {
+        if (t.subtopicos.length === 0) unidadesDoCargo.add(t.id);
+        for (const s of t.subtopicos) unidadesDoCargo.add(s.id);
+      }
+    }
+    const unidadesCobertas = Object.entries(editalStatus).filter(
+      ([id, st]) => st.teoria && unidadesDoCargo.has(id),
+    ).length;
+    const unidadesTreinadas = desempenhoPorUnidade(historico, questoes, concursoAtivoId).filter(
+      (d) => d.respondidas >= 3,
+    ).length;
+    return montarTrilha({
+      dataProva: dataEfetiva,
+      agora: new Date(),
+      unidadesTotais,
+      unidadesCobertas,
+      unidadesTreinadas,
+    });
+  }, [doCargo, editalStatus, historico, questoes, concursoAtivoId, dataEfetiva]);
 
   // Revisões vencidas entram na TELA do dia, não em `montarPlano` (ADR-008):
   // são dado volátil — mudam ao longo do dia — e dentro da montagem estática o
@@ -77,6 +114,55 @@ function PlanoPage() {
 
       {vazio && <SemAcervo nomeDoConcurso={concurso?.nome} />}
       {carregando && <p className="text-sm text-muted-foreground">Montando o plano…</p>}
+
+      {/* Trilha até a prova (ADR-009): as três fases, a atual destacada, e o
+          ritmo que o calendário exige — sempre com os números da conta. */}
+      {!vazio && !carregando && trilha.unidadesTotais > 0 && (
+        <Card>
+          <CardContent className="space-y-3 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-bold">Trilha até a prova</p>
+              {trilha.diasRestantes !== null ? (
+                <Badge variant="secondary">
+                  {trilha.diasRestantes} dias{dataEstimada ? " — data estimada" : ""}
+                </Badge>
+              ) : (
+                <Badge variant="outline">sem data anunciada — fases pela cobertura</Badge>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {FASES.map((f, i) => (
+                <div
+                  key={f.id}
+                  className={cn(
+                    "flex-1 min-w-40 rounded-lg border p-2.5 text-xs",
+                    f.id === trilha.faseAtual
+                      ? "border-primary bg-primary/5"
+                      : "border-border opacity-60",
+                  )}
+                >
+                  <p className="font-semibold">
+                    {i + 1}. {f.nome}
+                    {f.id === trilha.faseAtual && " ← você está aqui"}
+                  </p>
+                  <p className="mt-0.5 text-muted-foreground">{f.pede}</p>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              {trilha.unidadesCobertas} de {trilha.unidadesTotais} unidades do edital com teoria
+              vista · {trilha.unidadesTreinadas} treinadas com 3+ questões.
+              {trilha.faseAtual === "cobertura" &&
+                trilha.ritmoNecessario !== null &&
+                ` Para fechar a cobertura a ${30} dias da prova: ~${trilha.ritmoNecessario.toLocaleString("pt-BR")} ${trilha.ritmoNecessario === 1 ? "unidade" : "unidades"} de teoria por dia.`}
+              {trilha.diasRestantes === null &&
+                " Sem data de prova não há cronograma — quando o edital sair, a trilha vira contagem."}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {!vazio && !carregando && (
         <p className="rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
