@@ -14,6 +14,7 @@ import {
   formatarDuracao,
   formatarRelogio,
   resumoDeRitmo,
+  tempoLiquidoSegundos,
 } from "@/lib/ritmo";
 import { SemAcervo } from "@/components/SemAcervo";
 import { ehTreinoDeFormato } from "@/data/concursos";
@@ -44,7 +45,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Bookmark, CheckCircle2, FolderOpen, Save, Trash2, XCircle } from "lucide-react";
+import {
+  Bookmark,
+  CheckCircle2,
+  FolderOpen,
+  Pause,
+  Play,
+  Save,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Questao, RespostaHistorico } from "@/types";
 
@@ -90,7 +100,8 @@ interface ResultadoSimulado {
   questoes: Questao[];
   respostas: Record<string, string>;
   tempos: Record<string, number>;
-  iniciadoEm: string;
+  /** Tempo LÍQUIDO da sessão (pausas descontadas), congelado na entrega (ADR-019). */
+  tempoSegundos: number;
   correcao: SimuladoAtual["correcao"];
   provaId: string | null;
 }
@@ -133,6 +144,8 @@ function QuestoesPage() {
     salvarCaderno,
     removerCaderno,
     registrarTentativaProva,
+    pausarSimulado,
+    retomarSimulado,
   } = useStore();
   const {
     concurso,
@@ -234,6 +247,8 @@ function QuestoesPage() {
       provaId,
       correcao,
       concursoId: concursoAtivoId,
+      pausadoEm: null,
+      segundosPausados: 0,
     });
     setResultado(null);
     setInicioQuestao(Date.now());
@@ -249,6 +264,8 @@ function QuestoesPage() {
     if (sessao?.provaId === provaSolicitada) {
       setProvaMontada(provaSolicitada);
       setInicioQuestao(Date.now());
+      // A sessão foi auto-pausada ao sair (ADR-019); voltar retoma o relógio.
+      retomarSimulado();
       setEtapa("resolvendo");
       return;
     }
@@ -294,6 +311,29 @@ function QuestoesPage() {
   }, [assuntoSolicitado, assuntoMontado, allQuestoes, sessao]);
 
   const idx = sessao ? Math.min(sessao.idx, Math.max(0, lista.length - 1)) : 0;
+
+  // Auto-pausa (ADR-019): fechar a aba (pagehide, o persist grava síncrono) ou
+  // sair da tela de resolução pausa sozinho — "parei pra fazer outra coisa" não
+  // pode estourar o relógio só porque a pessoa esqueceu de apertar pausa.
+  // Sessão já encerrada não é tocada (pausarSimulado é no-op sem sessão).
+  useEffect(() => {
+    if (etapa !== "resolvendo") return;
+    const aoEsconder = () => pausarSimulado();
+    window.addEventListener("pagehide", aoEsconder);
+    return () => {
+      window.removeEventListener("pagehide", aoEsconder);
+      pausarSimulado();
+    };
+  }, [etapa, pausarSimulado]);
+
+  /** Retoma a sessão pausada, deslocando o cronômetro da questão pelo tempo parado. */
+  const retomar = () => {
+    if (sessao?.pausadoEm) {
+      const pausaMs = Math.max(0, Date.now() - new Date(sessao.pausadoEm).getTime());
+      setInicioQuestao((inicio) => inicio + pausaMs);
+    }
+    retomarSimulado();
+  };
 
   // Trocar de questão limpa o rascunho e rearma o cronômetro. Raciocínio escrito
   // para uma questão vazando para a seguinte seria pior que campo vazio — daria
@@ -366,6 +406,13 @@ function QuestoesPage() {
    */
   const finalizar = () => {
     if (!sessao) return;
+    // Tempo LÍQUIDO da sessão (ADR-019): pausas não são tempo de prova.
+    const tempoSegundos = tempoLiquidoSegundos(
+      sessao.iniciadoEm,
+      sessao.segundosPausados,
+      sessao.pausadoEm,
+      Date.now(),
+    );
     if (sessao.correcao === "no_fim") {
       for (const q of lista) {
         const letra = sessao.respostas[q.id];
@@ -409,17 +456,14 @@ function QuestoesPage() {
         acertos,
         erros,
         total: lista.length,
-        tempoSegundos: Math.max(
-          0,
-          Math.floor((Date.now() - new Date(sessao.iniciadoEm).getTime()) / 1000),
-        ),
+        tempoSegundos,
       });
     }
     setResultado({
       questoes: lista,
       respostas: sessao.respostas,
       tempos: sessao.tempos,
-      iniciadoEm: sessao.iniciadoEm,
+      tempoSegundos,
       correcao: sessao.correcao,
       provaId: sessao.provaId,
     });
@@ -477,6 +521,9 @@ function QuestoesPage() {
                 <Button
                   onClick={() => {
                     setInicioQuestao(Date.now());
+                    // A sessão foi auto-pausada ao sair (ADR-019): o tempo longe
+                    // da tela não conta como tempo de prova.
+                    retomarSimulado();
                     setEtapa("resolvendo");
                   }}
                 >
@@ -762,6 +809,7 @@ function QuestoesPage() {
     const q = lista[idx];
     const escolhida = sessao.respostas[q.id];
     const modoProva = sessao.correcao === "no_fim";
+    const pausada = !!sessao.pausadoEm;
     // No modo imediata, responder trava a questão. No modo prova, nada trava —
     // trocar de resposta faz parte até a entrega.
     const respondida = !modoProva && !!escolhida;
@@ -851,337 +899,373 @@ function QuestoesPage() {
           <div className="flex items-center gap-2">
             {sessao.provaId && (
               <RelogioDaProva
-                inicio={new Date(sessao.iniciadoEm).getTime()}
+                iniciadoEm={sessao.iniciadoEm}
                 duracao={duracaoDaProva(lista.length)}
+                segundosPausados={sessao.segundosPausados}
+                pausadoEm={sessao.pausadoEm}
               />
             )}
-            <RitmoDaQuestao inicio={inicioQuestao} respondida={respondida} />
+            {/* Pausada congela o selo também — na retomada o início desloca. */}
+            <RitmoDaQuestao inicio={inicioQuestao} respondida={respondida || pausada} />
             <Badge>{disciplinas.find((d) => d.id === q.disciplinaId)?.nome}</Badge>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1"
+              onClick={() => (pausada ? retomar() : pausarSimulado())}
+              title={pausada ? "Retomar o simulado" : "Pausar o relógio"}
+            >
+              {pausada ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+              {pausada ? "Retomar" : "Pausar"}
+            </Button>
           </div>
         </div>
 
+        {/* Pausa (ADR-019): a questão fica ESCONDIDA — sem isso a pausa vira
+            tempo extra de leitura com o cronômetro parado. */}
+        {pausada && (
+          <Card>
+            <CardContent className="space-y-3 p-8 text-center">
+              <Pause className="mx-auto h-8 w-8 text-muted-foreground" />
+              <p className="font-bold">Simulado pausado</p>
+              <p className="mx-auto max-w-md text-sm text-muted-foreground">
+                O relógio da prova e o cronômetro da questão estão congelados. A questão fica
+                escondida enquanto isso — pausa com a prova na tela seria tempo extra de leitura.
+              </p>
+              <Button onClick={retomar} className="gap-1.5">
+                <Play className="h-4 w-4" />
+                Retomar
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Grade de navegação (ADR-005): numa prova de 70, "Anterior/Próxima" é
             o mesmo que não ter navegação. Cada célula mostra o estado real. */}
-        <div className="flex flex-wrap gap-1">
-          {lista.map((questao, i) => {
-            const foiRespondida = !!sessao.respostas[questao.id];
-            const foiMarcada = sessao.marcadas.includes(questao.id);
-            return (
-              <button
-                key={questao.id}
-                onClick={() => irPara(i)}
-                title={`Questão ${i + 1}${foiMarcada ? " — marcada" : ""}`}
-                className={cn(
-                  "h-8 w-8 rounded-md border text-xs font-bold tabular-nums transition-colors",
-                  i === idx && "border-primary ring-2 ring-primary/40",
-                  foiRespondida
-                    ? "bg-primary text-primary-foreground border-primary/60"
-                    : "bg-muted/40 text-muted-foreground hover:bg-muted",
-                  foiMarcada && "border-atencao ring-1 ring-atencao/60",
-                )}
-              >
-                {i + 1}
-              </button>
-            );
-          })}
-        </div>
+        {!pausada && (
+          <>
+            <div className="flex flex-wrap gap-1">
+              {lista.map((questao, i) => {
+                const foiRespondida = !!sessao.respostas[questao.id];
+                const foiMarcada = sessao.marcadas.includes(questao.id);
+                return (
+                  <button
+                    key={questao.id}
+                    onClick={() => irPara(i)}
+                    title={`Questão ${i + 1}${foiMarcada ? " — marcada" : ""}`}
+                    className={cn(
+                      "h-8 w-8 rounded-md border text-xs font-bold tabular-nums transition-colors",
+                      i === idx && "border-primary ring-2 ring-primary/40",
+                      foiRespondida
+                        ? "bg-primary text-primary-foreground border-primary/60"
+                        : "bg-muted/40 text-muted-foreground hover:bg-muted",
+                      foiMarcada && "border-atencao ring-1 ring-atencao/60",
+                    )}
+                  >
+                    {i + 1}
+                  </button>
+                );
+              })}
+            </div>
 
-        <Card>
-          <CardContent className="p-5 space-y-4">
-            <div className="flex items-start justify-between gap-2">
-              <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
-                <span>
-                  {origemDaQuestao(q).orgao} · {q.banca} · {q.ano}
-                  {q.numeroNaProva ? ` · questão ${q.numeroNaProva}` : ""}
-                </span>
-                {/* Questão de outro órgão treina o formato da banca, mas não é do
+            <Card>
+              <CardContent className="p-5 space-y-4">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
+                    <span>
+                      {origemDaQuestao(q).orgao} · {q.banca} · {q.ano}
+                      {q.numeroNaProva ? ` · questão ${q.numeroNaProva}` : ""}
+                    </span>
+                    {/* Questão de outro órgão treina o formato da banca, mas não é do
                     seu edital: o assunto pode nem existir nele. Sem esta marca, o
                     candidato lê tudo como se fosse cobrança do BB. */}
-                {!origemDaQuestao(q).doConcurso && (
-                  <Badge
-                    variant="outline"
-                    className="border-amber-500/50 text-amber-700 dark:text-amber-400"
+                    {!origemDaQuestao(q).doConcurso && (
+                      <Badge
+                        variant="outline"
+                        className="border-amber-500/50 text-amber-700 dark:text-amber-400"
+                      >
+                        Treino de formato — fora do seu edital
+                      </Badge>
+                    )}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant={marcada ? "default" : "outline"}
+                    className="shrink-0 gap-1"
+                    onClick={() =>
+                      atualizarSimulado({
+                        marcadas: marcada
+                          ? sessao.marcadas.filter((id) => id !== q.id)
+                          : [...sessao.marcadas, q.id],
+                      })
+                    }
                   >
-                    Treino de formato — fora do seu edital
-                  </Badge>
+                    <Bookmark className="h-3.5 w-3.5" />
+                    {marcada ? "Marcada" : "Marcar"}
+                  </Button>
+                </div>
+                {q.textoBase && (
+                  <details className="rounded-lg border border-border bg-muted/40 p-3">
+                    <summary className="cursor-pointer text-sm font-semibold">
+                      Texto de apoio (necessário para responder)
+                    </summary>
+                    <TextoDaQuestao className="mt-2 block whitespace-pre-line text-sm leading-relaxed">
+                      {q.textoBase}
+                    </TextoDaQuestao>
+                  </details>
                 )}
-              </p>
-              <Button
-                size="sm"
-                variant={marcada ? "default" : "outline"}
-                className="shrink-0 gap-1"
-                onClick={() =>
-                  atualizarSimulado({
-                    marcadas: marcada
-                      ? sessao.marcadas.filter((id) => id !== q.id)
-                      : [...sessao.marcadas, q.id],
-                  })
-                }
-              >
-                <Bookmark className="h-3.5 w-3.5" />
-                {marcada ? "Marcada" : "Marcar"}
-              </Button>
-            </div>
-            {q.textoBase && (
-              <details className="rounded-lg border border-border bg-muted/40 p-3">
-                <summary className="cursor-pointer text-sm font-semibold">
-                  Texto de apoio (necessário para responder)
-                </summary>
-                <TextoDaQuestao className="mt-2 block whitespace-pre-line text-sm leading-relaxed">
-                  {q.textoBase}
+                <TextoDaQuestao className="block text-base leading-relaxed whitespace-pre-line">
+                  {q.enunciado}
                 </TextoDaQuestao>
-              </details>
-            )}
-            <TextoDaQuestao className="block text-base leading-relaxed whitespace-pre-line">
-              {q.enunciado}
-            </TextoDaQuestao>
-            {/* Certo/errado não tem alternativas: a afirmação inteira está no
+                {/* Certo/errado não tem alternativas: a afirmação inteira está no
                 enunciado. Renderizar duas opções vazias no formato de múltipla
                 escolha só imitaria a aparência errada. */}
-            {q.tipo === "certo_errado" ? (
-              <div className="grid grid-cols-2 gap-2">
-                {(["C", "E"] as const).map((letra) => {
-                  const isChosen = letraVisivel === letra;
-                  const isCorreta = letra === q.correta;
-                  return (
-                    <button
-                      key={letra}
-                      disabled={respondida}
-                      onClick={() => aoClicarAlternativa(letra)}
-                      className={cn(
-                        "rounded-lg border p-4 text-center font-bold transition-all duration-150",
-                        !respondida &&
-                          "hover:-translate-y-px hover:border-primary/40 hover:bg-muted hover:shadow-sm",
-                        respondida && isCorreta && "border-sucesso bg-sucesso-suave",
-                        respondida &&
-                          isChosen &&
-                          !isCorreta &&
-                          "border-destructive bg-destructive/10",
-                        !respondida && isChosen && "border-primary bg-primary/5",
-                      )}
-                    >
-                      {letra === "C" ? "Certo" : "Errado"}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {q.alternativas.map((a) => {
-                  const isChosen = letraVisivel === a.letra;
-                  const isCorreta = a.letra === q.correta;
-                  const showResult = respondida;
-                  return (
-                    <button
-                      key={a.letra}
-                      disabled={respondida}
-                      onClick={() => aoClicarAlternativa(a.letra)}
-                      className={cn(
-                        "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-all duration-150",
-                        // `hover:bg-accent` pintava a alternativa de amarelo forte:
-                        // neste tema o accent é o amarelo do BB, reservado para
-                        // destaque de verdade. Passar o mouse tem que sugerir, não gritar.
-                        !showResult &&
-                          "hover:-translate-y-px hover:border-primary/40 hover:bg-muted hover:shadow-sm",
-                        showResult && isCorreta && "border-sucesso bg-sucesso-suave",
-                        showResult &&
-                          isChosen &&
-                          !isCorreta &&
-                          "border-destructive bg-destructive/10",
-                        !showResult && isChosen && "border-primary bg-primary/5",
-                      )}
-                    >
-                      <span className="font-black text-primary">{a.letra}</span>
-                      <TextoDaQuestao className="text-sm flex-1">{a.texto}</TextoDaQuestao>
-                      {showResult && isCorreta && (
-                        <CheckCircle2 className="h-5 w-5 shrink-0 text-sucesso" />
-                      )}
-                      {showResult && isChosen && !isCorreta && (
-                        <XCircle className="h-5 w-5 shrink-0 text-destructive" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                {q.tipo === "certo_errado" ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["C", "E"] as const).map((letra) => {
+                      const isChosen = letraVisivel === letra;
+                      const isCorreta = letra === q.correta;
+                      return (
+                        <button
+                          key={letra}
+                          disabled={respondida}
+                          onClick={() => aoClicarAlternativa(letra)}
+                          className={cn(
+                            "rounded-lg border p-4 text-center font-bold transition-all duration-150",
+                            !respondida &&
+                              "hover:-translate-y-px hover:border-primary/40 hover:bg-muted hover:shadow-sm",
+                            respondida && isCorreta && "border-sucesso bg-sucesso-suave",
+                            respondida &&
+                              isChosen &&
+                              !isCorreta &&
+                              "border-destructive bg-destructive/10",
+                            !respondida && isChosen && "border-primary bg-primary/5",
+                          )}
+                        >
+                          {letra === "C" ? "Certo" : "Errado"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {q.alternativas.map((a) => {
+                      const isChosen = letraVisivel === a.letra;
+                      const isCorreta = a.letra === q.correta;
+                      const showResult = respondida;
+                      return (
+                        <button
+                          key={a.letra}
+                          disabled={respondida}
+                          onClick={() => aoClicarAlternativa(a.letra)}
+                          className={cn(
+                            "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-all duration-150",
+                            // `hover:bg-accent` pintava a alternativa de amarelo forte:
+                            // neste tema o accent é o amarelo do BB, reservado para
+                            // destaque de verdade. Passar o mouse tem que sugerir, não gritar.
+                            !showResult &&
+                              "hover:-translate-y-px hover:border-primary/40 hover:bg-muted hover:shadow-sm",
+                            showResult && isCorreta && "border-sucesso bg-sucesso-suave",
+                            showResult &&
+                              isChosen &&
+                              !isCorreta &&
+                              "border-destructive bg-destructive/10",
+                            !showResult && isChosen && "border-primary bg-primary/5",
+                          )}
+                        >
+                          <span className="font-black text-primary">{a.letra}</span>
+                          <TextoDaQuestao className="text-sm flex-1">{a.texto}</TextoDaQuestao>
+                          {showResult && isCorreta && (
+                            <CheckCircle2 className="h-5 w-5 shrink-0 text-sucesso" />
+                          )}
+                          {showResult && isChosen && !isCorreta && (
+                            <XCircle className="h-5 w-5 shrink-0 text-destructive" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
-            {/* MODO PROVA: raciocínio opcional. A pressão de tempo é parte do
+                {/* MODO PROVA: raciocínio opcional. A pressão de tempo é parte do
                 treino; quem quiser registrar o caminho registra, e avalia tudo
                 de uma vez na correção. */}
-            {modoProva && escolhida && (
-              <div className="space-y-2 rounded-lg border border-border p-3">
-                <p className="text-xs text-muted-foreground">
-                  Raciocínio (opcional no modo prova — será conferido na correção):
-                </p>
-                <Textarea
-                  value={raciocinio}
-                  onChange={(e) => setRaciocinio(e.target.value)}
-                  onBlur={salvarRascunhoNaSessao}
-                  placeholder="Por que essa alternativa?"
-                  className="min-h-16 text-sm"
-                />
-              </div>
-            )}
+                {modoProva && escolhida && (
+                  <div className="space-y-2 rounded-lg border border-border p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Raciocínio (opcional no modo prova — será conferido na correção):
+                    </p>
+                    <Textarea
+                      value={raciocinio}
+                      onChange={(e) => setRaciocinio(e.target.value)}
+                      onBlur={salvarRascunhoNaSessao}
+                      placeholder="Por que essa alternativa?"
+                      className="min-h-16 text-sm"
+                    />
+                  </div>
+                )}
 
-            {/* O passo que separa saber de eliminar bem (modo imediata).
+                {/* O passo que separa saber de eliminar bem (modo imediata).
                 A alternativa marcada não revela nada até o raciocínio ser
                 escrito: acerto sozinho não distingue quem domina o assunto de
                 quem chutou entre duas — e as duas coisas pedem estudo oposto. */}
-            {!modoProva && !respondida && preEscolha && (
-              <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
-                <div>
-                  <p className="text-sm font-semibold">
-                    Por que você marcou{" "}
-                    {preEscolha === "C" && q.tipo === "certo_errado"
-                      ? "Certo"
-                      : preEscolha === "E" && q.tipo === "certo_errado"
-                        ? "Errado"
-                        : preEscolha}
-                    ?
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Escreva antes de ver o gabarito. Depois da resposta na tela, o que sai é
-                    justificativa, não raciocínio.
-                  </p>
-                </div>
-                <Textarea
-                  value={raciocinio}
-                  onChange={(e) => setRaciocinio(e.target.value)}
-                  placeholder="O que te levou a essa alternativa? O que descartou as outras?"
-                  className="min-h-20 text-sm"
-                  autoFocus
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    onClick={() => responder(preEscolha, raciocinio)}
-                    disabled={!raciocinio.trim()}
-                  >
-                    Confirmar e ver o gabarito
-                  </Button>
-                  {/* Assumir o chute é informação, não desistência: é o que
+                {!modoProva && !respondida && preEscolha && (
+                  <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                    <div>
+                      <p className="text-sm font-semibold">
+                        Por que você marcou{" "}
+                        {preEscolha === "C" && q.tipo === "certo_errado"
+                          ? "Certo"
+                          : preEscolha === "E" && q.tipo === "certo_errado"
+                            ? "Errado"
+                            : preEscolha}
+                        ?
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Escreva antes de ver o gabarito. Depois da resposta na tela, o que sai é
+                        justificativa, não raciocínio.
+                      </p>
+                    </div>
+                    <Textarea
+                      value={raciocinio}
+                      onChange={(e) => setRaciocinio(e.target.value)}
+                      placeholder="O que te levou a essa alternativa? O que descartou as outras?"
+                      className="min-h-20 text-sm"
+                      autoFocus
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        onClick={() => responder(preEscolha, raciocinio)}
+                        disabled={!raciocinio.trim()}
+                      >
+                        Confirmar e ver o gabarito
+                      </Button>
+                      {/* Assumir o chute é informação, não desistência: é o que
                       impede o acerto por sorte de virar "assunto dominado". */}
-                  <Button variant="ghost" onClick={() => responder(preEscolha, "")}>
-                    Chutei, não sei explicar
-                  </Button>
-                </div>
-              </div>
-            )}
+                      <Button variant="ghost" onClick={() => responder(preEscolha, "")}>
+                        Chutei, não sei explicar
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
-            {/* Depois do gabarito: o candidato confere o próprio raciocínio.
+                {/* Depois do gabarito: o candidato confere o próprio raciocínio.
                 É autoavaliação porque julgar texto livre exigiria IA em tempo de
                 execução (§7.6). Quem marca "bateu" no que não bateu engana o
                 próprio cronograma — nenhum app resolve isso, e fingir que
                 resolve seria pior. */}
-            {respondida && raciocinioDaResposta && (
-              <div className="space-y-2 rounded-lg border border-border p-4">
-                <p className="text-sm font-semibold">
-                  {escolhida === q.correta
-                    ? "Acertou. O seu raciocínio bateu com o gabarito?"
-                    : "Errou. Onde o seu raciocínio saiu do trilho?"}
-                </p>
-                <p className="rounded bg-muted/60 p-2 text-xs italic text-muted-foreground">
-                  “{raciocinioDaResposta}”
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {(
-                    [
-                      ["bateu", "Bateu com o gabarito"],
-                      ["torto", "Cheguei por caminho errado"],
-                      ["chutei", "Foi chute"],
-                    ] as const
-                  ).map(([nota, rotulo]) => (
-                    <Button
-                      key={nota}
-                      size="sm"
-                      variant={avaliacaoAtual === nota ? "default" : "outline"}
-                      onClick={() => avaliarRaciocinio(q.id, concursoAtivoId, nota)}
-                    >
-                      {rotulo}
-                    </Button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  É isto que decide se o assunto ainda pede teoria ou já pode ser estudado pelo
-                  gabarito. Acerto por eliminação conta como “caminho errado”.
-                </p>
-              </div>
-            )}
+                {respondida && raciocinioDaResposta && (
+                  <div className="space-y-2 rounded-lg border border-border p-4">
+                    <p className="text-sm font-semibold">
+                      {escolhida === q.correta
+                        ? "Acertou. O seu raciocínio bateu com o gabarito?"
+                        : "Errou. Onde o seu raciocínio saiu do trilho?"}
+                    </p>
+                    <p className="rounded bg-muted/60 p-2 text-xs italic text-muted-foreground">
+                      “{raciocinioDaResposta}”
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {(
+                        [
+                          ["bateu", "Bateu com o gabarito"],
+                          ["torto", "Cheguei por caminho errado"],
+                          ["chutei", "Foi chute"],
+                        ] as const
+                      ).map(([nota, rotulo]) => (
+                        <Button
+                          key={nota}
+                          size="sm"
+                          variant={avaliacaoAtual === nota ? "default" : "outline"}
+                          onClick={() => avaliarRaciocinio(q.id, concursoAtivoId, nota)}
+                        >
+                          {rotulo}
+                        </Button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      É isto que decide se o assunto ainda pede teoria ou já pode ser estudado pelo
+                      gabarito. Acerto por eliminação conta como “caminho errado”.
+                    </p>
+                  </div>
+                )}
 
-            {respondida && (
-              <div className="rounded-lg bg-muted p-4">
-                {/* Questão vinda do caderno da banca não traz comentário: a
+                {respondida && (
+                  <div className="rounded-lg bg-muted p-4">
+                    {/* Questão vinda do caderno da banca não traz comentário: a
                     Cesgranrio publica prova e gabarito, não explicação. O
                     comentário é gerado por IA fora do app e colado aqui — por
                     isso vem sempre com o aviso de conteúdo gerado. */}
-                <GabaritoComentado
-                  questao={q}
-                  disciplinaNome={
-                    disciplinas.find((d) => d.id === q.disciplinaId)?.nome ?? q.disciplinaId
-                  }
-                />
-              </div>
-            )}
+                    <GabaritoComentado
+                      questao={q}
+                      disciplinaNome={
+                        disciplinas.find((d) => d.id === q.disciplinaId)?.nome ?? q.disciplinaId
+                      }
+                    />
+                  </div>
+                )}
 
-            {respondida && (
-              <>
-                <AnotacaoDaQuestao questaoId={q.id} />
-                <div className="flex justify-end">
-                  <ReportarProblema questaoId={q.id} />
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+                {respondida && (
+                  <>
+                    <AnotacaoDaQuestao questaoId={q.id} />
+                    <div className="flex justify-end">
+                      <ReportarProblema questaoId={q.id} />
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" disabled={idx === 0} onClick={() => irPara(idx - 1)}>
-            Anterior
-          </Button>
-          {idx < lista.length - 1 ? (
-            <Button className="flex-1" onClick={() => irPara(idx + 1)}>
-              Próxima
-            </Button>
-          ) : !modoProva ? (
-            <Button className="flex-1" onClick={finalizar}>
-              Ver resultado
-            </Button>
-          ) : null}
-
-          {/* Entregar fica sempre à mão no modo prova: na real, ninguém precisa
-              chegar à última questão para encerrar. */}
-          {modoProva && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button className={cn(idx === lista.length - 1 && "flex-1")} variant="default">
-                  Entregar prova
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" disabled={idx === 0} onClick={() => irPara(idx - 1)}>
+                Anterior
+              </Button>
+              {idx < lista.length - 1 ? (
+                <Button className="flex-1" onClick={() => irPara(idx + 1)}>
+                  Próxima
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Entregar e corrigir?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {respondidasNaSessao} de {lista.length} respondidas
-                    {respondidasNaSessao < lista.length
-                      ? ` — ${lista.length - respondidasNaSessao} em branco. Em prova, branco não pontua; se a prova desconta erro, branco também não desconta.`
-                      : "."}{" "}
-                    Depois da entrega não dá para mudar resposta.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Voltar à prova</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => {
-                      salvarRascunhoNaSessao();
-                      finalizar();
-                    }}
-                  >
-                    Entregar
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-        </div>
+              ) : !modoProva ? (
+                <Button className="flex-1" onClick={finalizar}>
+                  Ver resultado
+                </Button>
+              ) : null}
+
+              {/* Entregar fica sempre à mão no modo prova: na real, ninguém precisa
+              chegar à última questão para encerrar. */}
+              {modoProva && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button className={cn(idx === lista.length - 1 && "flex-1")} variant="default">
+                      Entregar prova
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Entregar e corrigir?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {respondidasNaSessao} de {lista.length} respondidas
+                        {respondidasNaSessao < lista.length
+                          ? ` — ${lista.length - respondidasNaSessao} em branco. Em prova, branco não pontua; se a prova desconta erro, branco também não desconta.`
+                          : "."}{" "}
+                        Depois da entrega não dá para mudar resposta.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Voltar à prova</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => {
+                          salvarRascunhoNaSessao();
+                          finalizar();
+                        }}
+                      >
+                        Entregar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          </>
+        )}
       </div>
     );
   }
@@ -1196,10 +1280,9 @@ function QuestoesPage() {
   const acertos = listaFinal.filter((q) => respostas[q.id] === q.correta).length;
   const emBranco = listaFinal.filter((q) => !respostas[q.id]).length;
   const pct = Math.round((acertos / listaFinal.length) * 100);
-  const tempoMin = Math.max(
-    1,
-    Math.round((Date.now() - new Date(resultado.iniciadoEm).getTime()) / 60000),
-  );
+  // Congelado na entrega e líquido de pausas (ADR-019) — antes era recalculado
+  // a cada render e crescia enquanto a pessoa lia o resultado.
+  const tempoMin = Math.max(1, Math.round(resultado.tempoSegundos / 60));
   const ritmo = resumoDeRitmo(Object.values(tempos));
 
   // Prova com desconto: cada erro anula um acerto. Mostrar só "X de Y corretas"
@@ -1466,7 +1549,17 @@ function RitmoDaQuestao({ inicio, respondida }: { inicio: number; respondida: bo
  * Vira alerta nos últimos 15 minutos — o ponto em que ainda dá para decidir
  * chutar o resto em vez de descobrir depois que acabou.
  */
-function RelogioDaProva({ inicio, duracao }: { inicio: number; duracao: number }) {
+function RelogioDaProva({
+  iniciadoEm,
+  duracao,
+  segundosPausados,
+  pausadoEm,
+}: {
+  iniciadoEm: string;
+  duracao: number;
+  segundosPausados: number;
+  pausadoEm: string | null;
+}) {
   const [agora, setAgora] = useState(() => Date.now());
 
   useEffect(() => {
@@ -1474,7 +1567,9 @@ function RelogioDaProva({ inicio, duracao }: { inicio: number; duracao: number }
     return () => clearInterval(id);
   }, []);
 
-  const restante = duracao - Math.floor((agora - inicio) / 1000);
+  // Tempo líquido (ADR-019): pausa congela o relógio — o tique continua, mas a
+  // pausa corrente cresce junto e o restante fica parado.
+  const restante = duracao - tempoLiquidoSegundos(iniciadoEm, segundosPausados, pausadoEm, agora);
   const acabando = restante <= 15 * 60;
 
   return (

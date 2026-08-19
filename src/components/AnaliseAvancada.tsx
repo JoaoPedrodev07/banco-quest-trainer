@@ -16,6 +16,7 @@ import {
   History,
   Microscope,
   Target,
+  Timer,
   TrendingDown,
 } from "lucide-react";
 
@@ -32,23 +33,25 @@ import {
   simularNota,
   type PontoDeCobertura,
 } from "@/lib/estatistica";
-import { RITMO_ALVO_SEGUNDOS, formatarDuracao } from "@/lib/ritmo";
+import { RITMO_ALVO_SEGUNDOS, duracaoDaProva, formatarDuracao, formatarRelogio } from "@/lib/ritmo";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import type { Disciplina, Questao, RespostaHistorico } from "@/types";
+import type { Disciplina, Prova, Questao, RespostaHistorico } from "@/types";
 
 interface Props {
   disciplinas: Disciplina[];
   questoes: Questao[];
   historico: RespostaHistorico[];
+  provas: Prova[];
 }
 
 /** Amostra mínima para a simulação de nota dizer algo por disciplina. */
 const MINIMO_PARA_SIMULAR = 10;
 
-export function AnaliseAvancada({ disciplinas, questoes, historico }: Props) {
+export function AnaliseAvancada({ disciplinas, questoes, historico, provas }: Props) {
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
+  const tentativasProva = useStore((s) => s.tentativasProva);
   const concurso = useConcurso(concursoAtivoId);
   const doConcurso = useMemo(
     () => historico.filter((h) => h.concursoId === concursoAtivoId),
@@ -158,6 +161,24 @@ export function AnaliseAvancada({ disciplinas, questoes, historico }: Props) {
 
   const nomeDaDisciplina = (id: string) => disciplinas.find((d) => d.id === id)?.nome ?? id;
 
+  // ------------------------------------------------------------ tempo de prova
+  // "Em quanto tempo cumpri um simulado completo, e quanto DEVERIA levar?"
+  // (ADR-019). Só tentativas de prova inteira contam — simulado avulso de 10
+  // questões não diz nada sobre aguentar 4 horas.
+  const tempoDeProva = useMemo(() => {
+    const doConcursoAtual = tentativasProva.filter((t) => t.concursoId === concursoAtivoId);
+    if (doConcursoAtual.length === 0) return null;
+    const questoesRespondidas = doConcursoAtual.reduce((a, t) => a + t.acertos + t.erros, 0);
+    const tempoTotal = doConcursoAtual.reduce((a, t) => a + t.tempoSegundos, 0);
+    return {
+      tentativas: doConcursoAtual.slice(-5).reverse(),
+      total: doConcursoAtual.length,
+      // Ritmo médio por questão RESPONDIDA (em branco não custou tempo de
+      // resolução) — é o que projeta as 70 questões.
+      ritmoMedio: questoesRespondidas > 0 ? tempoTotal / questoesRespondidas : null,
+    };
+  }, [tentativasProva, concursoAtivoId]);
+
   return (
     <div className="space-y-4">
       {/* -------------------------------------------------- onde parar de estudar */}
@@ -223,6 +244,75 @@ export function AnaliseAvancada({ disciplinas, questoes, historico }: Props) {
           </CardContent>
         </Card>
       )}
+
+      {/* -------------------------------------------------- tempo de prova */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Timer className="h-4 w-4 text-muted-foreground" />
+            Tempo de prova completa
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!tempoDeProva ? (
+            <p className="text-sm text-muted-foreground">
+              Nenhuma prova completa entregue ainda. Resolva um caderno inteiro (Provas → Resolver)
+              para o app medir se o seu tempo cabe nas 4 horas — é a única forma de treinar o
+              relógio, não só o conteúdo.
+            </p>
+          ) : (
+            <>
+              {tempoDeProva.tentativas.map((t) => {
+                const prova = provas.find((p) => p.id === t.provaId);
+                const alvo = duracaoDaProva(t.total);
+                const saldo = alvo - t.tempoSegundos;
+                const data = t.data.slice(0, 10).split("-").reverse().join("/");
+                return (
+                  <div key={t.id} className="space-y-0.5">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <p className="text-sm font-semibold">
+                        {prova ? `${prova.orgao} ${prova.ano}` : t.provaId}{" "}
+                        <span className="font-normal text-muted-foreground">· {data}</span>
+                      </p>
+                      <Badge variant={saldo >= 0 ? "secondary" : "destructive"}>
+                        {formatarRelogio(t.tempoSegundos)} de {formatarRelogio(alvo)}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {t.total} questões ({t.acertos + t.erros} respondidas) ·{" "}
+                      {saldo >= 0
+                        ? `sobraram ${formatarDuracao(saldo)} — dentro do tempo`
+                        : `estourou em ${formatarDuracao(-saldo)} — nesse ritmo, questões ficariam em branco na prova real`}
+                    </p>
+                  </div>
+                );
+              })}
+
+              {tempoDeProva.ritmoMedio !== null && (
+                <p className="border-t border-border pt-2 text-xs text-muted-foreground">
+                  No ritmo médio das suas {tempoDeProva.total}{" "}
+                  {tempoDeProva.total === 1 ? "tentativa" : "tentativas"} (
+                  {formatarDuracao(Math.round(tempoDeProva.ritmoMedio))} por questão respondida), as
+                  70 questões da prova levariam{" "}
+                  <strong className="text-foreground">
+                    {formatarRelogio(Math.round(tempoDeProva.ritmoMedio * 70))}
+                  </strong>{" "}
+                  — o alvo é {formatarRelogio(duracaoDaProva(70))} (
+                  {formatarDuracao(RITMO_ALVO_SEGUNDOS)} por questão).{" "}
+                  {tempoDeProva.ritmoMedio <= RITMO_ALVO_SEGUNDOS
+                    ? "Você cabe no tempo; o treino agora é manter isso sob o cansaço da questão 60."
+                    : `Para caber, precisa cortar ${formatarDuracao(Math.round(tempoDeProva.ritmoMedio - RITMO_ALVO_SEGUNDOS))} por questão — o diagnóstico de "Ritmo por disciplina" abaixo mostra onde o tempo escapa.`}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Tempo do relógio da sessão, com pausas descontadas. {tempoDeProva.total} de{" "}
+                {tempoDeProva.total} tentativas contadas
+                {tempoDeProva.total > 5 ? " (as 5 mais recentes listadas acima)" : ""}.
+              </p>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* -------------------------------------------------- retrospectiva */}
       {retro.atual.respostas + retro.anterior.respostas > 0 && (

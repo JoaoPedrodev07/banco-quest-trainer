@@ -112,7 +112,12 @@ function AnalisePage() {
       <NotaDeCorte historico={historico.filter((h) => h.concursoId === concursoAtivoId)} />
 
       {!vazio && !carregando && (
-        <AnaliseAvancada disciplinas={disciplinas} questoes={questoes} historico={historico} />
+        <AnaliseAvancada
+          disciplinas={disciplinas}
+          questoes={questoes}
+          historico={historico}
+          provas={provas}
+        />
       )}
 
       <div className="space-y-3">

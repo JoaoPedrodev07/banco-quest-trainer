@@ -84,6 +84,14 @@ export interface SimuladoAtual {
    */
   correcao: "imediata" | "no_fim";
   concursoId: string;
+  /**
+   * Pausa (ADR-019), no padrão do Pomodoro: instante em que a pausa corrente
+   * começou (nulo = rodando) + segundos já pausados antes dela. O tempo líquido
+   * é derivado na leitura (`tempoLiquidoSegundos` em lib/ritmo.ts) — nenhum
+   * timer roda durante a pausa.
+   */
+  pausadoEm: string | null;
+  segundosPausados: number;
 }
 
 /**
@@ -223,6 +231,10 @@ interface StoreState {
   /** Patch raso da sessão. A tela compõe o patch; o store só aplica. */
   atualizarSimulado: (patch: Partial<SimuladoAtual>) => void;
   encerrarSimulado: () => void;
+  /** Congela o relógio da sessão. Idempotente: pausar o já pausado não faz nada. */
+  pausarSimulado: () => void;
+  /** Volta a correr, somando a pausa corrente ao acumulado. */
+  retomarSimulado: () => void;
   salvarCaderno: (c: CadernoSalvo) => void;
   removerCaderno: (id: string) => void;
   /** Grava a fotografia de uma prova entregue. Sessão abandonada nunca chega aqui. */
@@ -270,6 +282,7 @@ type EstadoPersistidoAntigo = Partial<{
   revisoes: Partial<RevisaoItem>[];
   concursoAtivoId: string;
   pomodoro: Pomodoro;
+  simuladoAtual: Partial<SimuladoAtual> | null;
 }> &
   Record<string, unknown>;
 
@@ -422,6 +435,27 @@ export const useStore = create<StoreState>()(
           s.simuladoAtual ? { simuladoAtual: { ...s.simuladoAtual, ...patch } } : s,
         ),
       encerrarSimulado: () => set({ simuladoAtual: null }),
+      pausarSimulado: () =>
+        set((s) =>
+          s.simuladoAtual && !s.simuladoAtual.pausadoEm
+            ? { simuladoAtual: { ...s.simuladoAtual, pausadoEm: new Date().toISOString() } }
+            : s,
+        ),
+      retomarSimulado: () =>
+        set((s) => {
+          if (!s.simuladoAtual?.pausadoEm) return s;
+          const pausa = Math.max(
+            0,
+            Math.floor((Date.now() - new Date(s.simuladoAtual.pausadoEm).getTime()) / 1000),
+          );
+          return {
+            simuladoAtual: {
+              ...s.simuladoAtual,
+              pausadoEm: null,
+              segundosPausados: s.simuladoAtual.segundosPausados + pausa,
+            },
+          };
+        }),
 
       salvarCaderno: (c) => set((s) => ({ cadernos: [...s.cadernos, c] })),
       removerCaderno: (id) => set((s) => ({ cadernos: s.cadernos.filter((c) => c.id !== id) })),
@@ -526,6 +560,12 @@ export const useStore = create<StoreState>()(
           revisoes: semRevisoesDeDemonstracao(
             comConcurso(p.revisoes ?? atual.revisoes) as RevisaoItem[],
           ),
+          // Sessão gravada antes da pausa existir (ADR-019) não tem estes dois
+          // campos; sem o padrão, o tempo líquido viraria NaN e o relógio da
+          // prova mostraria lixo.
+          simuladoAtual: p.simuladoAtual
+            ? ({ pausadoEm: null, segundosPausados: 0, ...p.simuladoAtual } as SimuladoAtual)
+            : null,
         } as StoreState;
       },
       // Mantido para as próximas mudanças de formato: a partir da v1 o `version`

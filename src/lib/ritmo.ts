@@ -68,6 +68,25 @@ export function duracaoDaProva(qtdQuestoes: number): number {
   return qtdQuestoes * RITMO_ALVO_SEGUNDOS;
 }
 
+/**
+ * Tempo líquido de uma sessão de simulado, em segundos (ADR-019).
+ *
+ * Desconta as pausas: o acumulado (`segundosPausados`) e, se a sessão está
+ * pausada AGORA (`pausadoEm` não nulo), o trecho da pausa corrente. Guardar
+ * instantes e derivar na leitura é o mesmo padrão do Pomodoro (§2.3) — o
+ * relógio congela durante a pausa sem nenhum timer rodando.
+ */
+export function tempoLiquidoSegundos(
+  iniciadoEm: string,
+  segundosPausados: number,
+  pausadoEm: string | null,
+  agora: number,
+): number {
+  const bruto = (agora - new Date(iniciadoEm).getTime()) / 1000;
+  const pausaCorrente = pausadoEm ? (agora - new Date(pausadoEm).getTime()) / 1000 : 0;
+  return Math.max(0, Math.floor(bruto - segundosPausados - pausaCorrente));
+}
+
 /** hh:mm:ss para o relógio da prova; minutos não bastam em 4 horas. */
 export function formatarRelogio(segundos: number): string {
   const s = Math.max(0, Math.floor(segundos));
