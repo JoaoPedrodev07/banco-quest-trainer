@@ -46,6 +46,41 @@ export interface Pomodoro {
 
 export const DURACAO_POMODORO = { foco: 25 * 60, pausa: 5 * 60 } as const;
 
+/**
+ * A sessão de simulado em andamento (ADR-005).
+ *
+ * É fato, não derivado: "existe uma sessão com estas respostas" não se
+ * reconstrói de lugar nenhum. Guarda **ids** de questão, nunca as questões — o
+ * acervo mora no backend, e congelar cópias aqui divergiria dele na primeira
+ * reimportação. A tela resolve os ids contra o acervo ao hidratar e descarta o
+ * que não existe mais.
+ *
+ * Sem isto, fechar o navegador na questão 52 de uma prova de 70 custava a prova
+ * inteira — e treinar o dia da prova é exatamente o caso das sessões longas.
+ */
+export interface SimuladoAtual {
+  questaoIds: string[];
+  /** questaoId -> letra escolhida. No modo `no_fim` pode ser trocada até a entrega. */
+  respostas: Record<string, string>;
+  /** questaoId -> segundos até a escolha. */
+  tempos: Record<string, number>;
+  /** Marcadas para voltar depois — a falta disto numa prova de 70 é sentida na hora. */
+  marcadas: string[];
+  /** questaoId -> raciocínio escrito. No modo `no_fim` é opcional e avaliado só na entrega. */
+  raciocinios: Record<string, string>;
+  idx: number;
+  iniciadoEm: string; // ISO
+  provaId: string | null;
+  /**
+   * `imediata` = fluxo de treino (gabarito no clique, raciocínio obrigatório).
+   * `no_fim` = ensaio de prova: nada de gabarito até a entrega, respostas podem
+   * mudar, e o histórico só é gravado na correção — sessão abandonada não polui
+   * streak nem pontos fracos.
+   */
+  correcao: "imediata" | "no_fim";
+  concursoId: string;
+}
+
 interface StoreState {
   dataProva: string; // ISO
   metaDiaria: number;
@@ -56,6 +91,7 @@ interface StoreState {
   historico: RespostaHistorico[];
   revisoes: RevisaoItem[];
   streak: { ultimoDia: string | null; dias: number };
+  simuladoAtual: SimuladoAtual | null;
 
   definirConcursoAtivo: (id: string) => void;
   iniciarPomodoro: (fase: "foco" | "pausa") => void;
@@ -101,6 +137,10 @@ interface StoreState {
   adiarRevisao: (id: string, dias: number) => void;
   /** Remove a revisão. Ela volta sozinha no próximo erro do assunto. */
   removerRevisao: (id: string) => void;
+  iniciarSimulado: (s: SimuladoAtual) => void;
+  /** Patch raso da sessão. A tela compõe o patch; o store só aplica. */
+  atualizarSimulado: (patch: Partial<SimuladoAtual>) => void;
+  encerrarSimulado: () => void;
   /**
    * Substitui o progresso pelo de um backup.
    *
@@ -153,6 +193,7 @@ export const useStore = create<StoreState>()(
       // todo usuário novo ver agenda que ele nunca criou.
       revisoes: [],
       streak: { ultimoDia: null, dias: 0 },
+      simuladoAtual: null,
 
       definirConcursoAtivo: (id) => set({ concursoAtivoId: id }),
 
@@ -275,6 +316,15 @@ export const useStore = create<StoreState>()(
         set((s) => ({ revisoes: adiarNaLista(s.revisoes, id, dias, new Date()) })),
       removerRevisao: (id) =>
         set((s) => ({ revisoes: s.revisoes.filter((r) => r.id !== id) })),
+
+      iniciarSimulado: (simulado) => set({ simuladoAtual: simulado }),
+      atualizarSimulado: (patch) =>
+        set((s) =>
+          // Sessão encerrada não aceita patch: um clique atrasado (ou uma aba
+          // antiga) recriaria a sessão do nada, meio preenchida.
+          s.simuladoAtual ? { simuladoAtual: { ...s.simuladoAtual, ...patch } } : s,
+        ),
+      encerrarSimulado: () => set({ simuladoAtual: null }),
       aplicarBackup: (progresso) => set({ ...progresso }),
 
       reset: () =>
