@@ -147,10 +147,9 @@ npm run format     # Prettier
 Não saia consertando por conta própria; é o mapa do que está pendente por decisão.
 
 1. **Testes: backend no parser e na API; frontend em Vitest nas regras de data e estatística.**
-   `manage.py test` (29 casos) e `npm test` (69 casos: `estatistica`, `corte`, `revisao`, `trilha`,
-   `anatomia-evolucao`). `proximoIntervalo` ganhou teste quando virou função pura em
-   `src/lib/revisao.ts` (ADR-003). O que ainda merece e não tem: a contagem de `streak`
-   (`useStore.ts`), regra de data que erra em silêncio.
+   `manage.py test` (38 casos) e `npm test` (84 casos). Toda regra de data que errava em
+   silêncio virou função pura testada: `proximoIntervalo` (`lib/revisao.ts`, ADR-003), trilha
+   (`lib/trilha.ts`) e a contagem de `streak` (`lib/streak.ts`) — o §7.1 original está quitado.
 2. **Classificação incompleta, mas não do jeito que parece à primeira vista**: 232 das 590 questões
    têm tópico do edital (39%). Olhando só o recorte que importa para o cargo de Agente de Tecnologia
    — a prova `bb-ti-2023`, 34 questões de TI — a classificação já está em 31/34 (91%): não é mais o

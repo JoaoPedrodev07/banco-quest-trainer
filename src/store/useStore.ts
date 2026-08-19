@@ -10,6 +10,7 @@ import {
   semRevisoesDeDemonstracao,
   type Intervalo,
 } from "@/lib/revisao";
+import { avancarStreak } from "@/lib/streak";
 import type { RespostaHistorico, RevisaoItem, StatusTopico } from "@/types";
 
 type EditalStatus = Record<string, StatusTopico>; // subtopicoId -> status
@@ -376,19 +377,12 @@ export const useStore = create<StoreState>()(
           return { editalStatus: { ...s.editalStatus, [subId]: { ...cur, [campo]: !cur[campo] } } };
         }),
       registrarResposta: (r) =>
-        set((s) => {
-          const hoje = new Date().toISOString().slice(0, 10);
-          const ultimo = s.streak.ultimoDia;
-          let dias = s.streak.dias;
-          if (ultimo !== hoje) {
-            const ontem = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-            dias = ultimo === ontem ? dias + 1 : 1;
-          }
-          return {
-            historico: [...s.historico, r],
-            streak: { ultimoDia: hoje, dias },
-          };
-        }),
+        set((s) => ({
+          historico: [...s.historico, r],
+          // Regra pura e testada em `lib/streak.ts` — era a última regra de
+          // data sem teste do §7.1.
+          streak: avancarStreak(s.streak, new Date()),
+        })),
       avaliarRaciocinio: (questaoId, concursoId, nota) =>
         set((s) => {
           // Atualiza a resposta mais recente daquela questão, não todas: refazer
