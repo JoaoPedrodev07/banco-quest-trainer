@@ -159,9 +159,11 @@ Não saia consertando por conta própria; é o mapa do que está pendente por de
    (`src/lib/promptEstudo.ts`) ainda sofre, mas o motivo não é falta de dado bruto, é a Fase 2 da
    linha de trabalho do §8 ainda não ter fechado a fila de revisão. Detalhe completo em
    `docs/auditoria-corpus.md`.
-3. **O backend não conhece concursos.** O `concursoId` é carimbado no `services/`, e o recorte por
-   concurso e por cargo mora em `useAcervoDoConcurso` — um lugar só, porque escapou três vezes
-   quando estava espalhado pelas telas.
+3. **Concursos: quitado em três etapas.** O backend conhece concursos (Fase 3), serve o catálogo
+   (`GET /api/concursos/`, ADR-015) e recorta questões/provas por `?concurso=` (ADR-018). O que
+   RESTA no cliente é deliberado: o recorte por **cargo** (`disciplinasDoCargo`) continua em
+   `useAcervoDoConcurso` — um lugar só, porque escapou três vezes quando estava espalhado — e a
+   tela de Provas pede sem filtro de propósito (é o repositório completo de cadernos).
 4. **Populações diferentes no mesmo acervo.** As provas de Agente Comercial trazem `informatica` e
    `vendas`, que **não estão no edital de Agente de Tecnologia**. Nunca some essas disciplinas com as
    de TI numa estatística: os Conhecimentos Básicos são compartilhados, o resto não.

@@ -71,8 +71,10 @@ export function AulaSubtopico({
   useEffect(() => {
     if (abrirAoChegar) setAberto(true);
   }, [abrirAoChegar]);
-  const { questoes } = useQuestoes();
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
+  // Já recortadas pelo backend (ADR-018) — o peso do assunto se mede dentro do
+  // concurso em foco, nunca no acervo inteiro.
+  const { questoes } = useQuestoes(concursoAtivoId);
   const concurso = useConcurso(concursoAtivoId);
   const salvar = useSalvarAula(concursoAtivoId);
 

@@ -182,12 +182,25 @@ export const api = {
       ),
       concursoId,
     ),
-  listQuestoes: () => comReservaLista<Questao>("/questoes/", questoesMock),
+  // Com `concursoId`, o recorte acontece no backend (`?concurso=`, ADR-018) e a
+  // resposta traz só o acervo daquele concurso; sem ele vem tudo (a tela de
+  // Provas usa assim de propósito — ela é o repositório completo).
+  listQuestoes: (concursoId?: string) =>
+    comReservaLista<Questao>(
+      concursoId ? `/questoes/?concurso=${encodeURIComponent(concursoId)}` : "/questoes/",
+      questoesMock,
+    ),
   // Catálogo de concursos (ADR-015): vem do backend, editável no Django Admin.
   // O catálogo hardcoded de `src/data/concursos.ts` virou a reserva de mock.
   listConcursos: () => comReservaLista<Concurso>("/concursos/", concursosMock),
-  listProvas: async () =>
-    comConcurso(await comReservaLista<Prova>("/provas/", provasMock), CONCURSO_PADRAO),
+  listProvas: async (concursoId?: string) =>
+    comConcurso(
+      await comReservaLista<Prova>(
+        concursoId ? `/provas/?concurso=${encodeURIComponent(concursoId)}` : "/provas/",
+        provasMock,
+      ),
+      CONCURSO_PADRAO,
+    ),
 
   async acervo(): Promise<Acervo> {
     try {

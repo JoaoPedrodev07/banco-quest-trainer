@@ -61,13 +61,21 @@ export function useDisciplinas(concursoId?: string) {
   return { disciplinas: consulta.data ?? SEM_DISCIPLINAS, carregando: consulta.isPending };
 }
 
-export function useQuestoes() {
-  const consulta = useQuery({ queryKey: chaves.questoes, queryFn: api.listQuestoes });
+// Com `concursoId`, o backend devolve só o acervo daquele concurso (ADR-018);
+// sem ele vem tudo — uso reservado à tela de Provas, que é o repositório.
+export function useQuestoes(concursoId?: string) {
+  const consulta = useQuery({
+    queryKey: [...chaves.questoes, concursoId ?? ""],
+    queryFn: () => api.listQuestoes(concursoId),
+  });
   return { questoes: consulta.data ?? SEM_QUESTOES, carregando: consulta.isPending };
 }
 
-export function useProvas() {
-  const consulta = useQuery({ queryKey: chaves.provas, queryFn: api.listProvas });
+export function useProvas(concursoId?: string) {
+  const consulta = useQuery({
+    queryKey: [...chaves.provas, concursoId ?? ""],
+    queryFn: () => api.listProvas(concursoId),
+  });
   return { provas: consulta.data ?? SEM_PROVAS, carregando: consulta.isPending };
 }
 
@@ -186,8 +194,11 @@ export function useResolverProblema() {
  */
 export function useAcervoDoConcurso(concursoId: string) {
   const { disciplinas, carregando: cd } = useDisciplinas(concursoId);
-  const { questoes, carregando: cq } = useQuestoes();
-  const { provas, carregando: cp } = useProvas();
+  // O backend já recorta por concurso (ADR-018). O filtro client-side abaixo
+  // permanece: é ele que recorta por CARGO (o backend não conhece cargo), e é a
+  // defesa quando a resposta vem do mock — filtrar duas vezes é idempotente.
+  const { questoes, carregando: cq } = useQuestoes(concursoId);
+  const { provas, carregando: cp } = useProvas(concursoId);
   // O concurso vem do catálogo do backend (ADR-015), com fallback no estático.
   const concurso = useConcurso(concursoId);
 

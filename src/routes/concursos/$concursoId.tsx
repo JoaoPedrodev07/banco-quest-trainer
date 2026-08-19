@@ -23,7 +23,8 @@ function ConcursoDetalhe() {
   const { concursoId } = Route.useParams();
   const navigate = useNavigate();
   const concurso = useConcurso(concursoId);
-  const { provas, carregando } = useProvas();
+  // Recortadas pelo backend (ADR-018): a página é de UM concurso.
+  const { provas, carregando } = useProvas(concursoId);
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
   const definirConcursoAtivo = useStore((s) => s.definirConcursoAtivo);
 
