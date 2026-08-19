@@ -17,13 +17,13 @@ echo "[pre-push] testes do frontend (vitest)…"
 npx vitest run --silent
 
 echo "[pre-push] testes do backend (Django)…"
-if [ -x backend/.venv/Scripts/python.exe ]; then
-  PY=backend/.venv/Scripts/python.exe        # Windows
-elif [ -x backend/.venv/bin/python ]; then
-  PY=backend/.venv/bin/python                # Linux/mac
-else
-  PY=python
-fi
-(cd backend && "$PY" manage.py test --verbosity 0)
+(
+  cd backend
+  # O caminho é resolvido DEPOIS do cd — relativo à raiz ele quebrava no subshell.
+  if [ -x .venv/Scripts/python.exe ]; then PY=.venv/Scripts/python.exe   # Windows
+  elif [ -x .venv/bin/python ]; then PY=.venv/bin/python                 # Linux/mac
+  else PY=python; fi
+  "$PY" manage.py test --verbosity 0
+)
 
 echo "[pre-push] tudo verde — push liberado."
