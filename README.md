@@ -45,7 +45,10 @@ Outros comandos: `npm run build` · `npm run preview` · `npm run lint` · `npm 
 - **Frontend**: build nitro com alvo Cloudflare (`npm run build` → `npx wrangler deploy`).
   **Defina `VITE_API_URL` no build** — sem ela o site publicado cai silenciosamente nos mocks
   (ver [`.env.example`](./.env.example)).
-- **CI**: GitHub Actions roda testes, lint, tipos e build em todo push (`.github/workflows/ci.yml`).
+- **Portão de qualidade**: o Actions está bloqueado neste repo privado (billing), então o CI é
+  **local**: ative uma vez com `git config core.hooksPath .githooks` e todo `git push` roda
+  tsc + Vitest + testes Django antes de sair (pule conscientemente com `--no-verify`).
+  O `.github/workflows/ci.yml` fica pronto para quando o Actions for liberado.
 - Observabilidade opt-in: `SENTRY_DSN` liga o Sentry no backend.
 
 > O repositório traz `bun.lock` (veio do Lovable), mas **npm funciona normalmente** — é um projeto Vite

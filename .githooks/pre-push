@@ -1,0 +1,29 @@
+#!/bin/sh
+# Portão de qualidade local (adendo do ADR-020): o GitHub Actions está
+# bloqueado por billing no repo privado, então o CI roda AQUI, antes de todo
+# push. Falhou, o push não sai — a main remota sincroniza com o Lovable e
+# precisa ficar sempre verde (CLAUDE.md §2.1).
+#
+# Ativação (uma vez por clone): git config core.hooksPath .githooks
+# Pular conscientemente (emergência): git push --no-verify
+
+set -e
+cd "$(git rev-parse --show-toplevel)"
+
+echo "[pre-push] tipos (tsc)…"
+npx tsc --noEmit
+
+echo "[pre-push] testes do frontend (vitest)…"
+npx vitest run --silent
+
+echo "[pre-push] testes do backend (Django)…"
+if [ -x backend/.venv/Scripts/python.exe ]; then
+  PY=backend/.venv/Scripts/python.exe        # Windows
+elif [ -x backend/.venv/bin/python ]; then
+  PY=backend/.venv/bin/python                # Linux/mac
+else
+  PY=python
+fi
+(cd backend && "$PY" manage.py test --verbosity 0)
+
+echo "[pre-push] tudo verde — push liberado."

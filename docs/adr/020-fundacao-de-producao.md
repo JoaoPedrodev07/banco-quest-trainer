@@ -39,6 +39,16 @@ incidente.
 9. **README** corrigido: ele ainda dizia "não há backend"; ganha o runbook de
    ambiente e deploy.
 
+## Adendo (mesmo dia)
+
+O GitHub Actions não executa neste repositório: é privado e a conta está sem
+cota/billing de Actions (confirmado empiricamente — até um workflow de `echo`
+falha com `startup_failure`). O portão de qualidade passa a ser **local**:
+`.githooks/pre-push` roda tsc + Vitest + testes Django antes de todo push e
+bloqueia se algo falhar. Ativação por clone: `git config core.hooksPath
+.githooks`. O `ci.yml` fica no repositório de propósito — custo zero, e volta a
+valer sozinho se o Actions for liberado ou o repo virar público.
+
 ## Consequências
 
 - Quem clonar o repo precisa criar `backend/.env` (copiando o example) para
