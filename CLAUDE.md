@@ -17,7 +17,7 @@ Agente de Tecnologia e Agente Comercial), Banco do Nordeste (Cebraspe, 60) e Ban
 prova exata deste projeto — BB, Agente de Tecnologia (`bb-ti-2023`) — só 69 questões são dela; as
 outras 6 provas Cesgranrio são de Agente Comercial (§7.4) e as de Cebraspe/FGV são de outro órgão
 (§7.7). O estado do **usuário** continua no localStorage (Zustand `persist`, chave `foco-bb-store`):
-não há login nem sincronia entre dispositivos.
+desde o ADR-021 há **conta opcional** (token DRF) que sincroniza o progresso entre dispositivos — sem login o app segue 100% local.
 
 Os mocks de `src/data/` ainda existem, mas só como **reserva**: quando o backend não responde, a tela
 cai neles e o `AvisoAcervo` avisa que aquilo é conteúdo de exemplo.
@@ -167,7 +167,7 @@ Não saia consertando por conta própria; é o mapa do que está pendente por de
 4. **Populações diferentes no mesmo acervo.** As provas de Agente Comercial trazem `informatica` e
    `vendas`, que **não estão no edital de Agente de Tecnologia**. Nunca some essas disciplinas com as
    de TI numa estatística: os Conhecimentos Básicos são compartilhados, o resto não.
-5. **Sem autenticação e sem sincronia entre dispositivos** — consequência direta do localStorage.
+5. **Autenticação e sincronia: parcialmente quitado (ADR-021).** Conta opcional com sync do progresso (blob no shape do backup v2). Ainda sem: reset de senha por e-mail (exige SMTP) e papéis de escrita no acervo (Onda 2).
 6. **Sem LLM em tempo de execução, por decisão.** O app monta prompts para o usuário levar a uma IA
    gratuita de fora; não há chave de API e não deve haver. Vale para aula, gabarito comentado e
    classificação (`manage.py prompt_classificacao`). O que protege não é confiar na IA — é

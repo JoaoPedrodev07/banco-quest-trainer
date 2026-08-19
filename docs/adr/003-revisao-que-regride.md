@@ -10,7 +10,7 @@ Três defeitos na agenda de revisão espaçada (1→7→15→30 dias):
    (`agendarRevisaoPorErro` retorna cedo se a agenda existe). Um assunto errado
    toda semana continua caminhando para 30 dias — o oposto do que repetição
    espaçada significa. O comentário original justificava o retorno cedo para não
-   *duplicar* a agenda; regressão não duplica (mesma linha, muda data/intervalo),
+   _duplicar_ a agenda; regressão não duplica (mesma linha, muda data/intervalo),
    então a objeção não se aplica.
 2. **Não há gestão manual.** `addRevisao` existe no store e nenhuma tela chama;
    não dá para criar, adiar nem excluir revisão.

@@ -259,6 +259,67 @@ export const api = {
   resolverProblema: (id: number) => enviar<ProblemaQuestao>(`/problemas/${id}/resolver/`, {}),
 };
 
+// ---------------------------------------------------------------------------
+// Conta e sincronização (ADR-021). SEM reserva de mock em nada daqui: conta é
+// contrato com o servidor — fingir sucesso offline faria o usuário acreditar
+// que o progresso está salvo na nuvem quando não está. O erro sobe para a tela.
+// ---------------------------------------------------------------------------
+
+async function chamarConta<T>(
+  caminho: string,
+  metodo: "GET" | "POST" | "PUT",
+  token: string | null,
+  corpo?: unknown,
+): Promise<T> {
+  const cabecalhos: Record<string, string> = { Accept: "application/json" };
+  if (corpo !== undefined) cabecalhos["Content-Type"] = "application/json";
+  if (token) cabecalhos["Authorization"] = `Token ${token}`;
+  const resposta = await fetch(`${BASE}/conta${caminho}`, {
+    method: metodo,
+    headers: cabecalhos,
+    body: corpo !== undefined ? JSON.stringify(corpo) : undefined,
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  const dados = (await resposta.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!resposta.ok) {
+    const erro = new Error(
+      typeof dados.erro === "string" ? dados.erro : `HTTP ${resposta.status}`,
+    ) as Error & { status?: number; atualizadoEm?: string };
+    erro.status = resposta.status;
+    // No 409 o servidor manda o carimbo mais novo — a tela usa para resolver.
+    if (typeof dados.atualizadoEm === "string") erro.atualizadoEm = dados.atualizadoEm;
+    throw erro;
+  }
+  return dados as T;
+}
+
+export interface RespostaProgresso {
+  progresso: BackupProgressoShape | null;
+  atualizadoEm: string | null;
+  versao: number | null;
+}
+type BackupProgressoShape = import("@/lib/backup").Backup["progresso"];
+
+export const contaApi = {
+  registrar: (email: string, senha: string) =>
+    chamarConta<{ token: string; email: string }>("/registrar/", "POST", null, { email, senha }),
+  entrar: (email: string, senha: string) =>
+    chamarConta<{ token: string; email: string }>("/entrar/", "POST", null, { email, senha }),
+  sair: (token: string) => chamarConta<{ ok: boolean }>("/sair/", "POST", token, {}),
+  obterProgresso: (token: string) => chamarConta<RespostaProgresso>("/progresso/", "GET", token),
+  salvarProgresso: (
+    token: string,
+    progresso: BackupProgressoShape,
+    opcoes: { base?: string | null; force?: boolean } = {},
+  ) =>
+    chamarConta<{ atualizadoEm: string }>("/progresso/", "PUT", token, {
+      progresso,
+      versao: 2,
+      base: opcoes.base ?? undefined,
+      force: opcoes.force ?? undefined,
+    }),
+};
+
 /**
  * Chaves do React Query. Ficam aqui, e não espalhadas pelas rotas, para que
  * invalidar cache não dependa de duas telas terem digitado a mesma string.

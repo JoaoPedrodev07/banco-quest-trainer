@@ -11,7 +11,7 @@ Duas dores reais de quem usa o simulado longo:
    diagnóstico de ritmo passa a medir a vida da pessoa, não a prova.
 2. **Não há análise de tempo total.** O app mede ritmo por questão, mas nunca
    responde "quanto levei para cumprir um simulado completo, e quanto eu
-   *deveria* levar para caber nas 4 horas?".
+   _deveria_ levar para caber nas 4 horas?".
 
 ## Decisão
 

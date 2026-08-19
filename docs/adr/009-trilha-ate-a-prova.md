@@ -23,9 +23,9 @@ seção no topo da tela de Plano:
   - **Questões e pontos fracos** — treino dirigido pelo que mais cai e pelo que
     a pessoa mais erra; termina a 10 dias da prova.
   - **Reta final** — só revisão, resumos e provas completas; os últimos 10 dias.
-  A trilha diz em que fase o usuário está, o que a fase pede, e o **ritmo
-  necessário** ("faltam 62 unidades de teoria em 45 dias úteis de cobertura —
-  ~1,4/dia"), sempre com os números que sustentam a conta.
+    A trilha diz em que fase o usuário está, o que a fase pede, e o **ritmo
+    necessário** ("faltam 62 unidades de teoria em 45 dias úteis de cobertura —
+    ~1,4/dia"), sempre com os números que sustentam a conta.
 - **Sem data de prova**: não inventa cronograma. Mostra só a fase sugerida pela
   cobertura atual do edital ("você cobriu 12% — fase de cobertura") e diz por
   que não há datas ("edital não publicado").

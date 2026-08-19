@@ -21,9 +21,17 @@ estado, permitido pelo §2.3 porque o número não é reconstruível depois que 
 histórico continua crescendo):
 
 ```ts
-tentativasProva: { id: string; provaId: string; concursoId: string;
-  data: string; acertos: number; erros: number; total: number;
-  tempoSegundos: number }[]
+tentativasProva: {
+  id: string;
+  provaId: string;
+  concursoId: string;
+  data: string;
+  acertos: number;
+  erros: number;
+  total: number;
+  tempoSegundos: number;
+}
+[];
 ```
 
 - Gravada **uma vez**, quando uma sessão em modo `?prova=` chega à correção

@@ -8,7 +8,7 @@ O app tem duas mecânicas de agendamento que se ignoram: o plano semanal (blocos
 por disciplina) e a agenda de revisão espaçada. O plano manda estudar tópico novo
 enquanto há revisões vencidas — que são o estudo de maior retorno do dia. E o
 dashboard, tela de abertura, não responde a pergunta que o usuário faz ao abrir o
-app: *o que eu faço agora?*
+app: _o que eu faço agora?_
 
 ## Decisão
 

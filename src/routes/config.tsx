@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { BackupProgresso } from "@/components/BackupProgresso";
+import { ContaSync } from "@/components/ContaSync";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -118,6 +119,15 @@ function ConfigPage() {
         <CardContent className="flex items-center justify-between">
           <Label htmlFor="dm">Modo escuro</Label>
           <Switch id="dm" checked={darkMode} onCheckedChange={toggleDark} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Conta e sincronização</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ContaSync />
         </CardContent>
       </Card>
 

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 import { useStore } from "@/store/useStore";
+import { iniciarAutoSync } from "@/lib/sync";
 import { useConcurso } from "@/services/hooks";
 import { BuscaGlobal } from "@/components/BuscaGlobal";
 import { Pomodoro } from "@/components/Pomodoro";
@@ -42,6 +43,12 @@ export function AppLayout() {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
+
+  // Push automático do progresso quando há conta (ADR-021). Idempotente; sem
+  // sessão gravada não faz nada.
+  useEffect(() => {
+    iniciarAutoSync();
+  }, []);
 
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");

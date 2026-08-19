@@ -22,17 +22,17 @@ Script: `docs/scripts/auditoria_corpus.py` (seção 1 e 2 da saída).
 
 ## 1. Inventário de provas
 
-| id | órgão | cargo | ano | banca | edital diz | extraídas | divergência | pontuação líquida | fonte (tipo) |
-|---|---|---|---|---|---|---|---|---|---|
-| bb-ti-2023 | Banco do Brasil | Escriturário — Agente de Tecnologia | 2023 | Cesgranrio | 70 | 69 | -1 | não | oficial |
-| bb-comercial-a-2023 | Banco do Brasil | Escriturário — Agente Comercial | 2023 | Cesgranrio | 70 | 67 | -3 | não | oficial |
-| bb-comercial-b-2023 | Banco do Brasil | Escriturário — Agente Comercial | 2023 | Cesgranrio | 70 | 67 | -3 | não | oficial |
-| bb-comercial-c-2023 | Banco do Brasil | Escriturário — Agente Comercial | 2023 | Cesgranrio | 70 | 67 | -3 | não | oficial |
-| bb-2021-a | Banco do Brasil | Escriturário — Agente Comercial | 2021 | Cesgranrio | 70 | 68 | -2 | não | oficial |
-| bb-2021-b | Banco do Brasil | Escriturário — Agente Comercial | 2021 | Cesgranrio | 70 | 68 | -2 | não | oficial |
-| bb-2021-c | Banco do Brasil | Escriturário — Agente Comercial | 2021 | Cesgranrio | 70 | 67 | -3 | não | oficial |
-| cebraspe-bnb-ti-2022 | Banco do Nordeste | Especialista Técnico — Analista de Sistemas | 2022 | Cebraspe | 60 | 60 | 0 | **sim** | oficial |
-| fgv-banestes-ti-2021 | Banestes | Analista TI — Desenvolvimento de Sistemas | 2021 | FGV | 60 | 57 | -3 | não | oficial |
+| id                   | órgão             | cargo                                       | ano  | banca      | edital diz | extraídas | divergência | pontuação líquida | fonte (tipo) |
+| -------------------- | ----------------- | ------------------------------------------- | ---- | ---------- | ---------- | --------- | ----------- | ----------------- | ------------ |
+| bb-ti-2023           | Banco do Brasil   | Escriturário — Agente de Tecnologia         | 2023 | Cesgranrio | 70         | 69        | -1          | não               | oficial      |
+| bb-comercial-a-2023  | Banco do Brasil   | Escriturário — Agente Comercial             | 2023 | Cesgranrio | 70         | 67        | -3          | não               | oficial      |
+| bb-comercial-b-2023  | Banco do Brasil   | Escriturário — Agente Comercial             | 2023 | Cesgranrio | 70         | 67        | -3          | não               | oficial      |
+| bb-comercial-c-2023  | Banco do Brasil   | Escriturário — Agente Comercial             | 2023 | Cesgranrio | 70         | 67        | -3          | não               | oficial      |
+| bb-2021-a            | Banco do Brasil   | Escriturário — Agente Comercial             | 2021 | Cesgranrio | 70         | 68        | -2          | não               | oficial      |
+| bb-2021-b            | Banco do Brasil   | Escriturário — Agente Comercial             | 2021 | Cesgranrio | 70         | 68        | -2          | não               | oficial      |
+| bb-2021-c            | Banco do Brasil   | Escriturário — Agente Comercial             | 2021 | Cesgranrio | 70         | 67        | -3          | não               | oficial      |
+| cebraspe-bnb-ti-2022 | Banco do Nordeste | Especialista Técnico — Analista de Sistemas | 2022 | Cebraspe   | 60         | 60        | 0           | **sim**           | oficial      |
+| fgv-banestes-ti-2021 | Banestes          | Analista TI — Desenvolvimento de Sistemas   | 2021 | FGV        | 60         | 57        | -3          | não               | oficial      |
 
 - **Todas as 9 fontes de prova são `oficial`** (sha256 registrado em todas). Há também **1 fonte
   `derivada`** no acervo (não associada a prova — provavelmente ligada a uma `Aula`; não investigado
@@ -60,25 +60,25 @@ Script: `docs/scripts/auditoria_corpus.py` (seção 1 e 2 da saída).
 
 Total: **590 questões**.
 
-| métrica | contagem |
-|---|---|
-| Com enunciado não-vazio | 590 / 590 |
-| Com enunciado vazio | 0 |
-| Tipo `multipla` | 530 |
-| Tipo `certo_errado` | 60 |
-| `multipla` com as 5 alternativas presentes | 530 / 530 |
-| `multipla` com alternativas incompletas (1–4) | 0 |
-| `multipla` sem nenhuma alternativa | 0 |
-| `multipla` com as 5 alternativas presentes mas **todas com texto vazio** (bug de figura, ver `CLAUDE.md` §7.1) | 0 |
-| Com gabarito preenchido | 586 / 590 |
-| Sem gabarito | 4 |
-| — das quais anuladas (esperado) | 4 |
-| — das quais sem gabarito e **não** anuladas (inesperado) | 0 |
-| Com tópico atribuído | 232 / 590 (39%) |
-| Com subtópico atribuído | 56 / 590 (9%) |
-| **Sem tópico atribuído** | **358 / 590 (61%)** |
-| Com `texto_base` preenchido | 89 / 590 |
-| Enunciado cita "o texto acima/a seguir/apresentado" etc. mas `texto_base` vazio (heurística regex) | 1 |
+| métrica                                                                                                        | contagem            |
+| -------------------------------------------------------------------------------------------------------------- | ------------------- |
+| Com enunciado não-vazio                                                                                        | 590 / 590           |
+| Com enunciado vazio                                                                                            | 0                   |
+| Tipo `multipla`                                                                                                | 530                 |
+| Tipo `certo_errado`                                                                                            | 60                  |
+| `multipla` com as 5 alternativas presentes                                                                     | 530 / 530           |
+| `multipla` com alternativas incompletas (1–4)                                                                  | 0                   |
+| `multipla` sem nenhuma alternativa                                                                             | 0                   |
+| `multipla` com as 5 alternativas presentes mas **todas com texto vazio** (bug de figura, ver `CLAUDE.md` §7.1) | 0                   |
+| Com gabarito preenchido                                                                                        | 586 / 590           |
+| Sem gabarito                                                                                                   | 4                   |
+| — das quais anuladas (esperado)                                                                                | 4                   |
+| — das quais sem gabarito e **não** anuladas (inesperado)                                                       | 0                   |
+| Com tópico atribuído                                                                                           | 232 / 590 (39%)     |
+| Com subtópico atribuído                                                                                        | 56 / 590 (9%)       |
+| **Sem tópico atribuído**                                                                                       | **358 / 590 (61%)** |
+| Com `texto_base` preenchido                                                                                    | 89 / 590            |
+| Enunciado cita "o texto acima/a seguir/apresentado" etc. mas `texto_base` vazio (heurística regex)             | 1                   |
 
 Leitura: o bug histórico de alternativas-vazias-por-figura (citado no `CLAUDE.md` §7.1 como motivação
 dos testes do parser) **não aparece nos dados atuais** — 0 questões com as 5 alternativas vazias. As
@@ -103,14 +103,14 @@ recusou:
 
 **28 rodadas de ingestão registradas, 55 descartes no total:**
 
-| motivo | ocorrências |
-|---|---|
-| alternativas ausentes: A, B, C, D, E | 32 |
-| gabarito tem, caderno não | 18 |
-| alternativas ausentes: B | 2 |
-| alternativas sem texto (A, B, C, D) — questão depende de figura | 1 |
-| alternativas sem texto (A, B, C, D, E) — questão depende de figura | 1 |
-| alternativas sem texto (A, B, D) — questão depende de figura | 1 |
+| motivo                                                             | ocorrências |
+| ------------------------------------------------------------------ | ----------- |
+| alternativas ausentes: A, B, C, D, E                               | 32          |
+| gabarito tem, caderno não                                          | 18          |
+| alternativas ausentes: B                                           | 2           |
+| alternativas sem texto (A, B, C, D) — questão depende de figura    | 1           |
+| alternativas sem texto (A, B, C, D, E) — questão depende de figura | 1           |
+| alternativas sem texto (A, B, D) — questão depende de figura       | 1           |
 
 Leitura: a maioria dos descartes (32) é questão cujo caderno de prova não trouxe alternativas para
 extrair (não é falha do parser, é o PDF de origem sem esse conteúdo naquela página — típico de
@@ -142,10 +142,10 @@ real neste corpus.
 
 Dentro dessa mesma amostra de 15, porém, **2 casos mostraram corrupção real e distinta**: fórmulas
 matemáticas com subscrito/sobrescrito perdido na extração —
-`bb-2021-a-q17` (*"determine o termo T 2021 da sequência de Fibonacci, sabendo que T = m e 2018 T =
-p. 2020 p  m"*, provavelmente T₂₀₂₁ / T₂₀₁₈ / T₂₀₂₀ com posição de subscrito embaralhada) e
-`bb-2021-a-q26` (*"aplicar uma nova taxa sobre C , mas sem ultrapassar a taxa anu2 al máxima... sobre
-C ? 2"*, "anual" com um dígito de subscrito solto no meio).
+`bb-2021-a-q17` (_"determine o termo T 2021 da sequência de Fibonacci, sabendo que T = m e 2018 T =
+p. 2020 p m"_, provavelmente T₂₀₂₁ / T₂₀₁₈ / T₂₀₂₀ com posição de subscrito embaralhada) e
+`bb-2021-a-q26` (_"aplicar uma nova taxa sobre C , mas sem ultrapassar a taxa anu2 al máxima... sobre
+C ? 2"_, "anual" com um dígito de subscrito solto no meio).
 
 Buscando esse padrão especificamente (dígito colado a letras, restrito às disciplinas com fórmula —
 `matematica`, `matfinanceira`, `estatistica`, `ti`): **18 questões** com o padrão, sendo a maior parte
@@ -172,18 +172,18 @@ heurística de truncamento), `auditoria_corpus_formula.py` (padrão letra-dígit
 
 **Por disciplina (total no acervo):**
 
-| disciplina | questões | classificadas (tópico) |
-|---|---|---|
-| ti | 131 | 35 |
-| informatica | 90 | 0 |
-| vendas | 90 | 0 |
-| bancarios | 70 | 55 |
-| portugues | 64 | 45 |
-| ingles | 40 | 35 |
-| matematica | 35 | 28 |
-| atualidades | 35 | 30 |
-| matfinanceira | 30 | 0 |
-| estatistica | 5 | 4 |
+| disciplina    | questões | classificadas (tópico) |
+| ------------- | -------- | ---------------------- |
+| ti            | 131      | 35                     |
+| informatica   | 90       | 0                      |
+| vendas        | 90       | 0                      |
+| bancarios     | 70       | 55                     |
+| portugues     | 64       | 45                     |
+| ingles        | 40       | 35                     |
+| matematica    | 35       | 28                     |
+| atualidades   | 35       | 30                     |
+| matfinanceira | 30       | 0                      |
+| estatistica   | 5        | 4                      |
 
 **Por banca:** Cesgranrio → 473 · Cebraspe → 60 · FGV → 57
 
@@ -193,11 +193,11 @@ heurística de truncamento), `auditoria_corpus_formula.py` (padrão letra-dígit
 
 A disciplina `ti` tem 131 questões no acervo, mas **espalhadas em 3 concursos diferentes**:
 
-| prova | questões `ti` | concurso | edital compatível com BB/TI? |
-|---|---|---|---|
-| cebraspe-bnb-ti-2022 | 60 | Banco do Nordeste | **não** — edital Cebraspe (MVC, DevOps, contêineres, TDD), ver `CLAUDE.md` §7.7 |
-| fgv-banestes-ti-2021 | 37 | Banestes | **não** — outro órgão, outro edital |
-| bb-ti-2023 | 34 | Banco do Brasil, Agente de Tecnologia | **sim** — é a prova alvo |
+| prova                | questões `ti` | concurso                              | edital compatível com BB/TI?                                                    |
+| -------------------- | ------------- | ------------------------------------- | ------------------------------------------------------------------------------- |
+| cebraspe-bnb-ti-2022 | 60            | Banco do Nordeste                     | **não** — edital Cebraspe (MVC, DevOps, contêineres, TDD), ver `CLAUDE.md` §7.7 |
+| fgv-banestes-ti-2021 | 37            | Banestes                              | **não** — outro órgão, outro edital                                             |
+| bb-ti-2023           | 34            | Banco do Brasil, Agente de Tecnologia | **sim** — é a prova alvo                                                        |
 
 A **única prova do cargo exato** que este brief tem como escopo (`bb-ti-2023`) contribui **34
 questões de TI** para o acervo de 131 rotuladas `ti` — as outras 97 (74%) são de editais que o

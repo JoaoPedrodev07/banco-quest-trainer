@@ -39,6 +39,30 @@ export interface Backup {
   };
 }
 
+/**
+ * Extrai do estado do store exatamente os campos que compõem o progresso.
+ *
+ * É usado pelo export de arquivo E pela sincronização de conta (ADR-021) — um
+ * único lugar decide o que é "progresso do usuário", para o sync e o backup
+ * nunca divergirem sobre isso.
+ */
+export function progressoDoEstado(s: Backup["progresso"]): Backup["progresso"] {
+  return {
+    concursoAtivoId: s.concursoAtivoId,
+    dataProva: s.dataProva,
+    metaDiaria: s.metaDiaria,
+    editalStatus: s.editalStatus,
+    historico: s.historico,
+    revisoes: s.revisoes,
+    streak: s.streak,
+    cadernos: s.cadernos,
+    tentativasProva: s.tentativasProva,
+    flashcardsSrs: s.flashcardsSrs,
+    cartoesProprios: s.cartoesProprios,
+    anotacoes: s.anotacoes,
+  };
+}
+
 /** O que sai no arquivo. Recebe o estado do store e devolve JSON legível. */
 export function montarBackup(progresso: Backup["progresso"]): string {
   const backup: Backup = {

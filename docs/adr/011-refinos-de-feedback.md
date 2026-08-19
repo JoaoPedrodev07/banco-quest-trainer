@@ -23,8 +23,8 @@ leitura nova sobre dado existente ou campo persistido simples.
 3. **Anatomia do erro** (na Análise): por disciplina com ≥10 erros registrados,
    a divisão dos erros em **convicção errada** (escreveu raciocínio e errou —
    conceito aprendido errado, pede teoria) × **chute errado** (`autoavaliacao ===
-   "chutei"` ou sem raciocínio — lacuna de conteúdo, pede cobertura). Sempre com
-   o `n`. *Não* fazemos análise por distrator (qual alternativa errada atrai):
+"chutei"` ou sem raciocínio — lacuna de conteúdo, pede cobertura). Sempre com
+   o `n`. _Não_ fazemos análise por distrator (qual alternativa errada atrai):
    corpus de um usuário só não tem repetição por questão para isso sustentar
    conclusão — seria o número bonito e falso que o §8 proíbe.
 

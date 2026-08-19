@@ -62,15 +62,18 @@ inteiro (~1,6 MB) baixado por sessão sem cache de borda; header
   GitHub Actions (Django test + eslint + tsc + vitest + build); Sentry opt-in +
   `LOGGING`; Redis para o throttle + `NUM_PROXIES`; fail-closed
   (`DJANGO_DEBUG` default `False`; dev usa `backend/.env`).
-- **Onda 1 — Contas e sync**: auth (allauth ou simplejwt + e-mail), modelos
-  por-usuário espelhando o schema do backup v2, sync do store (o `merge` do
-  zustand vira reconciliação), migração assistida do localStorage → conta no
-  primeiro login.
+- **Onda 1 — Contas e sync** — **✅ executada (ADR-021)**: auth por token DRF
+  (registrar/entrar/sair/eu, throttle de credencial 10/min), progresso como
+  blob por usuário no shape do backup v2 (`contas.ProgressoUsuario`), push
+  automático com debounce + base otimista (409 em conflito, usuário escolhe),
+  pull no login com migração assistida do localStorage, card "Conta e
+  sincronização" em Configurações. Fora por decisão: reset de senha por e-mail
+  (exige SMTP, Onda 3/4).
 - **Onda 2 — Papéis e escrita**: aulas/explicações ganham dono e visibilidade
   (minha × curada/oficial), curadoria vira papel de staff, `/classificacao` sai
   do menu do assinante, rate limit por usuário.
 - **Onda 3 — Cobrança e legal**: gateway (Stripe ou Mercado Pago/Asaas), planos
-  + entitlement, Termos/Privacidade/LGPD (base legal, exclusão de conta,
-  portabilidade — o backup já dá a portabilidade), parecer sobre o acervo.
+  - entitlement, Termos/Privacidade/LGPD (base legal, exclusão de conta,
+    portabilidade — o backup já dá a portabilidade), parecer sobre o acervo.
 - **Onda 4 — Growth**: landing pública, onboarding, analytics (PostHog ou
   Plausible), e-mails transacionais e de ciclo de vida.

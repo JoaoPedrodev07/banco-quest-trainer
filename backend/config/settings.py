@@ -63,7 +63,9 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_filters",
     "rest_framework",
+    "rest_framework.authtoken",
     "catalogo",
+    "contas",
     "ingest",
 ]
 
@@ -127,9 +129,16 @@ STORAGES = {
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
-    # A API de conteúdo é pública e só de leitura nesta fase: o progresso do
-    # usuário continua no localStorage do frontend.
+    # A API de CONTEÚDO continua pública (leitura); os endpoints de conta e
+    # progresso exigem token por view (ADR-021). O aperto global de permissão
+    # do conteúdo é a Onda 2 (papéis).
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
+    # Token primeiro (é o que o frontend usa); sessão fica para o admin e para
+    # a BrowsableAPI em desenvolvimento.
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"]
     + (["rest_framework.renderers.BrowsableAPIRenderer"] if DEBUG else []),
@@ -142,7 +151,11 @@ REST_FRAMEWORK = {
     # Limite de requisições por IP. `AnonRateThrottle` cobre toda a API porque
     # não há usuário autenticado: a API é pública e só de leitura.
     "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle"],
-    "DEFAULT_THROTTLE_RATES": {"anon": os.getenv("API_THROTTLE_ANON", "240/min")},
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": os.getenv("API_THROTTLE_ANON", "240/min"),
+        # Login/registro: força bruta de senha é o ataque barato (ADR-021).
+        "credencial": os.getenv("API_THROTTLE_CREDENCIAL", "10/min"),
+    },
     # 0 = identifica o cliente pelo REMOTE_ADDR, imune a spoof de
     # X-Forwarded-For (o header é do cliente). Atrás de UM proxy (nginx,
     # Cloudflare), configure 1 para o throttle enxergar o IP real (ADR-020).

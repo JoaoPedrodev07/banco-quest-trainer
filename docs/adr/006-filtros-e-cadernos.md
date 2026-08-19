@@ -28,10 +28,11 @@ cadernos: { id: string; nome: string; concursoId: string;
              qtd: number } }[]
 ```
 
-  Botão "Salvar estes filtros como caderno" na config + lista dos cadernos do
-  concurso em foco com "aplicar" e "excluir". O caderno guarda **filtros**, não
-  ids de questão: questão nova importada que casa com o filtro entra sozinha —
-  um caderno de ids congelaria o acervo do dia em que foi criado.
+Botão "Salvar estes filtros como caderno" na config + lista dos cadernos do
+concurso em foco com "aplicar" e "excluir". O caderno guarda **filtros**, não
+ids de questão: questão nova importada que casa com o filtro entra sozinha —
+um caderno de ids congelaria o acervo do dia em que foi criado.
+
 - **Filtro por banca não entra**: o recorte por concurso já fixa a banca (cada
   concurso do catálogo tem uma), então o filtro nasceria morto. Registrado aqui
   para não ser "descoberto" de novo.
