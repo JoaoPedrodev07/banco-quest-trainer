@@ -30,6 +30,15 @@ Organização em 4 camadas, implementadas em ordem — cada ADR vira um commit:
 - [ADR-011](011-refinos-de-feedback.md) — Duas profundidades de explicação, anotação por questão,
   anatomia do erro, evolução temporal e sugestão de checkbox no edital
 
+## Linha IAZAN (extração de `docs/ideias-do-iazan.md`)
+
+- [ADR-012](012-teste-de-terminologia.md) — Teste automatizado de terminologia proibida
+- [ADR-013](013-pesquisa-global.md) — Pesquisa global (client-side, Ctrl+K)
+- [ADR-014](014-reportar-problema-na-questao.md) — Reportar problema na questão + fila de curadoria
+- [ADR-015](015-catalogo-de-concursos-no-backend.md) — Catálogo de concursos servido pelo backend
+- [ADR-016](016-aula-versionada.md) — Aula versionada e versão do prompt registrada
+- [ADR-017](017-direcao-ritmo-travado-retrospectiva.md) — Alerta de ritmo, assunto travado, retrospectiva, ações rápidas
+
 ## Formato
 
 Cada ADR segue: **Status** · **Contexto** · **Decisão** · **Consequências**.
