@@ -3,9 +3,10 @@
 App de estudos para o concurso do **Banco do Brasil · Agente de Tecnologia**, banca **Cesgranrio**.
 Organiza o edital, monta simulados, agenda revisões espaçadas e acompanha o progresso até a prova.
 
-> **Protótipo de frontend.** Não há backend: o conteúdo é **amostra mockada** (30 questões, 6
-> disciplinas) e o progresso fica no **localStorage** do navegador. Limpar os dados do navegador apaga
-> o progresso, e não há sincronia entre dispositivos.
+> **Frontend + backend Django.** O conteúdo (edital, provas, 600+ questões de PDFs oficiais com
+> sha256) vem da API em `backend/`; sem ela, o app cai em 30 questões de exemplo e avisa. O
+> **progresso do usuário** fica no **localStorage** (sem login nem sincronia entre dispositivos —
+> exporte o backup em Configurações).
 
 ## Funcionalidades
 
@@ -18,14 +19,34 @@ Organiza o edital, monta simulados, agenda revisões espaçadas e acompanha o pr
 | **Revisões** (`/revisoes`) | fila de revisão espaçada (1 → 7 → 15 → 30 dias) |
 | **Configurações** (`/config`) | data da prova, meta diária, tema, reset do progresso |
 
-## Como rodar
+## Como rodar (desenvolvimento)
+
+São dois processos. O backend é **fail-closed** (ADR-020): antes da primeira vez, crie o `.env`.
 
 ```bash
+# backend (uma vez): copie o exemplo e instale
+cp backend/.env.example backend/.env        # já vem com DJANGO_DEBUG=true
+cd backend && python -m venv .venv && .venv/Scripts/pip install -r requirements-dev.txt
+.venv/Scripts/python.exe manage.py migrate && .venv/Scripts/python.exe manage.py runserver 8000
+
+# frontend (outro terminal)
 npm install
 npm run dev        # http://localhost:8080
 ```
 
-Outros comandos: `npm run build` (produção) · `npm run preview` · `npm run lint` · `npm run format`.
+Outros comandos: `npm run build` · `npm run preview` · `npm run lint` · `npm run format` ·
+`npm test` · `cd backend && .venv/Scripts/python.exe manage.py test`.
+
+## Deploy / produção
+
+- **API completa num comando**: `docker compose up --build` (web + Postgres + Redis).
+  Exige `DJANGO_SECRET_KEY` no ambiente; todas as variáveis estão documentadas em
+  [`backend/.env.example`](./backend/.env.example).
+- **Frontend**: build nitro com alvo Cloudflare (`npm run build` → `npx wrangler deploy`).
+  **Defina `VITE_API_URL` no build** — sem ela o site publicado cai silenciosamente nos mocks
+  (ver [`.env.example`](./.env.example)).
+- **CI**: GitHub Actions roda testes, lint, tipos e build em todo push (`.github/workflows/ci.yml`).
+- Observabilidade opt-in: `SENTRY_DSN` liga o Sentry no backend.
 
 > O repositório traz `bun.lock` (veio do Lovable), mas **npm funciona normalmente** — é um projeto Vite
 > padrão. Só não misture os dois gerenciadores no mesmo clone.

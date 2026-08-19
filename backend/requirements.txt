@@ -6,8 +6,10 @@ dj-database-url==2.3.0
 python-dotenv==1.1.0
 requests==2.32.4
 pdfplumber==0.11.7
-# Só o comando `gerar_aulas` usa. O app em execução não chama LLM nenhum
-# (CLAUDE.md §7.6): a geração roda offline, na máquina do mantenedor.
-anthropic==0.121.0
 gunicorn==23.0.0
 whitenoise==6.9.0
+# Produção (ADR-020): driver Postgres, cache/throttle distribuído e telemetria
+# de erro. Redis e Sentry só ativam se REDIS_URL/SENTRY_DSN existirem.
+psycopg[binary]==3.3.4
+redis==8.1.0
+sentry-sdk==2.68.0

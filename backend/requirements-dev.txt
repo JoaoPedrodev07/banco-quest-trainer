@@ -1,0 +1,5 @@
+# Dependências que só o mantenedor usa, fora do deploy (ADR-020).
+-r requirements.txt
+# Só o comando offline `gerar_aulas` usa. O app em execução não chama LLM
+# nenhum (CLAUDE.md §7.6): a geração roda na máquina do mantenedor.
+anthropic==0.121.0

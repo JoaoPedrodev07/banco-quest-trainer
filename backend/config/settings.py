@@ -31,7 +31,11 @@ def env_list(nome: str, padrao: list[str]) -> list[str]:
     return [item.strip() for item in valor.split(",") if item.strip()]
 
 
-DEBUG = env_bool("DJANGO_DEBUG", True)
+# FAIL-CLOSED (ADR-020): o padrão é produção. Desenvolvimento liga DEBUG
+# explicitamente no backend/.env (copie o backend/.env.example). Antes o padrão
+# era True, e um deploy com env incompleta subia com DEBUG ligado, CORS de
+# loopback e nenhum header de segurança — sem nada acusar.
+DEBUG = env_bool("DJANGO_DEBUG", False)
 
 # A chave assina sessão, cookie e token de recuperação de senha. O fallback de
 # desenvolvimento **não pode** valer em produção: o valor está no repositório,
@@ -139,6 +143,46 @@ REST_FRAMEWORK = {
     # não há usuário autenticado: a API é pública e só de leitura.
     "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle"],
     "DEFAULT_THROTTLE_RATES": {"anon": os.getenv("API_THROTTLE_ANON", "240/min")},
+    # 0 = identifica o cliente pelo REMOTE_ADDR, imune a spoof de
+    # X-Forwarded-For (o header é do cliente). Atrás de UM proxy (nginx,
+    # Cloudflare), configure 1 para o throttle enxergar o IP real (ADR-020).
+    "NUM_PROXIES": int(os.getenv("DJANGO_NUM_PROXIES", "0")),
+}
+
+# Com Redis, o rate limit conta entre workers do gunicorn e sobrevive a restart.
+# Sem ele (desenvolvimento), o LocMemCache padrão do Django segue valendo —
+# contador por processo, suficiente para uma máquina só (ADR-020).
+REDIS_URL = os.getenv("REDIS_URL", "")
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+        }
+    }
+
+# Observabilidade (ADR-020): sem SENTRY_DSN nada é importado nem enviado —
+# custo zero em desenvolvimento. Com ele, exceção não tratada chega ao Sentry
+# em vez de morrer num terminal que ninguém está olhando.
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+if SENTRY_DSN:
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        # PII desligado: raciocínios e anotações de estudo são dado pessoal.
+        send_default_pii=False,
+        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0")),
+    )
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "padrao": {"format": "{levelname} {asctime} {name} {message}", "style": "{"},
+    },
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "padrao"}},
+    "root": {"handlers": ["console"], "level": os.getenv("DJANGO_LOG_LEVEL", "INFO")},
 }
 
 # Cabeçalhos e cookies de produção. Ficam sob `not DEBUG` porque HSTS e

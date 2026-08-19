@@ -56,10 +56,12 @@ inteiro (~1,6 MB) baixado por sessão sem cache de borda; header
 
 ## Rota sugerida (4 ondas, cada uma entregável sozinha)
 
-- **Onda 0 — Fundação** (pré-requisito de tudo): `.env.example` + README de
-  deploy; `psycopg` + Postgres; Dockerfile/compose; CI (GitHub Actions rodando
-  os 122 testes + lint); Sentry + `LOGGING`; `CACHES` Redis para o throttle;
-  fail-closed (`DJANGO_DEBUG` default `False`).
+- **Onda 0 — Fundação** — **✅ executada (ADR-020)**: `.env.example` dos dois
+  lados + README de deploy; `psycopg` (Postgres via `DATABASE_URL`);
+  `backend/Dockerfile` + `docker-compose.yml` (web+Postgres+Redis); CI no
+  GitHub Actions (Django test + eslint + tsc + vitest + build); Sentry opt-in +
+  `LOGGING`; Redis para o throttle + `NUM_PROXIES`; fail-closed
+  (`DJANGO_DEBUG` default `False`; dev usa `backend/.env`).
 - **Onda 1 — Contas e sync**: auth (allauth ou simplejwt + e-mail), modelos
   por-usuário espelhando o schema do backup v2, sync do store (o `merge` do
   zustand vira reconciliação), migração assistida do localStorage → conta no
