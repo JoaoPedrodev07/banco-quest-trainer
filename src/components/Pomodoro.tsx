@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import { Coffee, Pause, Play, RotateCcw, Timer } from "lucide-react";
 import { toast } from "sonner";
 
-import { DURACAO_POMODORO, useStore } from "@/store/useStore";
+import { useStore } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +33,8 @@ export function Pomodoro() {
   const [aberto, setAberto] = useState(false);
   const [agora, setAgora] = useState(() => Date.now());
 
-  const duracao = DURACAO_POMODORO[pomodoro.fase];
+  // Durações do usuário (Configurações); estado antigo hidrata com 25/5.
+  const duracao = (pomodoro.fase === "foco" ? pomodoro.focoMin : pomodoro.pausaMin) * 60;
   // O que já foi cumprido antes da pausa mais o que corre agora. Pausar guarda o
   // acumulado, então retomar continua de onde parou em vez de recomeçar.
   const correndo = pomodoro.iniciadoEm

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useStore } from "@/store/useStore";
+import { POMODORO_LIMITES, useStore } from "@/store/useStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +32,17 @@ export const Route = createFileRoute("/config")({
 });
 
 function ConfigPage() {
-  const { dataProva, setDataProva, metaDiaria, setMeta, darkMode, toggleDark, reset } = useStore();
+  const {
+    dataProva,
+    setDataProva,
+    metaDiaria,
+    setMeta,
+    darkMode,
+    toggleDark,
+    reset,
+    pomodoro,
+    configurarPomodoro,
+  } = useStore();
   const dataInput = dataProva.slice(0, 10);
 
   return (
@@ -64,6 +74,40 @@ function ConfigPage() {
               onChange={(e) => setMeta(Math.max(1, Number(e.target.value) || 1))}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Pomodoro</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Foco (minutos)</Label>
+              <Input
+                type="number"
+                min={POMODORO_LIMITES.foco.min}
+                max={POMODORO_LIMITES.foco.max}
+                value={pomodoro.focoMin}
+                onChange={(e) => configurarPomodoro(Number(e.target.value), pomodoro.pausaMin)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Pausa (minutos)</Label>
+              <Input
+                type="number"
+                min={POMODORO_LIMITES.pausa.min}
+                max={POMODORO_LIMITES.pausa.max}
+                value={pomodoro.pausaMin}
+                onChange={(e) => configurarPomodoro(pomodoro.focoMin, Number(e.target.value))}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            25/5 é o padrão da técnica. Se mudar com o relógio correndo, a fase atual passa a valer
+            a duração nova na hora.
+          </p>
         </CardContent>
       </Card>
 

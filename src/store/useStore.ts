@@ -47,9 +47,20 @@ export interface Pomodoro {
   /** Ciclos de foco concluídos, e em que dia — para zerar sozinho na virada. */
   ciclosConcluidos: number;
   diaDosCiclos: string | null;
+  /**
+   * Durações configuráveis, em minutos. Eram fixas em 25/5; viraram preferência
+   * porque ritmo de foco é pessoal — 25 min é o padrão da técnica, não uma lei.
+   */
+  focoMin: number;
+  pausaMin: number;
 }
 
+/** Padrões da técnica clássica; o usuário ajusta em Configurações. */
 export const DURACAO_POMODORO = { foco: 25 * 60, pausa: 5 * 60 } as const;
+export const POMODORO_LIMITES = {
+  foco: { min: 5, max: 120 },
+  pausa: { min: 1, max: 60 },
+} as const;
 
 /**
  * A sessão de simulado em andamento (ADR-005).
@@ -185,6 +196,8 @@ interface StoreState {
 
   definirConcursoAtivo: (id: string) => void;
   iniciarPomodoro: (fase: "foco" | "pausa") => void;
+  /** Ajusta as durações (minutos), com teto e piso — 0 min de foco não é foco. */
+  configurarPomodoro: (focoMin: number, pausaMin: number) => void;
   pararPomodoro: () => void;
   alternarFasePomodoro: () => void;
   concluirFasePomodoro: () => void;
@@ -299,6 +312,8 @@ export const useStore = create<StoreState>()(
         acumuladoSegundos: 0,
         ciclosConcluidos: 0,
         diaDosCiclos: null,
+        focoMin: 25,
+        pausaMin: 5,
       },
       editalStatus: {},
       historico: [],
@@ -314,6 +329,21 @@ export const useStore = create<StoreState>()(
       anotacoes: {},
 
       definirConcursoAtivo: (id) => set({ concursoAtivoId: id }),
+
+      configurarPomodoro: (focoMin, pausaMin) =>
+        set((s) => ({
+          pomodoro: {
+            ...s.pomodoro,
+            focoMin: Math.min(
+              POMODORO_LIMITES.foco.max,
+              Math.max(POMODORO_LIMITES.foco.min, Math.round(focoMin) || 25),
+            ),
+            pausaMin: Math.min(
+              POMODORO_LIMITES.pausa.max,
+              Math.max(POMODORO_LIMITES.pausa.min, Math.round(pausaMin) || 5),
+            ),
+          },
+        })),
 
       iniciarPomodoro: (fase) =>
         set((s) => ({
@@ -360,6 +390,8 @@ export const useStore = create<StoreState>()(
           const foiFoco = s.pomodoro.fase === "foco";
           return {
             pomodoro: {
+              // Preserva as durações configuradas (e o que mais vier a existir).
+              ...s.pomodoro,
               // Alterna sozinho, mas não inicia a próxima fase: quem decide
               // quando a pausa começa é o usuário, não o relógio.
               fase: foiFoco ? "pausa" : "foco",
