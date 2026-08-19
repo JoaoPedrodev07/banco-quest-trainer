@@ -1,10 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
+  INTERVALO_INICIAL,
   adiarRevisao as adiarNaLista,
   agendarOuRegredir,
   avancarRevisao,
+  dataAposDias,
+  proximoIntervalo,
   semRevisoesDeDemonstracao,
+  type Intervalo,
 } from "@/lib/revisao";
 import type { RespostaHistorico, RevisaoItem, StatusTopico } from "@/types";
 
@@ -123,6 +127,31 @@ export interface TentativaProva {
   tempoSegundos: number;
 }
 
+/**
+ * Flashcard criado pelo usuário (ADR-010): frente/verso próprios, para lei seca
+ * e definições que questão de prova não cobre bem.
+ *
+ * NÃO alimenta o `historico`: não é questão do acervo, e contá-lo como resposta
+ * inflaria as estatísticas de questão. O julgamento dele só move o SRS.
+ */
+export interface CartaoProprio {
+  id: string;
+  frente: string;
+  verso: string;
+  disciplinaId: string;
+  concursoId: string;
+}
+
+/**
+ * Agenda de repetição espaçada de um cartão (ADR-010). A mesma escada
+ * 1→7→15→30 das revisões, de propósito: duas curvas de esquecimento no mesmo
+ * app seria pretensão de precisão que não temos.
+ */
+export interface SrsDoCartao {
+  intervalo: Intervalo;
+  proxima: string; // ISO
+}
+
 interface StoreState {
   dataProva: string; // ISO
   metaDiaria: number;
@@ -136,6 +165,9 @@ interface StoreState {
   simuladoAtual: SimuladoAtual | null;
   cadernos: CadernoSalvo[];
   tentativasProva: TentativaProva[];
+  /** cartaoId (id de questão ou de cartão próprio) -> agenda. */
+  flashcardsSrs: Record<string, SrsDoCartao>;
+  cartoesProprios: CartaoProprio[];
 
   definirConcursoAtivo: (id: string) => void;
   iniciarPomodoro: (fase: "foco" | "pausa") => void;
@@ -189,6 +221,10 @@ interface StoreState {
   removerCaderno: (id: string) => void;
   /** Grava a fotografia de uma prova entregue. Sessão abandonada nunca chega aqui. */
   registrarTentativaProva: (t: TentativaProva) => void;
+  /** "Lembrei" avança a escada do cartão; "não lembrei" regride para 1 dia. */
+  julgarFlashcard: (cartaoId: string, lembrou: boolean) => void;
+  criarCartao: (c: CartaoProprio) => void;
+  removerCartao: (id: string) => void;
   /**
    * Substitui o progresso pelo de um backup.
    *
@@ -244,6 +280,8 @@ export const useStore = create<StoreState>()(
       simuladoAtual: null,
       cadernos: [],
       tentativasProva: [],
+      flashcardsSrs: {},
+      cartoesProprios: [],
 
       definirConcursoAtivo: (id) => set({ concursoAtivoId: id }),
 
@@ -381,6 +419,33 @@ export const useStore = create<StoreState>()(
 
       registrarTentativaProva: (t) =>
         set((s) => ({ tentativasProva: [...s.tentativasProva, t] })),
+
+      julgarFlashcard: (cartaoId, lembrou) =>
+        set((s) => {
+          const atual = s.flashcardsSrs[cartaoId];
+          // Lembrar avança a partir de onde estava; não lembrar volta ao começo
+          // — a mesma regra de regressão das revisões (ADR-003).
+          const intervalo = lembrou
+            ? proximoIntervalo(atual?.intervalo ?? INTERVALO_INICIAL)
+            : INTERVALO_INICIAL;
+          return {
+            flashcardsSrs: {
+              ...s.flashcardsSrs,
+              [cartaoId]: { intervalo, proxima: dataAposDias(intervalo, new Date()) },
+            },
+          };
+        }),
+      criarCartao: (c) => set((s) => ({ cartoesProprios: [...s.cartoesProprios, c] })),
+      removerCartao: (id) =>
+        set((s) => {
+          // Limpa também a agenda: SRS órfão seria tolerado na leitura (§2.4),
+          // mas não há motivo para deixar lixo de propósito.
+          const { [id]: _removida, ...restante } = s.flashcardsSrs;
+          return {
+            cartoesProprios: s.cartoesProprios.filter((c) => c.id !== id),
+            flashcardsSrs: restante,
+          };
+        }),
       aplicarBackup: (progresso) => set({ ...progresso }),
 
       reset: () =>
@@ -392,6 +457,8 @@ export const useStore = create<StoreState>()(
           simuladoAtual: null,
           cadernos: [],
           tentativasProva: [],
+          flashcardsSrs: {},
+          cartoesProprios: [],
         }),
     }),
     {
