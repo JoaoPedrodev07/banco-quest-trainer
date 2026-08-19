@@ -2,8 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, CheckCircle2, ExternalLink, FileText, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
-import { concursoPorId } from "@/data/concursos";
-import { useProvas } from "@/services/hooks";
+import { useConcurso, useProvas } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
 import { STATUS_CONCURSO, formatarSalario } from "@/lib/concurso";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +22,7 @@ export const Route = createFileRoute("/concursos/$concursoId")({
 function ConcursoDetalhe() {
   const { concursoId } = Route.useParams();
   const navigate = useNavigate();
-  const concurso = concursoPorId(concursoId);
+  const concurso = useConcurso(concursoId);
   const { provas, carregando } = useProvas();
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
   const definirConcursoAtivo = useStore((s) => s.definirConcursoAtivo);

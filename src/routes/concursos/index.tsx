@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Building2, CheckCircle2, Search, TriangleAlert } from "lucide-react";
 
-import { concursos } from "@/data/concursos";
+import { useConcursos } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
 import {
   FAIXAS_SALARIAIS,
@@ -39,6 +39,8 @@ function ConcursosPage() {
   const [status, setStatus] = useState("todos");
   const [faixa, setFaixa] = useState("todas");
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
+  // Catálogo do backend (ADR-015) — editável no admin; mock estático é a reserva.
+  const { concursos } = useConcursos();
 
   const filtrados = useMemo(
     () =>
@@ -48,7 +50,7 @@ function ConcursosPage() {
           (status === "todos" || c.status === status) &&
           dentroDaFaixa(c, faixa),
       ),
-    [busca, status, faixa],
+    [concursos, busca, status, faixa],
   );
 
   const naoConfirmados = filtrados.filter((c) => !c.fonte.eOficial).length;

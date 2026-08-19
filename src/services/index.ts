@@ -13,6 +13,7 @@
  */
 
 import { CONCURSO_PADRAO } from "@/store/useStore";
+import { concursos as concursosMock } from "@/data/concursos";
 import { disciplinas as disciplinasMock } from "@/data/disciplinas";
 import { provas as provasMock } from "@/data/provas";
 import { questoes as questoesMock } from "@/data/questoes";
@@ -20,6 +21,7 @@ import type {
   Acervo,
   Aula,
   ClassificacaoRevisao,
+  Concurso,
   Disciplina,
   ProblemaQuestao,
   Prova,
@@ -181,6 +183,9 @@ export const api = {
       concursoId,
     ),
   listQuestoes: () => comReservaLista<Questao>("/questoes/", questoesMock),
+  // Catálogo de concursos (ADR-015): vem do backend, editável no Django Admin.
+  // O catálogo hardcoded de `src/data/concursos.ts` virou a reserva de mock.
+  listConcursos: () => comReservaLista<Concurso>("/concursos/", concursosMock),
   listProvas: async () =>
     comConcurso(await comReservaLista<Prova>("/provas/", provasMock), CONCURSO_PADRAO),
 
@@ -246,6 +251,7 @@ export const api = {
  * invalidar cache não dependa de duas telas terem digitado a mesma string.
  */
 export const chaves = {
+  concursos: ["concursos"] as const,
   disciplinas: ["disciplinas"] as const,
   questoes: ["questoes"] as const,
   provas: ["provas"] as const,

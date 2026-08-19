@@ -18,6 +18,7 @@ from rest_framework.response import Response
 from .models import (
     Aula,
     ClassificacaoQuestao,
+    Concurso,
     Disciplina,
     ProblemaQuestao,
     Prova,
@@ -27,6 +28,7 @@ from .models import (
 from .serializers import (
     AulaSerializer,
     ClassificacaoQuestaoSerializer,
+    ConcursoSerializer,
     DisciplinaSerializer,
     ProblemaQuestaoSerializer,
     ProvaSerializer,
@@ -74,6 +76,18 @@ class DisciplinaViewSet(viewsets.ReadOnlyModelViewSet):
         .prefetch_related("topicos__subtopicos")
         .all()
     )
+
+
+class ConcursoViewSet(viewsets.ReadOnlyModelViewSet):
+    """Catálogo de concursos (ADR-015) — o que era hardcoded no frontend.
+
+    Editar concurso agora é Django Admin, sem deploy. A ordem vem do campo
+    `ordem` (concurso-alvo primeiro, treinos por último), a mesma do catálogo
+    antigo.
+    """
+
+    serializer_class = ConcursoSerializer
+    queryset = Concurso.objects.select_related("banca", "fonte").prefetch_related("provas").all()
 
 
 class QuestaoFilter(filters.FilterSet):

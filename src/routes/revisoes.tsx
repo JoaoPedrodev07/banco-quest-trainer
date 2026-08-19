@@ -24,7 +24,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-import { concursoPorId } from "@/data/concursos";
 import { useAcervoDoConcurso } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
 import { SEQUENCIA_TRAVADO, assuntosTravados, desempenhoPorUnidade } from "@/lib/desempenho";
@@ -49,8 +48,7 @@ export const Route = createFileRoute("/revisoes")({
 function RevisoesPage() {
   const { revisoes, marcarRevisada, adiarRevisao, removerRevisao, concursoAtivoId, historico } =
     useStore();
-  const { disciplinas, questoes } = useAcervoDoConcurso(concursoAtivoId);
-  const concurso = concursoPorId(concursoAtivoId);
+  const { concurso, disciplinas, questoes } = useAcervoDoConcurso(concursoAtivoId);
   const [aberta, setAberta] = useState<string | null>(null);
 
   const doConcurso = revisoes.filter((r) => r.concursoId === concursoAtivoId);

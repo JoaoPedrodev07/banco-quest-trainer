@@ -14,6 +14,7 @@ router.register(
     basename="classificacao-fila-revisao",
 )
 router.register("problemas", views.ProblemaQuestaoViewSet, basename="problema")
+router.register("concursos", views.ConcursoViewSet, basename="concurso")
 
 urlpatterns = [
     path("meta/", views.meta, name="meta"),

@@ -19,6 +19,7 @@ import { disciplinasDoCargo } from "@/lib/incidencia";
 import type {
   Aula,
   ClassificacaoRevisao,
+  Concurso,
   Disciplina,
   ProblemaQuestao,
   Prova,
@@ -26,11 +27,31 @@ import type {
   TipoProblema,
 } from "@/types";
 
+const SEM_CONCURSOS: Concurso[] = [];
 const SEM_DISCIPLINAS: Disciplina[] = [];
 const SEM_QUESTOES: Questao[] = [];
 const SEM_PROVAS: Prova[] = [];
 const SEM_FILA_REVISAO: ClassificacaoRevisao[] = [];
 const SEM_PROBLEMAS: ProblemaQuestao[] = [];
+
+/**
+ * Catálogo de concursos (ADR-015): agora vem do backend (editável no Django
+ * Admin, sem deploy); o hardcoded de `src/data/concursos.ts` é a reserva de
+ * mock quando o servidor não responde.
+ */
+export function useConcursos() {
+  const consulta = useQuery({ queryKey: chaves.concursos, queryFn: api.listConcursos });
+  return { concursos: consulta.data ?? SEM_CONCURSOS, carregando: consulta.isPending };
+}
+
+/**
+ * Um concurso do catálogo. Enquanto a query resolve, cai no catálogo estático
+ * — senão toda tela piscaria "Escolha um concurso" a cada carga.
+ */
+export function useConcurso(concursoId: string): Concurso | undefined {
+  const { concursos } = useConcursos();
+  return concursos.find((c) => c.id === concursoId) ?? concursoPorId(concursoId);
+}
 
 export function useDisciplinas(concursoId?: string) {
   const consulta = useQuery({
@@ -167,9 +188,10 @@ export function useAcervoDoConcurso(concursoId: string) {
   const { disciplinas, carregando: cd } = useDisciplinas(concursoId);
   const { questoes, carregando: cq } = useQuestoes();
   const { provas, carregando: cp } = useProvas();
+  // O concurso vem do catálogo do backend (ADR-015), com fallback no estático.
+  const concurso = useConcurso(concursoId);
 
   return useMemo(() => {
-    const concurso = concursoPorId(concursoId);
     const idsDeProva = new Set(concurso?.provaIds ?? []);
 
     const provasDoConcurso = provas.filter((p) => idsDeProva.has(p.id));
@@ -204,5 +226,5 @@ export function useAcervoDoConcurso(concursoId: string) {
       carregando: cd || cq || cp,
       vazio: !cd && !cq && !cp && questoesDoCargo.length === 0,
     };
-  }, [concursoId, disciplinas, questoes, provas, cd, cq, cp]);
+  }, [concurso, disciplinas, questoes, provas, cd, cq, cp]);
 }

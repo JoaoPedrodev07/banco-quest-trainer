@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 import { useStore } from "@/store/useStore";
-import { concursoPorId } from "@/data/concursos";
+import { useConcurso } from "@/services/hooks";
 import { BuscaGlobal } from "@/components/BuscaGlobal";
 import { Pomodoro } from "@/components/Pomodoro";
 import { cn } from "@/lib/utils";
@@ -37,7 +37,7 @@ const navItems = [
 export function AppLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const darkMode = useStore((s) => s.darkMode);
-  const concursoAtivo = concursoPorId(useStore((s) => s.concursoAtivoId));
+  const concursoAtivo = useConcurso(useStore((s) => s.concursoAtivoId));
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);

@@ -4,7 +4,6 @@ import { CalendarDays, Layers, Timer, Youtube } from "lucide-react";
 
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { SemAcervo } from "@/components/SemAcervo";
-import { concursoPorId } from "@/data/concursos";
 import { useAcervoDoConcurso } from "@/services/hooks";
 import { useStore, CONCURSO_PADRAO } from "@/store/useStore";
 import { montarPlano } from "@/lib/planoEstudos";
@@ -32,8 +31,8 @@ export const Route = createFileRoute("/plano")({
 
 function PlanoPage() {
   const { concursoAtivoId, historico, revisoes, editalStatus, dataProva } = useStore();
-  const concurso = concursoPorId(concursoAtivoId);
-  const { disciplinas, questoes, provas, vazio, carregando } = useAcervoDoConcurso(concursoAtivoId);
+  const { concurso, disciplinas, questoes, provas, vazio, carregando } =
+    useAcervoDoConcurso(concursoAtivoId);
 
   // As provas de outro cargo do mesmo concurso entram no acervo pelos
   // Conhecimentos Básicos, e trazem junto as disciplinas exclusivas delas

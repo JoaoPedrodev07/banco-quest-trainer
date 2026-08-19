@@ -20,8 +20,7 @@ import { BookOpen, FileText, ListChecks, Search, Trophy } from "lucide-react";
 import { AnotacaoDaQuestao } from "@/components/AnotacaoDaQuestao";
 import { GabaritoComentado } from "@/components/GabaritoComentado";
 import { TextoDaQuestao } from "@/components/Markdown";
-import { concursos } from "@/data/concursos";
-import { useAcervoDoConcurso } from "@/services/hooks";
+import { useAcervoDoConcurso, useConcursos } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -63,6 +62,7 @@ export function BuscaGlobal() {
   const navigate = useNavigate();
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
   const { disciplinas, questoes, provas } = useAcervoDoConcurso(concursoAtivoId);
+  const { concursos } = useConcursos();
 
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {

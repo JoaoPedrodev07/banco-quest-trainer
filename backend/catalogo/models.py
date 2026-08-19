@@ -54,6 +54,11 @@ class Fonte(models.Model):
     slug = models.SlugField(primary_key=True, max_length=120, validators=[slug_validator])
     tipo = models.CharField(max_length=10, choices=Tipo.choices)
     titulo = models.CharField(max_length=300)
+    # Rótulo curto que a tela exibe ("Imprensa — a confirmar", "Concurso
+    # encerrado — treino de formato"). Vazio = a tela usa o nome do tipo. Veio
+    # com o catálogo de concursos (ADR-015): o rótulo do frontend carregava
+    # nuance que `get_tipo_display` não tem.
+    rotulo = models.CharField(max_length=120, blank=True)
     url = models.URLField(max_length=500, blank=True, help_text="Endereço do documento de origem.")
     # sha256 do arquivo baixado: prova que o que está no banco veio daquele PDF,
     # e detecta quando a banca republica o documento com outro conteúdo.
@@ -140,11 +145,20 @@ class Concurso(models.Model):
     data_prova = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=24, choices=StatusConcurso.choices)
     fonte = models.ForeignKey(Fonte, on_delete=models.PROTECT, related_name="concursos")
+    # Campos de calendário (ADR-015) — o que o catálogo hardcoded do frontend
+    # guardava. Anuláveis de propósito: concurso previsto não tem esses números
+    # fechados, e preencher com palpite é o que o §2.2 proíbe.
+    salario_valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    salario_observacao = models.CharField(max_length=300, blank=True)
+    vagas = models.PositiveIntegerField(null=True, blank=True)
+    edital_url = models.URLField(max_length=500, blank=True)
+    # Ordem de exibição no catálogo: o concurso-alvo primeiro, treinos por último.
+    ordem = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         verbose_name = "concurso"
         verbose_name_plural = "concursos"
-        ordering = ["-data_prova", "nome"]
+        ordering = ["ordem", "nome"]
 
     def __str__(self) -> str:
         return self.nome

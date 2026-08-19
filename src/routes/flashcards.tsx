@@ -5,7 +5,6 @@ import { toast } from "sonner";
 
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { Markdown, AvisoGerado, TextoDaQuestao } from "@/components/Markdown";
-import { concursoPorId } from "@/data/concursos";
 import { useAcervoDoConcurso } from "@/services/hooks";
 import { SemAcervo } from "@/components/SemAcervo";
 import { useStore, type CartaoProprio } from "@/store/useStore";
@@ -75,7 +74,7 @@ type Cartao =
 
 function FlashcardsPage() {
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
-  const concurso = concursoPorId(concursoAtivoId);
+  // O concurso sai do mesmo hook do acervo (ADR-015), mais abaixo.
   const registrarResposta = useStore((s) => s.registrarResposta);
   const agendarRevisaoPorErro = useStore((s) => s.agendarRevisaoPorErro);
   const flashcardsSrs = useStore((s) => s.flashcardsSrs);
@@ -83,7 +82,8 @@ function FlashcardsPage() {
   const cartoesProprios = useStore((s) => s.cartoesProprios);
   const criarCartao = useStore((s) => s.criarCartao);
   const removerCartao = useStore((s) => s.removerCartao);
-  const { disciplinas, questoes, provas, vazio } = useAcervoDoConcurso(concursoAtivoId);
+  const { concurso, disciplinas, questoes, provas, vazio } =
+    useAcervoDoConcurso(concursoAtivoId);
 
   const [disciplinaId, setDisciplinaId] = useState("todas");
   const [baralho, setBaralho] = useState<Cartao[]>([]);

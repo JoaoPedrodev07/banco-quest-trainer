@@ -443,3 +443,41 @@ class ProblemaQuestaoTest(TestCase):
         fila = self.client.get("/api/problemas/").json()
         itens = fila["results"] if isinstance(fila, dict) else fila
         self.assertEqual(itens, [])
+
+
+class CatalogoDeConcursosTest(TestCase):
+    """ADR-015: o catálogo hardcoded do frontend agora vem do backend."""
+
+    def test_seed_idempotente_e_endpoint_no_shape_do_frontend(self):
+        call_command("seed_concursos")
+        call_command("seed_concursos")  # rodar duas vezes não duplica
+
+        resposta = self.client.get("/api/concursos/").json()
+        itens = resposta["results"] if isinstance(resposta, dict) else resposta
+        self.assertEqual(len(itens), 7)
+        # A ordem do catálogo se preserva: o concurso-alvo primeiro.
+        self.assertEqual(itens[0]["id"], "bb-ti-2026")
+
+        bb = itens[0]
+        # Banca em disputa fica nula — cravar Cesgranrio seria o erro do §2.2.
+        self.assertIsNone(bb["banca"])
+        self.assertEqual(bb["status"], "previsto")
+        self.assertEqual(bb["salario"]["valor"], 6286.78)
+        self.assertEqual(bb["fonte"]["rotulo"], "Imprensa — a confirmar")
+
+        caixa = next(i for i in itens if i["id"] == "cesgranrio-caixa-2024")
+        self.assertEqual(caixa["banca"], "Cesgranrio")
+        # `ehTreinoDeFormato` no frontend testa este slug — mudar quebra o aviso.
+        self.assertEqual(caixa["fonte"]["slug"], "treino-de-formato")
+
+    def test_seed_vincula_provas_existentes(self):
+        fonte = Fonte.objects.create(slug="fonte-teste-cat", tipo=Fonte.Tipo.OFICIAL, titulo="T")
+        Prova.objects.create(
+            id="bb-ti-2023", ano=2023, banca="Cesgranrio", cargo="TI", orgao="BB",
+            qtd_questoes=70, fonte=fonte,
+        )
+        call_command("seed_concursos")
+        resposta = self.client.get("/api/concursos/").json()
+        itens = resposta["results"] if isinstance(resposta, dict) else resposta
+        bb = next(i for i in itens if i["id"] == "bb-ti-2026")
+        self.assertIn("bb-ti-2023", bb["provaIds"])

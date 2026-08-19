@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Info, TriangleAlert } from "lucide-react";
 
 import { AvisoAcervo } from "@/components/AvisoAcervo";
-import { concursoPorId } from "@/data/concursos";
 import { useAcervoDoConcurso } from "@/services/hooks";
 import { SemAcervo } from "@/components/SemAcervo";
 import { AnaliseAvancada } from "@/components/AnaliseAvancada";
@@ -30,8 +29,8 @@ export const Route = createFileRoute("/analise")({
 
 function AnalisePage() {
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
-  const concurso = concursoPorId(concursoAtivoId);
-  const { disciplinas, questoes, provas, carregando, vazio } = useAcervoDoConcurso(concursoAtivoId);
+  const { concurso, disciplinas, questoes, provas, carregando, vazio } =
+    useAcervoDoConcurso(concursoAtivoId);
   const historico = useStore((s) => s.historico);
   const [abertas, setAbertas] = useState<Record<string, boolean>>({});
 

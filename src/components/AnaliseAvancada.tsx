@@ -19,7 +19,7 @@ import {
   TrendingDown,
 } from "lucide-react";
 
-import { concursoPorId } from "@/data/concursos";
+import { useConcurso } from "@/services/hooks";
 import { COMPOSICAO_PROVA, TOTAL_PROVA } from "@/lib/corte";
 import { useStore } from "@/store/useStore";
 import {
@@ -49,7 +49,7 @@ const MINIMO_PARA_SIMULAR = 10;
 
 export function AnaliseAvancada({ disciplinas, questoes, historico }: Props) {
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
-  const concurso = concursoPorId(concursoAtivoId);
+  const concurso = useConcurso(concursoAtivoId);
   const doConcurso = useMemo(
     () => historico.filter((h) => h.concursoId === concursoAtivoId),
     [historico, concursoAtivoId],

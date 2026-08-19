@@ -11,6 +11,7 @@ from rest_framework import serializers
 
 from .models import (
     Alternativa,
+    Concurso,
     Aula,
     ClassificacaoQuestao,
     Disciplina,
@@ -25,12 +26,17 @@ from .models import (
 
 class FonteSerializer(serializers.ModelSerializer):
     eOficial = serializers.BooleanField(source="e_oficial", read_only=True)
-    rotulo = serializers.CharField(source="get_tipo_display", read_only=True)
+    rotulo = serializers.SerializerMethodField()
     publicadoEm = serializers.DateField(source="publicado_em", read_only=True)
 
     class Meta:
         model = Fonte
         fields = ["slug", "tipo", "rotulo", "titulo", "url", "publicadoEm", "eOficial"]
+
+    def get_rotulo(self, obj) -> str:
+        # O rótulo explícito manda ("Imprensa — a confirmar"); sem ele, o nome
+        # do tipo continua sendo o que a tela mostrava antes do ADR-015.
+        return obj.rotulo or obj.get_tipo_display()
 
 
 class SubtopicoSerializer(serializers.ModelSerializer):
@@ -282,3 +288,51 @@ class ProblemaQuestaoSerializer(serializers.ModelSerializer):
     def get_enunciado(self, obj) -> str:
         texto = obj.questao.enunciado
         return texto[:280] + ("…" if len(texto) > 280 else "")
+
+
+class ConcursoSerializer(serializers.ModelSerializer):
+    """Catálogo de concursos (ADR-015), no shape exato do tipo `Concurso` do
+    frontend — trocar o hardcoded pela API não renomeia campo nenhum."""
+
+    id = serializers.CharField(source="slug", read_only=True)
+    banca = serializers.SerializerMethodField()
+    salario = serializers.SerializerMethodField()
+    dataProva = serializers.DateField(source="data_prova", read_only=True)
+    editalUrl = serializers.SerializerMethodField()
+    provaIds = serializers.SerializerMethodField()
+    fonte = FonteSerializer(read_only=True)
+
+    class Meta:
+        model = Concurso
+        fields = [
+            "id",
+            "nome",
+            "orgao",
+            "cargo",
+            "banca",
+            "salario",
+            "vagas",
+            "status",
+            "dataProva",
+            "editalUrl",
+            "provaIds",
+            "fonte",
+        ]
+
+    def get_banca(self, obj):
+        return obj.banca.nome if obj.banca_id else None
+
+    def get_salario(self, obj):
+        if obj.salario_valor is None:
+            return None
+        salario = {"valor": float(obj.salario_valor)}
+        if obj.salario_observacao:
+            salario["observacao"] = obj.salario_observacao
+        return salario
+
+    def get_editalUrl(self, obj):
+        # O frontend espera string | null; URLField vazio é "".
+        return obj.edital_url or None
+
+    def get_provaIds(self, obj):
+        return [p.id for p in obj.provas.all()]

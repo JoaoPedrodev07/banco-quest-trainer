@@ -15,8 +15,7 @@ import { Link } from "@tanstack/react-router";
 import { BookOpen, Check, Copy, Dumbbell, Save, Sparkles, Youtube } from "lucide-react";
 import { toast } from "sonner";
 
-import { concursoPorId } from "@/data/concursos";
-import { useQuestoes, useSalvarAula } from "@/services/hooks";
+import { useConcurso, useQuestoes, useSalvarAula } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
 import { PROMPT_AULA_VERSAO, linkYouTube, montarPromptEstudo } from "@/lib/promptEstudo";
 import { Markdown, AvisoGerado } from "@/components/Markdown";
@@ -74,7 +73,7 @@ export function AulaSubtopico({
   }, [abrirAoChegar]);
   const { questoes } = useQuestoes();
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
-  const concurso = concursoPorId(concursoAtivoId);
+  const concurso = useConcurso(concursoAtivoId);
   const salvar = useSalvarAula(concursoAtivoId);
 
   const questoesDoAssunto = useMemo(

@@ -12,8 +12,7 @@ import { useState } from "react";
 import { Check, Copy, MessageSquarePlus, Save } from "lucide-react";
 import { toast } from "sonner";
 
-import { concursoPorId } from "@/data/concursos";
-import { useComentarGabarito } from "@/services/hooks";
+import { useComentarGabarito, useConcurso } from "@/services/hooks";
 import { useStore } from "@/store/useStore";
 import { montarPromptGabarito } from "@/lib/promptEstudo";
 import { Markdown, AvisoGerado } from "@/components/Markdown";
@@ -32,7 +31,7 @@ export function GabaritoComentado({
   const [copiado, setCopiado] = useState(false);
   const [rascunho, setRascunho] = useState("");
   const concursoAtivoId = useStore((s) => s.concursoAtivoId);
-  const concurso = concursoPorId(concursoAtivoId);
+  const concurso = useConcurso(concursoAtivoId);
   const comentar = useComentarGabarito();
 
   const prompt = montarPromptGabarito(questao, disciplinaNome, concurso?.banca ?? null);
