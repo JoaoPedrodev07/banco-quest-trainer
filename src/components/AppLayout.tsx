@@ -16,6 +16,7 @@ import {
 import { useEffect } from "react";
 import { useStore } from "@/store/useStore";
 import { concursoPorId } from "@/data/concursos";
+import { BuscaGlobal } from "@/components/BuscaGlobal";
 import { Pomodoro } from "@/components/Pomodoro";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +65,7 @@ export function AppLayout() {
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1">
+          <BuscaGlobal />
           {navItems.map((it) => (
             <Link
               key={it.to}
