@@ -1,3 +1,9 @@
+import type {
+  CadernoSalvo,
+  CartaoProprio,
+  SrsDoCartao,
+  TentativaProva,
+} from "@/store/useStore";
 import type { RespostaHistorico, RevisaoItem, StatusTopico } from "@/types";
 
 /**
@@ -13,7 +19,10 @@ import type { RespostaHistorico, RevisaoItem, StatusTopico } from "@/types";
  * insubstituível — o que a pessoa fez.
  */
 
-export const VERSAO_BACKUP = 1;
+// v2: campos da linha Ciclo de Estudo (cadernos, tentativas de prova, SRS de
+// flashcard, cartões próprios, anotações). Arquivo v1 continua importável — os
+// campos que ele não tem entram vazios.
+export const VERSAO_BACKUP = 2;
 
 export interface Backup {
   formato: "foco-concursos-backup";
@@ -27,6 +36,11 @@ export interface Backup {
     historico: RespostaHistorico[];
     revisoes: RevisaoItem[];
     streak: { ultimoDia: string | null; dias: number };
+    cadernos: CadernoSalvo[];
+    tentativasProva: TentativaProva[];
+    flashcardsSrs: Record<string, SrsDoCartao>;
+    cartoesProprios: CartaoProprio[];
+    anotacoes: Record<string, string>;
   };
 }
 
@@ -85,6 +99,13 @@ export function lerBackup(texto: string): Backup["progresso"] {
     historico: p.historico,
     revisoes: p.revisoes,
     streak: p.streak ?? { ultimoDia: null, dias: 0 },
+    // Arquivo v1 não tem estes campos (§2.4): entram vazios, coerente com o
+    // contrato de importação — substitui, não mescla.
+    cadernos: p.cadernos ?? [],
+    tentativasProva: p.tentativasProva ?? [],
+    flashcardsSrs: p.flashcardsSrs ?? {},
+    cartoesProprios: p.cartoesProprios ?? [],
+    anotacoes: p.anotacoes ?? {},
   };
 }
 

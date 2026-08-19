@@ -143,6 +143,11 @@ ${cabecalho}
 
 ${questaoEmTexto(questao, 0)}`,
     `## O que quero de você
+Responda em DUAS profundidades, nesta ordem (é o que me permite conferir rápido quando sei o assunto e mergulhar quando não sei):
+
+**Primeira seção — \`## Em 2 linhas\`**: o assunto exato cobrado e por que a alternativa correta está correta, em no máximo 2 linhas.
+
+**Segunda seção — \`## Explicação completa\`**:
 1. Diga qual é o assunto exato cobrado — o mais específico possível, não "matemática" mas "regra de três composta".
 2. Explique o raciocínio até a resposta correta, passo a passo, sem pular etapa.
 3. **Para cada uma das outras alternativas, explique por que está errada.** Se alguma foi feita para induzir a um erro comum, diga qual erro é esse.

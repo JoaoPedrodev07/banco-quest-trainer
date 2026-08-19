@@ -4,7 +4,7 @@ import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { AulaSubtopico } from "@/components/AulaSubtopico";
 import { useAcervoDoConcurso, useAulas } from "@/services/hooks";
 import { SemAcervo } from "@/components/SemAcervo";
-import { unidadesFracas } from "@/lib/desempenho";
+import { desempenhoPorUnidade, unidadesFracas } from "@/lib/desempenho";
 import { dominioPorUnidade, rotuloDoDominio } from "@/lib/dominio";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store/useStore";
@@ -73,6 +73,16 @@ function EditalPage() {
     () => dominioPorUnidade(historico, questoes, concursoAtivoId),
     [historico, questoes, concursoAtivoId],
   );
+  // Quantas questões cada unidade já teve respondidas — para SUGERIR marcar o
+  // checkbox "questões" (ADR-011). Sugere, não marca sozinho: o checkbox é
+  // declaração consciente de estudo, não contador.
+  const respondidasPorUnidade = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const d of desempenhoPorUnidade(historico, questoes, concursoAtivoId)) {
+      mapa.set(d.unidadeId, d.respondidas);
+    }
+    return mapa;
+  }, [historico, questoes, concursoAtivoId]);
 
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [expandidas, setExpandidas] = useState<Record<string, boolean>>({});
@@ -227,6 +237,21 @@ function EditalPage() {
                                       )}
                                     >
                                       {rotuloDoDominio(dominio.get(s.id))}
+                                    </p>
+                                  )}
+                                  {/* Sugestão, nunca marcação automática (ADR-011):
+                                      o app tem o dado, mas quem declara "estudei
+                                      por questões" é a pessoa. */}
+                                  {!st.questoes && (respondidasPorUnidade.get(s.id) ?? 0) >= 3 && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Você já respondeu {respondidasPorUnidade.get(s.id)} questões
+                                      daqui —{" "}
+                                      <button
+                                        onClick={() => toggleStatus(s.id, "questoes")}
+                                        className="font-semibold text-primary underline-offset-2 hover:underline"
+                                      >
+                                        marcar “questões”?
+                                      </button>
                                     </p>
                                   )}
                                 </div>

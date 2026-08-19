@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { AnotacaoDaQuestao } from "@/components/AnotacaoDaQuestao";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { GabaritoComentado } from "@/components/GabaritoComentado";
 import { TextoDaQuestao } from "@/components/Markdown";
@@ -1112,6 +1113,8 @@ function QuestoesPage() {
                 />
               </div>
             )}
+
+            {respondida && <AnotacaoDaQuestao questaoId={q.id} />}
           </CardContent>
         </Card>
 
@@ -1390,6 +1393,8 @@ function QuestaoDoResultado({
           <div className="rounded-lg bg-muted p-4">
             <GabaritoComentado questao={q} disciplinaNome={disciplinaNome} />
           </div>
+
+          <AnotacaoDaQuestao questaoId={q.id} />
         </CardContent>
       )}
     </Card>

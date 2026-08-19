@@ -40,6 +40,11 @@ export function BackupProgresso() {
       historico: s.historico,
       revisoes: s.revisoes,
       streak: s.streak,
+      cadernos: s.cadernos,
+      tentativasProva: s.tentativasProva,
+      flashcardsSrs: s.flashcardsSrs,
+      cartoesProprios: s.cartoesProprios,
+      anotacoes: s.anotacoes,
     });
 
     const url = URL.createObjectURL(new Blob([conteudo], { type: "application/json" }));

@@ -252,7 +252,133 @@ export function diagnosticarRitmo(
   return saida.sort((a, b) => a.taxaAcerto - b.taxaAcerto);
 }
 
-// ------------------------------------------------- 6. chute racional
+// ------------------------------------------------- 6. anatomia do erro
+
+export interface AnatomiaDoErro {
+  disciplinaId: string;
+  erros: number;
+  /**
+   * Errou com raciocínio escrito que não era chute: conceito aprendido errado.
+   * É o pior tipo de erro (a pessoa tem certeza do que está errado) e pede
+   * TEORIA, não mais questões.
+   */
+  conviccaoErrada: number;
+  /** Errou chutando (declarou chute, ou nem escreveu raciocínio): lacuna de conteúdo. Pede cobertura. */
+  chuteErrado: number;
+}
+
+/**
+ * De que tipo são os seus erros, por disciplina (ADR-011).
+ *
+ * O que interessa não é quanto se erra — a taxa já diz — e sim COMO: convicção
+ * errada e chute pedem estudos opostos. Só é possível porque o app grava o
+ * raciocínio antes do gabarito; % de acerto sozinho não separa os dois.
+ *
+ * NÃO fazemos análise por distrator (qual alternativa errada atrai): corpus de
+ * um usuário só não tem repetição por questão para sustentar isso — seria o
+ * número bonito e falso que o §8 do CLAUDE.md proíbe.
+ */
+export function anatomiaDoErro(
+  respostas: {
+    disciplinaId: string;
+    correta: boolean;
+    raciocinio?: string;
+    autoavaliacao?: "bateu" | "torto" | "chutei";
+  }[],
+  minimo = 10,
+): AnatomiaDoErro[] {
+  const porDisciplina = new Map<string, { erros: number; conviccao: number; chute: number }>();
+  for (const r of respostas) {
+    if (r.correta) continue;
+    const atual = porDisciplina.get(r.disciplinaId) ?? { erros: 0, conviccao: 0, chute: 0 };
+    atual.erros += 1;
+    // A declaração da própria pessoa manda: raciocínio escrito mas avaliado
+    // como "chutei" é chute — ela sabe melhor que a heurística.
+    if (r.raciocinio && r.autoavaliacao !== "chutei") atual.conviccao += 1;
+    else atual.chute += 1;
+    porDisciplina.set(r.disciplinaId, atual);
+  }
+
+  return [...porDisciplina.entries()]
+    .filter(([, d]) => d.erros >= minimo)
+    .map(([disciplinaId, d]) => ({
+      disciplinaId,
+      erros: d.erros,
+      conviccaoErrada: d.conviccao,
+      chuteErrado: d.chute,
+    }))
+    .sort((a, b) => b.erros - a.erros);
+}
+
+// ------------------------------------------------- 7. evolução por janelas
+
+export interface JanelaDeTaxa {
+  respondidas: number;
+  acertos: number;
+  /** Intervalo de Wilson da taxa, em proporção 0–1. */
+  min: number;
+  max: number;
+}
+
+export interface EvolucaoDisciplina {
+  disciplinaId: string;
+  /** Últimos `janelaDias` dias. Nulo = amostra abaixo do mínimo (sem dados, não "zero"). */
+  recente: JanelaDeTaxa | null;
+  /** A janela imediatamente anterior. */
+  anterior: JanelaDeTaxa | null;
+  /**
+   * Só afirma tendência quando os intervalos NÃO se sobrepõem: sobreposição é
+   * "sem mudança detectável", não "melhorou 3%".
+   */
+  tendencia: "melhorou" | "piorou" | "indefinida";
+}
+
+/**
+ * Sua taxa por disciplina agora × há um mês (ADR-011).
+ *
+ * Compara janelas com intervalo de Wilson em vez de subtrair percentuais: com
+ * 12 respostas por janela, "68% → 71%" é ruído, e a seta para cima mentiria.
+ */
+export function evolucaoPorJanelas(
+  respostas: { disciplinaId: string; correta: boolean; data: string }[],
+  agora: Date,
+  janelaDias = 30,
+  minimo = 10,
+): EvolucaoDisciplina[] {
+  const corte1 = agora.getTime() - janelaDias * 86_400_000;
+  const corte2 = agora.getTime() - 2 * janelaDias * 86_400_000;
+
+  const porDisciplina = new Map<string, { recente: boolean[]; anterior: boolean[] }>();
+  for (const r of respostas) {
+    const t = new Date(r.data).getTime();
+    if (t < corte2 || t > agora.getTime()) continue;
+    const atual = porDisciplina.get(r.disciplinaId) ?? { recente: [], anterior: [] };
+    (t >= corte1 ? atual.recente : atual.anterior).push(r.correta);
+    porDisciplina.set(r.disciplinaId, atual);
+  }
+
+  const janela = (acertos: boolean[]): JanelaDeTaxa | null => {
+    if (acertos.length < minimo) return null;
+    const certas = acertos.filter(Boolean).length;
+    const { min, max } = intervaloWilson(certas, acertos.length);
+    return { respondidas: acertos.length, acertos: certas, min, max };
+  };
+
+  return [...porDisciplina.entries()]
+    .map(([disciplinaId, d]) => {
+      const recente = janela(d.recente);
+      const anterior = janela(d.anterior);
+      let tendencia: EvolucaoDisciplina["tendencia"] = "indefinida";
+      if (recente && anterior) {
+        if (recente.min > anterior.max) tendencia = "melhorou";
+        else if (recente.max < anterior.min) tendencia = "piorou";
+      }
+      return { disciplinaId, recente, anterior, tendencia };
+    })
+    .filter((e) => e.recente || e.anterior);
+}
+
+// ------------------------------------------------- 8. chute racional
 
 export interface DecisaoDeChute {
   /** Confiança mínima para responder valer a pena. */

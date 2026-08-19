@@ -168,6 +168,11 @@ interface StoreState {
   /** cartaoId (id de questão ou de cartão próprio) -> agenda. */
   flashcardsSrs: Record<string, SrsDoCartao>;
   cartoesProprios: CartaoProprio[];
+  /**
+   * Nota privada por questão (ADR-011): "pegadinha: a banca troca média por
+   * mediana aqui". Reaparece no reencontro com a questão e no caderno de erros.
+   */
+  anotacoes: Record<string, string>;
 
   definirConcursoAtivo: (id: string) => void;
   iniciarPomodoro: (fase: "foco" | "pausa") => void;
@@ -225,6 +230,8 @@ interface StoreState {
   julgarFlashcard: (cartaoId: string, lembrou: boolean) => void;
   criarCartao: (c: CartaoProprio) => void;
   removerCartao: (id: string) => void;
+  /** Texto vazio remove a anotação — nota em branco ocupando espaço é lixo. */
+  anotarQuestao: (questaoId: string, texto: string) => void;
   /**
    * Substitui o progresso pelo de um backup.
    *
@@ -240,6 +247,14 @@ interface StoreState {
     historico: RespostaHistorico[];
     revisoes: RevisaoItem[];
     streak: { ultimoDia: string | null; dias: number };
+    // Campos da linha Ciclo de Estudo (backup v2). O `lerBackup` preenche com
+    // vazio quando o arquivo é v1 — importar backup antigo zera estes campos,
+    // coerente com "substitui, não mescla".
+    cadernos: CadernoSalvo[];
+    tentativasProva: TentativaProva[];
+    flashcardsSrs: Record<string, SrsDoCartao>;
+    cartoesProprios: CartaoProprio[];
+    anotacoes: Record<string, string>;
   }) => void;
   reset: () => void;
 }
@@ -282,6 +297,7 @@ export const useStore = create<StoreState>()(
       tentativasProva: [],
       flashcardsSrs: {},
       cartoesProprios: [],
+      anotacoes: {},
 
       definirConcursoAtivo: (id) => set({ concursoAtivoId: id }),
 
@@ -435,6 +451,16 @@ export const useStore = create<StoreState>()(
             },
           };
         }),
+      anotarQuestao: (questaoId, texto) =>
+        set((s) => {
+          const limpo = texto.trim();
+          if (!limpo) {
+            const { [questaoId]: _removida, ...restante } = s.anotacoes;
+            return { anotacoes: restante };
+          }
+          return { anotacoes: { ...s.anotacoes, [questaoId]: limpo } };
+        }),
+
       criarCartao: (c) => set((s) => ({ cartoesProprios: [...s.cartoesProprios, c] })),
       removerCartao: (id) =>
         set((s) => {
@@ -459,6 +485,7 @@ export const useStore = create<StoreState>()(
           tentativasProva: [],
           flashcardsSrs: {},
           cartoesProprios: [],
+          anotacoes: {},
         }),
     }),
     {

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, ListChecks } from "lucide-react";
 
+import { AnotacaoDaQuestao } from "@/components/AnotacaoDaQuestao";
 import { AvisoAcervo } from "@/components/AvisoAcervo";
 import { GabaritoComentado } from "@/components/GabaritoComentado";
 import { TextoDaQuestao } from "@/components/Markdown";
@@ -275,6 +276,8 @@ function ItemDoCaderno({
           <div className="rounded-lg bg-muted p-4">
             <GabaritoComentado questao={questao} disciplinaNome={disciplinaNome} />
           </div>
+
+          <AnotacaoDaQuestao questaoId={questao.id} />
 
           {unidadeId && (
             <Button asChild size="sm" variant="outline" className="gap-1.5">

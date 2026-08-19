@@ -9,16 +9,18 @@
  */
 
 import { useMemo } from "react";
-import { Clock, Dices, Target, TrendingDown } from "lucide-react";
+import { Clock, Dices, History, Microscope, Target, TrendingDown } from "lucide-react";
 
 import { concursoPorId } from "@/data/concursos";
 import { COMPOSICAO_PROVA, TOTAL_PROVA } from "@/lib/corte";
 import { useStore } from "@/store/useStore";
 import {
+  anatomiaDoErro,
   assuntosPara,
   curvaDeCobertura,
   decisaoDeChute,
   diagnosticarRitmo,
+  evolucaoPorJanelas,
   simularNota,
   type PontoDeCobertura,
 } from "@/lib/estatistica";
@@ -104,6 +106,14 @@ export function AnaliseAvancada({ disciplinas, questoes, historico }: Props) {
 
   const chute = decisaoDeChute(questoes.some((q) => q.pontuacaoLiquida));
 
+  // ------------------------------------------------------------ anatomia do erro
+  const anatomia = useMemo(() => anatomiaDoErro(doConcurso), [doConcurso]);
+
+  // ------------------------------------------------------------ evolução
+  const evolucao = useMemo(() => evolucaoPorJanelas(doConcurso, new Date()), [doConcurso]);
+
+  const nomeDaDisciplina = (id: string) => disciplinas.find((d) => d.id === id)?.nome ?? id;
+
   return (
     <div className="space-y-4">
       {/* -------------------------------------------------- onde parar de estudar */}
@@ -166,6 +176,99 @@ export function AnaliseAvancada({ disciplinas, questoes, historico }: Props) {
                 <p className="text-xs text-muted-foreground">{d.mensagem}</p>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* -------------------------------------------------- anatomia do erro */}
+      {anatomia.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Microscope className="h-4 w-4 text-muted-foreground" />
+              Anatomia do erro
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Errar com convicção (raciocínio escrito que não bateu) é conceito aprendido errado —
+              pede <strong>teoria</strong>. Errar chutando é lacuna de conteúdo — pede{" "}
+              <strong>cobertura</strong>. A taxa de acerto sozinha não separa os dois.
+            </p>
+            {anatomia.map((a) => {
+              const pctConviccao = Math.round((a.conviccaoErrada / a.erros) * 100);
+              return (
+                <div key={a.disciplinaId} className="space-y-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-sm font-semibold">{nomeDaDisciplina(a.disciplinaId)}</p>
+                    <p className="text-xs tabular-nums text-muted-foreground">
+                      {a.erros} erros: {a.conviccaoErrada} com convicção · {a.chuteErrado}{" "}
+                      {a.chuteErrado === 1 ? "chute" : "chutes"}
+                    </p>
+                  </div>
+                  <Progress value={pctConviccao} className="h-1.5" />
+                  <p className="text-xs text-muted-foreground">
+                    {pctConviccao >= 50
+                      ? `A maioria dos erros aqui é de convicção (${pctConviccao}%): revisite a teoria antes de fazer mais questões.`
+                      : `A maioria dos erros aqui é chute (${100 - pctConviccao}%): falta cobertura — vale mais ver a teoria dos assuntos que você ainda não estudou do que refazer questões.`}
+                  </p>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* -------------------------------------------------- evolução */}
+      {evolucao.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <History className="h-4 w-4 text-muted-foreground" />
+              Evolução — últimos 30 dias × os 30 anteriores
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {evolucao.map((e) => (
+              <div key={e.disciplinaId} className="space-y-0.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-sm font-semibold">{nomeDaDisciplina(e.disciplinaId)}</p>
+                  {/* A seta só aparece quando as faixas nem se encostam:
+                      sobreposição é "sem mudança detectável", não "+3%". */}
+                  {e.tendencia !== "indefinida" && (
+                    <Badge variant={e.tendencia === "melhorou" ? "default" : "destructive"}>
+                      {e.tendencia === "melhorou" ? "▲ melhorou" : "▼ piorou"}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Antes:{" "}
+                  {e.anterior ? (
+                    <>
+                      {Math.round((e.anterior.acertos / e.anterior.respondidas) * 100)}% (
+                      {e.anterior.acertos}/{e.anterior.respondidas}, faixa{" "}
+                      {Math.round(e.anterior.min * 100)}–{Math.round(e.anterior.max * 100)}%)
+                    </>
+                  ) : (
+                    <em>sem dados — menos de 10 respostas na janela</em>
+                  )}{" "}
+                  · Agora:{" "}
+                  {e.recente ? (
+                    <>
+                      {Math.round((e.recente.acertos / e.recente.respondidas) * 100)}% (
+                      {e.recente.acertos}/{e.recente.respondidas}, faixa{" "}
+                      {Math.round(e.recente.min * 100)}–{Math.round(e.recente.max * 100)}%)
+                    </>
+                  ) : (
+                    <em>sem dados — menos de 10 respostas na janela</em>
+                  )}
+                </p>
+              </div>
+            ))}
+            <p className="text-xs text-muted-foreground">
+              Ausência de seta não é estagnação: com estas amostras, uma diferença pequena não é
+              distinguível de sorte. Sem dados é diferente de zero.
+            </p>
           </CardContent>
         </Card>
       )}
